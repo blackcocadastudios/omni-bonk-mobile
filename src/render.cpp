@@ -328,6 +328,7 @@ void Renderer::beginFrame(int w, int h, float dt) {
   int nw = std::max(64, (int)(w * set.renderScale)), nh = std::max(64, (int)(h * set.renderScale));
   if (nw != rw || nh != rh) { rw = nw; rh = nh; scene.create(rw, rh, true, false); }
   cmds.clear(); fxCmds.clear(); billAdd.clear(); billAlpha.clear(); decals.clear();
+  lastStats = stats; stats = Stats();
 }
 
 void Renderer::setCamera(v3 eye, v3 target, float fovy) {
@@ -437,6 +438,7 @@ void Renderer::drawModelCmds(std::vector<DrawCmd>& list, bool fx) {
     const ModelInfo& mi = gModels.info[m];
     bindModelStreams(mi, frame, next, i * sizeof(Inst));
     glDrawElementsInstanced(GL_TRIANGLES, mi.idx, GL_UNSIGNED_SHORT, (void*)mi.idxOff, (GLsizei)(j - i));
+    stats.draws++; stats.insts += (int)(j - i); stats.tris += mi.idx / 3 * (int)(j - i);
     i = j;
   }
   for (int a = 5; a < 10; a++) glVertexAttribDivisor(a, 0);
@@ -491,6 +493,7 @@ void Renderer::renderScene(bool drawWorld) {
       glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, C.ibo);
       glDisable(GL_CULL_FACE);
       glDrawElements(GL_TRIANGLES, C.idx, GL_UNSIGNED_SHORT, 0);
+      stats.draws++; stats.tris += C.idx / 3;
       glEnable(GL_CULL_FACE);
       // queue props of visible chunk
       for (int pi : C.props) {

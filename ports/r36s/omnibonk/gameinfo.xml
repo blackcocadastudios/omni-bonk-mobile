@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gameList>
+  <game>
+    <path>./OmniBonk.sh</path>
+    <name>Omni Bonk</name>
+    <desc>Roguelike de sobrevivência em 3D low-poly inspirado em Megabonk. Ataques automáticos, 3 mapas com 3 tiers, 43 inimigos, 30 armas, 23 tomos, 86 itens e tempo por estágio ajustável (padrão 15 min).</desc>
+    <developer>Black Cocada Studios</developer>
+    <genre>Action</genre>
+    <image>./omnibonk/screenshot.png</image>
+  </game>
+</gameList>

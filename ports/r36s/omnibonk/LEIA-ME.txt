@@ -1,0 +1,34 @@
+OMNI BONK - port para R36S (aarch64, SDL2, OpenGL ES 3.0)
+==========================================================
+
+INSTALAR
+  1. Coloque o cartão SD de jogos no PC (partição EASYROMS).
+  2. Copie "OmniBonk.sh" e a pasta "omnibonk" para a pasta "ports".
+     (alternativa com PortMaster: copie o .zip para ports/autoinstall)
+  3. No console: Start > Quit > Restart EmulationStation (ou reinicie).
+  4. O jogo aparece em Ports como "OmniBonk".
+
+CONTROLES
+  Analógico esquerdo / D-pad ... andar (nos menus: navegar)
+  Analógico direito ............ câmera
+  A ou R1 ...................... pular (nos menus: confirmar)
+  B ou L1 ...................... deslizar (nos menus: voltar)
+  X ou R2 ...................... interagir (baús, shrines, lojas)
+  Y ou L2 ...................... mapa completo
+  Start ........................ pausa (nos menus: ação principal)
+  L1 / R1 ...................... trocar de aba (configurações, catálogo)
+  Select + Start ............... salvar e sair
+  L3 + R3 ...................... captura de tela (omnibonk/conf/screenshot_NN.bmp)
+
+DESEMPENHO
+  O padrão é escala de render 75%, 220 inimigos e partículas médias.
+  "Qualidade automática" (ligada) reduz a escala sozinha se o FPS cair.
+  Para ver o FPS: CONFIG > GRÁFICOS > Mostrar FPS.
+  Se preferir estabilidade a 30 FPS: CONFIG > GRÁFICOS > Limite de FPS = 30.
+
+SE ALGO DER ERRADO
+  O arquivo omnibonk/log.txt é reescrito a cada execução. Ele registra o
+  firmware, o driver de vídeo, o controle detectado e o FPS a cada 10 s.
+  O save fica em omnibonk/conf/omnibonk_save.txt (apague para voltar ao padrão).
+
+Projeto de fã, sem vínculo com Megabonk. Todos os assets são originais.

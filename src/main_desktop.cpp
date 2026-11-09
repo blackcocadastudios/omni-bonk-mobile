@@ -204,6 +204,96 @@ static void uiShots() {
   a.scr = SCR_SHOP; frame(1 / 30.f, 2); shot("ui_08_loja");
 }
 
+// ---------------------------------------------------------------- gamepad scenario (handheld UI)
+static PadState gPad;
+static void padFrames(int n, float dt = 1 / 30.f) { for (int i = 0; i < n; i++) { app_gamepad(gPad); app_frame(dt); } glFinish(); }
+static void press(unsigned btn, int hold = 2, int after = 4) { gPad.buttons |= btn; padFrames(hold); gPad.buttons &= ~btn; padFrames(after); }
+static void padLog(const char* what) {
+  App& a = gApp;
+  LOGI("[pad] %-28s scr=%d state=%d focus=%d (%.0f,%.0f %.0fx%.0f) selChar=%d selMap=%d tab=%d", what, (int)a.scr, (int)a.game.state, a.ui.hasFocus, a.ui.focus.x, a.ui.focus.y, a.ui.focus.w, a.ui.focus.h, a.selChar, a.selMap, a.settingsTab);
+}
+static void padScenario() {
+  App& a = gApp;
+  a.testMode = false; a.set.vibration = false;
+  a.selMap = MAP_FOREST; a.selChar = C_FOX; a.scr = SCR_TITLE; for (int i = 0; i < 240; i++) a.updateMenuGame(1 / 30.f);
+  padFrames(4); padLog("title"); shot("pad_01_titulo");
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_LEFT); padLog("title: 3x down, left"); shot("pad_02_titulo_config");
+  press(PB_A); padFrames(6); padLog("settings"); shot("pad_03_config");
+  for (int i = 0; i < 3; i++) press(PB_DOWN);
+  press(PB_RIGHT); padLog("settings: adjust"); shot("pad_04_config_ajuste");
+  for (int i = 0; i < 9; i++) press(PB_DOWN);
+  padLog("settings: scrolled"); shot("pad_05_config_rolagem");
+  press(PB_R1); padFrames(4); padLog("settings: R1 tab"); shot("pad_06_config_aba2");
+  press(PB_R1); padFrames(4); shot("pad_07_config_controles");
+  press(PB_B); padFrames(6); padLog("back to title");
+  press(PB_DOWN); press(PB_A); padFrames(6); padLog("catalog"); shot("pad_08_catalogo");
+  press(PB_R1); press(PB_R1); press(PB_DOWN); for (int i = 0; i < 9; i++) press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT);
+  padLog("catalog: items scrolled"); shot("pad_09_catalogo_itens");
+  press(PB_R1); press(PB_DOWN); press(PB_DOWN); for (int i = 0; i < 20; i++) press(PB_DOWN, 2, 2); padLog("catalog: enemies"); shot("pad_10_catalogo_inimigos");
+  press(PB_B); padFrames(6);
+  press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("shop"); shot("pad_11_loja");
+  press(PB_B); padFrames(6);
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("about"); shot("pad_12_sobre");
+  press(PB_B); padFrames(6);
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("quit dialog"); shot("pad_13_sair");
+  press(PB_A); padFrames(6); padLog("quit dialog: no");
+  press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_personagens");
+  press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_personagens_calcium");
+  press(PB_A); padFrames(8); padLog("map"); shot("pad_16_mapa");
+  press(PB_DOWN); press(PB_RIGHT); press(PB_A); press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT); padLog("map: tier2, time +2"); 
+  press(PB_DOWN); shot("pad_17_mapa_tempo");
+  press(PB_START); padFrames(20); padLog("game start");
+  a.game.cfg.godMode = true;
+  gPad.ly = -1; padFrames(40); gPad.buttons |= PB_A; padFrames(3); gPad.buttons &= ~PB_A; gPad.rx = 0.8f; padFrames(25); gPad.rx = 0; padFrames(30); gPad.ly = 0;
+  padLog("game: moved"); shot("pad_18_jogo_inicio");
+  a.game.autoPilot = true; for (int i = 0; i < 30 * 150; i++) { a.game.update(1 / 30.f); if (a.game.state != GS_PLAY) { a.game.pendingLevels = 0; a.game.state = GS_PLAY; } }
+  a.game.autoPilot = false; a.game.state = GS_PLAY; a.game.pendingLevels = 0; padFrames(6);
+  padLog("game: 2.5 min"); shot("pad_19_jogo_hud");
+  press(PB_START); padFrames(16); padLog("pause"); shot("pad_20_pausa");
+  press(PB_RIGHT); padLog("pause: right"); press(PB_B); padFrames(6); padLog("pause: B resumes");
+  press(PB_Y); padFrames(16); padLog("map (Y)"); shot("pad_21_mapa_completo");
+  press(PB_B); padFrames(6); padLog("map: B closes");
+  Game& g = a.game;
+  g.genLevelOffers(); g.pendingLevels = 1; g.state = GS_LEVELUP; gPad.buttons |= PB_A; padFrames(4); gPad.buttons &= ~PB_A; padFrames(14); padLog("levelup (A mash locked)"); shot("pad_22_level_up");
+  press(PB_RIGHT); padLog("levelup: right"); shot("pad_23_level_up_foco"); press(PB_A); padFrames(4); padLog("levelup: picked");
+  g.state = GS_PLAY; for (auto& it : g.inters) if (it.type == I_CHEST && !it.used) { g.openChest(it, true); break; }
+  g.chestAnim = 2; padFrames(16); padLog("chest"); shot("pad_24_bau"); press(PB_A); padFrames(4); padLog("chest: taken");
+  g.state = GS_PLAY; g.genShrineOffers(false); g.state = GS_SHRINE; padFrames(16); shot("pad_25_shrine"); press(PB_A); padFrames(4); padLog("shrine: picked");
+  for (auto& it : g.inters) if (it.type == I_SHADY) { g.curInter = (int)(&it - &g.inters[0]); g.P.gold = 5000; g.state = GS_SHOP; break; }
+  padFrames(16); padLog("shady"); shot("pad_26_shady"); press(PB_B); padFrames(4); padLog("shady: B exits");
+  g.banner("Qualidade automática", "FPS 31 - escala de render 65%", Col(255, 214, 80), 3.f); padFrames(12); shot("pad_27_banner");
+  g.state = GS_DEAD; g.deathT = 0; padFrames(50); padLog("dead"); shot("pad_28_fim");
+  press(PB_RIGHT); press(PB_A); padFrames(10); padLog("end: menu");
+}
+
+// CPU profile of a busy scene: time in game.update, in building the draw lists, and the batch counts
+static void perfScenario(int map, int ch, float minutes) {
+  App& a = gApp; Game& g = a.game;
+  for (float at : {2.f, minutes}) {
+    startGame(map, 0, ch, true, 99);
+    a.applySettingsToGame(g); g.cfg.maxEnemies = a.set.maxEnemies;
+    simGame(g, at * 60);
+    g.state = GS_PLAY; g.autoPilot = true;
+    double tu = 0, tr = 0, ts = 0; int n = 120; long draws = 0, insts = 0, tris = 0; int maxDraws = 0;
+    for (int i = 0; i < n; i++) {
+      a.ui.begin(W, H, 1, a.plat, 1 / 60.f); gR.set.renderScale = a.set.renderScale; gR.set.viewDist = a.set.viewDist;
+      gR.beginFrame(W, H, 1 / 60.f);
+      auto t0 = std::chrono::steady_clock::now();
+      g.update(1 / 60.f); if (g.state != GS_PLAY) { g.pendingLevels = 0; g.state = GS_PLAY; }
+      auto t1 = std::chrono::steady_clock::now();
+      g.render(gR);
+      auto t2 = std::chrono::steady_clock::now();
+      gR.renderScene(true); a.drawGame(); gR.uiFlush();
+      auto t3 = std::chrono::steady_clock::now();
+      tu += std::chrono::duration<double, std::milli>(t1 - t0).count(); tr += std::chrono::duration<double, std::milli>(t2 - t1).count(); ts += std::chrono::duration<double, std::milli>(t3 - t2).count();
+      draws += gR.stats.draws; insts += gR.stats.insts; tris += gR.stats.tris; maxDraws = std::max(maxDraws, gR.stats.draws);
+    }
+    int alive = 0; for (auto& e : g.enemies) alive += e.alive;
+    LOGI("PERF map=%d t=%.0fmin enemies=%d | update %.3f ms | build lists %.3f ms | scene+ui (llvmpipe) %.2f ms | draws %.0f (max %d) inst %.0f tris %.0f | projs %zu areas %zu parts %zu",
+         map, at, alive, tu / n, tr / n, ts / n, (double)draws / n, maxDraws, (double)insts / n, (double)tris / n, g.projs.size(), g.areas.size(), g.parts.size());
+  }
+}
+
 static void gameShots(int map, int tier, int ch, const std::string& tag, float seconds, u32 seed) {
   App& a = gApp;
   startGame(map, tier, ch, true, seed);
@@ -236,7 +326,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
 
 int main(int argc, char** argv) {
   std::string scenario = "ui";
-  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7;
+  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     auto next = [&]() { return i + 1 < argc ? std::string(argv[++i]) : std::string(); };
@@ -247,6 +337,7 @@ int main(int argc, char** argv) {
     else if (a == "--char") bchar = atoi(next().c_str());
     else if (a == "--minutes") bmin = (float)atof(next().c_str());
     else if (a == "--seed") seed = (u32)atoi(next().c_str());
+    else if (a == "--handheld") handheld = true;
   }
   mkdir(outDir.c_str(), 0755);
   auto getPlat = (EGLDisplay(*)(EGLenum, void*, const EGLint*))eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -262,15 +353,20 @@ int main(int argc, char** argv) {
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRb);
   glGenRenderbuffers(1, &depthRb); glBindRenderbuffer(GL_RENDERBUFFER, depthRb); glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, W, H);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRb);
-  PlatformInfo pi; pi.width = W; pi.height = H; pi.dataDir = "/tmp"; pi.density = 3;
+  PlatformInfo pi; pi.width = W; pi.height = H; pi.dataDir = "/tmp/omnibonk_harness"; pi.density = 3;
+  mkdir(pi.dataDir.c_str(), 0755); remove((pi.dataDir + "/omnibonk_save.txt").c_str());
+  if (handheld) { pi.handheld = true; pi.deviceName = "R36S"; }
   auto t0 = std::chrono::steady_clock::now();
   app_init(pi);
   LOGI("init %.2fs", std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count());
   app_gl_init();
   gR.screenFbo = fbo;
   gApp.testMode = true;
-  gApp.set = Settings();
+  if (!handheld) gApp.set = Settings();
+  if (handheld) gApp.ui.padMode = true;
   if (scenario == "ui") uiShots();
+  else if (scenario == "pad") padScenario();
+  else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();
   else if (scenario == "icon") iconShot();
   else if (scenario == "balance") balance(bmap, bchar, bmin, seed);

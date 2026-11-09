@@ -1,0 +1,129 @@
+name: R36S port
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: r36s-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build R36S package (aarch64, SDL2, GLES 3.0)
+    runs-on: ubuntu-latest
+    container: debian:bullseye   # glibc 2.31: runs on dArkOS (Debian 13), ROCKNIX, AmberELEC...
+    timeout-minutes: 30
+    steps:
+      - name: Toolchain
+        run: |
+          dpkg --add-architecture arm64
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git cmake ninja-build make zip unzip file binutils g++-aarch64-linux-gnu libsdl2-dev:arm64
+
+      - uses: actions/checkout@v4
+
+      - name: Build + package
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          case "$GITHUB_REF" in refs/tags/v*) export VERSION_NAME="${GITHUB_REF_NAME#v}";; *) export VERSION_NAME="1.1.${RUN_NUMBER}";; esac
+          bash scripts/build_r36s.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OmniBonk-R36S
+          path: build/OmniBonk-R36S.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish the package
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: OmniBonk-R36S
+          path: build
+
+      - name: Release "r36s-mais-recente" (branch pushes)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: r36s-mais-recente
+          name: R36S - build mais recente (${{ github.run_number }})
+          body: |
+            Port Ready to Run para R36S (aarch64, SDL2, OpenGL ES 3.0). Build automático do commit ${{ github.sha }} (branch ${{ github.ref_name }}).
+            Extraia o **OmniBonk-R36S.zip** dentro da pasta `ports` do cartão (partição EASYROMS) e reinicie o EmulationStation.
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: build/OmniBonk-R36S.zip
+
+      - name: Release (tags v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/OmniBonk-R36S.zip
+
+  smoke:
+    name: Run the aarch64 binary (QEMU + Debian 13 + llvmpipe)
+    needs: [build, release]
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: OmniBonk-R36S
+          path: build
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Run under QEMU
+        run: |
+          mkdir -p build/pkg build/smoke
+          unzip -q build/OmniBonk-R36S.zip -d build/pkg
+          docker run --rm --platform linux/arm64 -v "$PWD/build/pkg:/pkg" -v "$PWD/build/smoke:/out" -v "$PWD/scripts:/scripts:ro" debian:trixie bash /scripts/r36s_smoke.sh /pkg /out
+
+      - name: BMP -> PNG
+        if: always()
+        run: |
+          sudo chown -R "$(id -u)" build/smoke || true
+          python3 -m pip install --quiet pillow || sudo apt-get install -y -qq python3-pil
+          python3 - <<'PY'
+          import glob
+          from PIL import Image
+          for f in sorted(glob.glob('build/smoke/*.bmp')):
+              Image.open(f).convert('RGB').save(f[:-4] + '.png')
+              print('converted', f)
+          PY
+          ls -la build/smoke
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r36s-smoke
+          path: |
+            build/smoke/*.png
+            build/smoke/*.log
+          if-no-files-found: warn
+
+      - name: Attach screenshots + logs to the release
+        if: always()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: r36s-mais-recente
+          prerelease: true
+          files: |
+            build/smoke/*.png
+            build/smoke/*.log

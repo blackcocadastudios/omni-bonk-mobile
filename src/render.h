@@ -20,6 +20,7 @@ struct Renderer {
   RenderSettings set;
   int screenW = 1280, screenH = 720, rw = 0, rh = 0;
   GLuint screenFbo = 0; // 0 = default framebuffer
+  struct Stats { int draws = 0, insts = 0, tris = 0; } stats, lastStats; // per frame (profiling)
   float time = 0;
   // camera
   v3 camPos, camTarget; float fov = 60 * DEG; m4 view, proj, vp; v3 camRight, camUp, camFwd;

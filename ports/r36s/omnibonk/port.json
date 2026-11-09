@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "name": "omnibonk.zip",
+  "items": ["OmniBonk.sh", "omnibonk"],
+  "items_opt": [],
+  "attr": {
+    "title": "Omni Bonk",
+    "porter": ["blackcocadastudios"],
+    "desc": "Roguelike de sobrevivencia em 3D low-poly inspirado em Megabonk: 3 mapas, 43 inimigos, 30 armas, 86 itens, tempo por estagio ajustavel. Assets originais gerados por codigo.",
+    "inst": "Ready to run. Copie OmniBonk.sh e a pasta omnibonk para ports/.",
+    "genres": ["action", "arcade"],
+    "image": {},
+    "rtr": true,
+    "exp": false,
+    "runtime": [],
+    "reqs": ["opengles3"],
+    "arch": ["aarch64"]
+  }
+}
