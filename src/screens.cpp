@@ -137,7 +137,7 @@ void App::drawSettings() {
   if (settingsTab == 0) {
     rows.push_back({"Tempo por estágio", stageLabel(s.stageMin), [&](int d) { int i = 0; for (int k = 0; k < 7; k++) if (kStageOpts[k] == s.stageMin) i = k; s.stageMin = kStageOpts[(i + d + 7) % 7]; }, "Padrão 15 min (o original usa 10)."});
     rows.push_back({"Escalonar estágios 2/3", onoff(s.scaleStages), [&](int) { s.scaleStages = !s.scaleStages; }, "Estágios seguintes com 90%/80% do tempo."});
-    rows.push_back({"Enxame Final", s.swarmMode ? "SÓ APÓS O CHEFE" : "AO ZERAR O TIMER", [&](int) { s.swarmMode ^= 1; }, ""});
+    rows.push_back({"Enxame Final", s.swarmMode ? "APÓS O CHEFE" : "FIM DO TIMER", [&](int) { s.swarmMode ^= 1; }, ""});
     rows.push_back({"FPS da animação", s.animFps >= 24 ? "SUAVE (24)" : fmt("%d (stepped)", s.animFps), [&](int d) { s.animFps = (int)cyc((float)s.animFps, {6, 8, 12, 24}, d); }, "12 = estilo 'on twos' do original."});
     rows.push_back({"Números de dano", onoff(s.dmgNumbers), [&](int) { s.dmgNumbers = !s.dmgNumbers; }, ""});
     rows.push_back({"Medidor de DPS no HUD", onoff(s.dpsMeter), [&](int) { s.dpsMeter = !s.dpsMeter; }, "Como o mod StatHUD."});

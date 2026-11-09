@@ -136,6 +136,12 @@ void App::frame(float dt) {
   fpsAcc += realDt > 0 ? realDt : dt; fpsFrames++;
   if (fpsAcc > 0.5f) { fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0; }
 #ifdef __ANDROID__
+  static int lastScr = -1;
+  if ((int)scr != lastScr) {
+    static const char* kScrNames[] = {"TITLE", "CHARS", "MAP", "SETTINGS", "SHOP", "ABOUT", "CATALOG", "GAME"};
+    LOGI("screen %s -> %s", lastScr < 0 ? "-" : kScrNames[lastScr], kScrNames[(int)scr]);
+    lastScr = (int)scr;
+  }
   static float logT = 0; logT += realDt;
   if (logT > 10.f) { logT = 0; LOGI("fps %.1f | screen %d | %dx%d | enemies %d | t %.0fs", fps, (int)scr, plat.width, plat.height, (int)game.enemies.size(), game.runTime); }
 #endif

@@ -39,8 +39,29 @@ shot emu_03_jogo_forest_ninja_b
 run_demo emu_04_jogo_desert_monke 3,1 60
 run_demo emu_05_jogo_graveyard_calcium 2,2 60
 
+# touch flow on a 1600x720 landscape screen (UI scale 3): JOGAR -> PRÓXIMO -> COMEÇAR!, then the joystick
+adb shell am force-stop "$PKG"
+sleep 2
+adb shell am start -W -n "$PKG/.MainActivity"
+sleep 25
+adb shell input tap 800 353
+sleep 5
+shot emu_06_toque_personagens
+adb shell input tap 1396 669
+sleep 5
+shot emu_07_toque_mapa_tempo
+adb shell input tap 1396 669
+sleep 20
+shot emu_08_toque_jogo
+adb shell input swipe 250 560 250 470 4000
+shot emu_09_toque_joystick
+alive toque
+
 adb shell dumpsys gfxinfo "$PKG" > "$OUT/gfxinfo.txt" 2>&1 || true
 adb logcat -d > "$OUT/logcat_full.txt" 2>&1 || true
 grep -E "OmniBonk|AndroidRuntime|DEBUG|libc|FATAL|EGL|GLES|aaudio" "$OUT/logcat_full.txt" | tail -400 > "$OUT/logcat_omnibonk.txt" || true
 tail -100 "$OUT/logcat_omnibonk.txt"
+echo "== screen transitions"
+grep -E "OmniBonk: (screen|launch args|fps)" "$OUT/logcat_full.txt" | tail -40 || true
+if grep -q "screen MAP -> GAME" "$OUT/logcat_full.txt"; then echo "TOUCH FLOW OK (title -> chars -> map -> game)"; else echo "TOUCH FLOW DID NOT REACH THE GAME"; fi
 exit 0
