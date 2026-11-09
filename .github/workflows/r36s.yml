@@ -17,11 +17,15 @@ jobs:
   build:
     name: Build R36S package (aarch64, SDL2, GLES 3.0)
     runs-on: ubuntu-latest
-    container: debian:bullseye   # glibc 2.31: runs on dArkOS (Debian 13), ROCKNIX, AmberELEC...
+    container: ubuntu:20.04   # glibc 2.31: runs on dArkOS (Debian 13), ROCKNIX, AmberELEC...
     timeout-minutes: 30
     steps:
-      - name: Toolchain
+      - name: Toolchain (amd64 host tools + arm64 SDL2 from ports.ubuntu.com)
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
+          sed -i 's/^deb /deb [arch=amd64] /' /etc/apt/sources.list
+          for s in focal focal-updates focal-security; do echo "deb [arch=arm64] http://ports.ubuntu.com/ubuntu-ports $s main universe" >> /etc/apt/sources.list; done
           dpkg --add-architecture arm64
           apt-get update
           apt-get install -y --no-install-recommends ca-certificates git cmake ninja-build make zip unzip file binutils g++-aarch64-linux-gnu libsdl2-dev:arm64

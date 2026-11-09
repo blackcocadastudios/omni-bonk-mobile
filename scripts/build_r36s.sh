@@ -2,10 +2,8 @@
 # Cross-compiles the SDL2 port for aarch64 Linux handhelds (R36S & other RK3326 devices) and packages
 # build/OmniBonk-R36S.zip in the PortMaster layout (OmniBonk.sh + omnibonk/).
 #
-# Meant to run in a Debian 11 (bullseye) environment so the binary only needs glibc 2.31:
-#   dpkg --add-architecture arm64 && apt-get update
-#   apt-get install -y cmake ninja-build zip file g++-aarch64-linux-gnu libsdl2-dev:arm64
-# (the CI job uses the debian:bullseye container; `docker run -v $PWD:/src -w /src debian:bullseye ...` works too)
+# Meant to run on Ubuntu 20.04 so the binary only needs glibc 2.31 (see .github/workflows/r36s.yml for the
+# multiarch apt setup): cmake ninja-build zip file g++-aarch64-linux-gnu libsdl2-dev:arm64
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
