@@ -54,6 +54,19 @@ jobs:
         with:
           files: build/OmniBonk.apk
 
+      - name: Release "apk-mais-recente" (todo push de branch)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-mais-recente
+          name: APK mais recente (build ${{ github.run_number }})
+          body: |
+            Build automático do commit ${{ github.sha }} (branch ${{ github.ref_name }}).
+            Baixe o **OmniBonk.apk**, permita instalar de fontes desconhecidas e abra no Android 8.0 ou mais novo.
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: build/OmniBonk.apk
+
   emulator-smoke:
     name: Emulator smoke test + screenshots
     needs: build
