@@ -34,8 +34,8 @@ void main(){
   gl_Position = cp;
 })";
 static const char* kModelFS = R"(#version 300 es
-precision mediump float;
-precision mediump sampler2DArray;
+precision highp float;   // real mediump (fp16 on Mali) is too coarse for tiled UVs, atlas texels and fog distance
+precision lowp sampler2DArray;
 uniform sampler2DArray uTex;
 uniform vec3 uSunDir, uSunCol, uAmbSky, uAmbGnd, uFogCol, uCam; uniform float uFogDen;
 in vec3 vCol; in vec2 vUV; flat in float vLayer; in vec3 vN; in vec3 vW; in float vFlash; in float vEmis; in vec4 vTint;
@@ -72,7 +72,7 @@ void main(){
   gl_Position = uVP*vec4(wp,1.0);
 })";
 static const char* kFxFS = R"(#version 300 es
-precision mediump float;
+precision highp float;   // real mediump (fp16 on Mali) is too coarse for tiled UVs, atlas texels and fog distance
 in vec4 vC; out vec4 o;
 void main(){ o = vC; })";
 static const char* kSkyVS = R"(#version 300 es
@@ -120,7 +120,7 @@ void main(){
   gl_Position = uVP*vec4(wp,1.0);
 })";
 static const char* kTexFS = R"(#version 300 es
-precision mediump float;
+precision highp float;   // real mediump (fp16 on Mali) is too coarse for tiled UVs, atlas texels and fog distance
 uniform sampler2D uTex; in vec2 vUV; in vec4 vC; out vec4 o;
 void main(){ vec4 t = texture(uTex, vUV); o = t*vC; if (o.a < 0.01) discard; })";
 static const char* kDecalVS = R"(#version 300 es
@@ -149,7 +149,7 @@ precision highp float;
 out vec2 vUV;
 void main(){ vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2)); vUV = p; gl_Position = vec4(p*2.0-1.0, 0.0, 1.0); })";
 static const char* kPostFS = R"(#version 300 es
-precision mediump float;
+precision highp float;   // real mediump (fp16 on Mali) is too coarse for tiled UVs, atlas texels and fog distance
 uniform sampler2D uScene; uniform float uVig; in vec2 vUV; out vec4 o;
 void main(){ vec3 c = texture(uScene, vUV).rgb; float d = length(vUV-0.5); c *= 1.0 - uVig*smoothstep(0.42, 0.85, d); o = vec4(c, 1.0); })";
 static const char* kUIVS = R"(#version 300 es

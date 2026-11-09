@@ -42,6 +42,30 @@ Tempo de estágio ajustável · medidor de DPS e tabela de dano no fim da run (S
 - **Pausa** e **minimapa** no canto superior direito; o minimapa abre o mapa completo.
 - Botão *voltar* do Android: pausa / volta de tela.
 
+## R36S e outros portáteis Linux
+
+Port *Ready to Run* em `ports/r36s` (aarch64, SDL2, OpenGL ES 3.0), no formato do PortMaster. O pacote `OmniBonk-R36S.zip` sai na Release **r36s-mais-recente** a cada push.
+
+1. Extraia o zip dentro da pasta `ports` do cartão (partição EASYROMS): ficam `OmniBonk.sh` e a pasta `omnibonk`.
+2. Reinicie o EmulationStation. O jogo aparece em Ports.
+
+| Controle | Na partida | Nos menus |
+|---|---|---|
+| Analógico esquerdo / D-pad | andar | navegar |
+| Analógico direito | câmera | rolar listas |
+| A ou R1 | pular | confirmar |
+| B ou L1 | deslizar | voltar |
+| X ou R2 | interagir | |
+| Y ou L2 | mapa completo | |
+| Start | pausa | ação principal da tela |
+| L1 / R1 | | trocar de aba |
+| Select + Start | salvar e sair | salvar e sair |
+| L3 + R3 | captura de tela (`omnibonk/conf/`) | |
+
+A interface se adapta à tela 4:3 de 640×480 e toda a navegação é por foco. O arquivo `omnibonk/log.txt` registra firmware, driver de vídeo, controle detectado e FPS a cada 10 s.
+
+O binário depende só de `libSDL2-2.0.so.0` e de glibc 2.27 ou mais nova; as funções de OpenGL ES são carregadas em tempo de execução pelo SDL. Testado no CI com o binário aarch64 real rodando em QEMU sobre Debian 13 (a base do dArkOS).
+
 ## Tecnologia
 
 - C++17 com motor próprio, OpenGL ES 3.0, `NativeActivity`, AAudio, sem Gradle e sem engine.
@@ -51,11 +75,15 @@ Tempo de estágio ajustável · medidor de DPS e tabela de dano no fim da run (S
 
 | Pasta | Conteúdo |
 |---|---|
-| `src/` | jogo (dados, modelos, mundo, combate, render, UI, áudio) e plataformas Android/desktop |
+| `src/` | jogo (dados, modelos, mundo, combate, render, UI, áudio) e plataformas Android (`main_android.cpp`), SDL2 (`main_sdl.cpp`) e harness (`main_desktop.cpp`) |
 | `android/` | `AndroidManifest.xml`, `MainActivity.java`, recursos e ícones, keystore de teste |
+| `ports/r36s/` | pacote do R36S: `OmniBonk.sh`, `port.json`, `gameinfo.xml`, LEIA-ME |
+| `scripts/build_r36s.sh` | cross-compila o port SDL2 para aarch64 e gera `build/OmniBonk-R36S.zip` |
+| `scripts/r36s_smoke.sh` | roda o binário aarch64 em QEMU + Debian 13 e captura telas |
 | `scripts/build_apk.sh` | build do APK: NDK/CMake → aapt2 → javac/d8 → zipalign → apksigner |
 | `scripts/emulator_smoke.sh` | teste no emulador do CI (instala, abre, captura telas e logcat) |
 | `.github/workflows/android.yml` | CI: build do APK, artefato, teste no emulador, release em tags `v*` |
+| `.github/workflows/r36s.yml` | CI: build do pacote do R36S, release e teste em QEMU |
 
 ## Build
 
