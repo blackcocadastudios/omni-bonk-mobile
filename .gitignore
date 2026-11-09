@@ -1,0 +1,6 @@
+build/
+build-desktop/
+shots/
+*.apk
+*.idsig
+.DS_Store
