@@ -12,8 +12,8 @@ void App::save() {
   Settings& s = set; Meta& m = meta;
   fprintf(f, "stageMin=%d\nscaleStages=%d\nswarmMode=%d\nanimFps=%d\nautoBhop=%d\ninstantChests=%d\ndmgNumbers=%d\ndpsMeter=%d\ncounters=%d\nautoCam=%d\n",
           s.stageMin, s.scaleStages, s.swarmMode, s.animFps, s.autoBhop, s.instantChests, s.dmgNumbers, s.dpsMeter, s.counters, s.autoCam);
-  fprintf(f, "renderScale=%.2f\nsnap=%d\nmaxEnemies=%d\nparticles=%d\nshadows=%d\nfpsCap=%d\nfxAlpha=%.2f\nvignette=%d\nviewDist=%.0f\nfov=%.0f\ncamDist=%.1f\nshake=%.2f\n",
-          s.renderScale, s.snap, s.maxEnemies, s.particles, s.shadows, s.fpsCap, s.fxAlpha, s.vignette, s.viewDist, s.fov, s.camDist, s.shake);
+  fprintf(f, "autoQuality=%d\nrenderScale=%.2f\nsnap=%d\nmaxEnemies=%d\nparticles=%d\nshadows=%d\nfpsCap=%d\nfxAlpha=%.2f\nvignette=%d\nviewDist=%.0f\nfov=%.0f\ncamDist=%.1f\nshake=%.2f\n",
+          s.autoQuality, s.renderScale, s.snap, s.maxEnemies, s.particles, s.shadows, s.fpsCap, s.fxAlpha, s.vignette, s.viewDist, s.fov, s.camDist, s.shake);
   fprintf(f, "camSens=%.2f\njoySize=%.2f\nuiScale=%.2f\nctrlAlpha=%.2f\nleftHanded=%d\nvibration=%d\nmusic=%.2f\nsfx=%.2f\nshowFps=%d\n",
           s.camSens, s.joySize, s.uiScale, s.ctrlAlpha, s.leftHanded, s.vibration, s.music, s.sfx, s.showFps);
   fprintf(f, "silver=%d\nruns=%d\nwins=%d\ntotalKills=%d\nbestKills=%d\nupReroll=%d\nupSkip=%d\nupBanish=%d\nupHp=%d\nupLuck=%d\nlastChar=%d\nlastMap=%d\nlastTier=%d\n",
@@ -35,7 +35,7 @@ void App::load() {
 #define F_(name) if (k == #name) s.name = v;
 #define M_(name) if (k == #name) m.name = (int)v;
     I_(stageMin) B_(scaleStages) I_(swarmMode) I_(animFps) B_(autoBhop) B_(instantChests) B_(dmgNumbers) B_(dpsMeter) B_(counters) B_(autoCam)
-    F_(renderScale) B_(snap) I_(maxEnemies) I_(particles) B_(shadows) I_(fpsCap) F_(fxAlpha) B_(vignette) F_(viewDist) F_(fov) F_(camDist) F_(shake)
+    B_(autoQuality) F_(renderScale) B_(snap) I_(maxEnemies) I_(particles) B_(shadows) I_(fpsCap) F_(fxAlpha) B_(vignette) F_(viewDist) F_(fov) F_(camDist) F_(shake)
     F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
     for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
@@ -61,7 +61,7 @@ void App::startRun() {
   game.recomputeStats(); game.P.hp = game.P.st[S_MAXHP];
   applySettingsToGame(game);
   game.autoPilot = false;
-  scr = SCR_GAME; inRun = true; paused = false;
+  scr = SCR_GAME; inRun = true; paused = false; aqWarm = aqAcc = 0; aqFrames = 0;
   meta.runs++; meta.lastChar = selChar; meta.lastMap = selMap; meta.lastTier = selTier; save();
   audioMusic(1 + selMap);
 }
@@ -109,13 +109,34 @@ void App::startDemo() {
   game.cfg.godMode = true; game.start(game.cfg); applySettingsToGame(game); game.autoPilot = true;
 }
 
+// mobile auto quality: if gameplay FPS stays well below the target, step the render scale down
+// (0.1 at a time, floor 50%), then the particle level
+void App::autoQualityTick() {
+  if (!set.autoQuality || realDt <= 0 || paused || game.state != GS_PLAY) return;
+  aqWarm += realDt;
+  if (aqWarm < 4.f) return;               // skip loading hitches at the start of a stage
+  aqAcc += realDt; aqFrames++;
+  if (aqAcc < 5.f) return;
+  float avg = aqFrames / aqAcc, target = std::min(set.fpsCap > 0 ? (float)set.fpsCap : 60.f, 60.f);
+  aqAcc = 0; aqFrames = 0;
+  if (avg >= target * 0.72f) return;
+  if (set.renderScale > 0.51f) {
+    set.renderScale = std::max(0.5f, set.renderScale - 0.1f);
+    game.banner("Qualidade automática", fmt("FPS %.0f - escala de render %d%%", avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
+  } else if (set.particles > 0) {
+    set.particles--; applySettingsToGame(game);
+    game.banner("Qualidade automática", fmt("FPS %.0f - menos partículas", avg), Col(255, 214, 80), 2.2f);
+  } else return;
+  save();
+}
+
 void App::frame(float dt) {
   if (!demoDone && plat.args.find("demo") != std::string::npos) startDemo();
   frameDt = dt;
-  fpsAcc += dt; fpsFrames++;
+  fpsAcc += realDt > 0 ? realDt : dt; fpsFrames++;
   if (fpsAcc > 0.5f) { fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0; }
 #ifdef __ANDROID__
-  static float logT = 0; logT += dt;
+  static float logT = 0; logT += realDt;
   if (logT > 10.f) { logT = 0; LOGI("fps %.1f | screen %d | %dx%d | enemies %d | t %.0fs", fps, (int)scr, plat.width, plat.height, (int)game.enemies.size(), game.runTime); }
 #endif
   ui.begin(plat.width, plat.height, set.uiScale, plat, dt);
@@ -125,6 +146,7 @@ void App::frame(float dt) {
   if (scr == SCR_GAME) {
     if (!testMode) gameControls();
     if (!paused) game.update(dt);
+    autoQualityTick();
     audioMusic(game.bossesAlive > 0 || game.finalArena ? 4 : 1 + game.cfg.map);
     audioSetIntensity(game.u());
     game.render(gR);
@@ -171,7 +193,7 @@ void app_event(const InputEv& e) {
   if (e.type == EV_BACK) { gApp.back(); return; }
   gApp.ui.event(e);
 }
-void app_frame(float dt) { if (gApp.glReady) gApp.frame(std::min(dt, 0.05f)); }
+void app_frame(float dt) { gApp.realDt = dt; if (gApp.glReady) gApp.frame(std::min(dt, 0.05f)); }
 void app_pause() { if (gApp.scr == SCR_GAME && gApp.game.state == GS_PLAY) gApp.game.state = GS_PAUSE; gApp.save(); }
 void app_resume() {}
 void app_save() { gApp.save(); }

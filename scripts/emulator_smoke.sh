@@ -14,6 +14,7 @@ adb shell wm size 720x1600 || true
 adb shell wm density 280 || true
 adb shell settings put system accelerometer_rotation 0 || true
 adb install -r build/OmniBonk.apk || { echo "INSTALL FAILED"; exit 1; }
+adb logcat -G 16M || true
 adb logcat -c || true
 
 shot() { adb exec-out screencap -p > "$OUT/$1.png"; ls -la "$OUT/$1.png"; }

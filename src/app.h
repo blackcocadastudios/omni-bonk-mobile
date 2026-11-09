@@ -13,6 +13,7 @@ struct Settings {
   int animFps = 12;           // 6, 8, 12 (default stepped "on twos"), 24 (smooth)
   bool autoBhop = false, instantChests = false, dmgNumbers = true, dpsMeter = false, counters = true, autoCam = true;
   // graphics
+  bool autoQuality = true;    // lower render scale / particles when FPS stays low
   float renderScale = 0.75f; bool snap = true; int maxEnemies = 300; int particles = 2; bool shadows = true; int fpsCap = 60; float fxAlpha = 1.f; bool vignette = true; float viewDist = 120; float fov = 62; float camDist = 7.5f; float shake = 1.f;
   // controls
   float camSens = 1.f, joySize = 1.f, uiScale = 1.f, ctrlAlpha = 0.85f; bool leftHanded = false, vibration = true;
@@ -38,6 +39,9 @@ struct App {
   int joyTouch = -1, camTouch = -1, jumpTouch = -1, slideTouch = -1; v2 joyBase, joyCur;
   // scripted/test hooks (desktop harness)
   bool testMode = false, demoDone = false;
+  float realDt = 0;  // unclamped frame time (FPS counter)
+  float aqWarm = 0, aqAcc = 0; int aqFrames = 0; // auto quality sampling
+  void autoQualityTick();
   void startDemo();
   std::string savePath() const { return plat.dataDir + "/omnibonk_save.txt"; }
   void load(); void save();

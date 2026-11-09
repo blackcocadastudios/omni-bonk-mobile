@@ -146,6 +146,7 @@ void App::drawSettings() {
     rows.push_back({"Auto bunny hop (segurar pulo)", onoff(s.autoBhop), [&](int) { s.autoBhop = !s.autoBhop; }, "Como o mod BHop."});
     rows.push_back({"Tremor de tela", fmt("%d%%", (int)(s.shake * 100)), [&](int d) { s.shake = cyc(s.shake, {0, 0.5f, 1}, d); }, ""});
   } else if (settingsTab == 1) {
+    rows.push_back({"Qualidade automática", onoff(s.autoQuality), [&](int) { s.autoQuality = !s.autoQuality; }, "Baixa a escala de render se o FPS cair."});
     rows.push_back({"Escala de render", fmt("%d%%", (int)roundf(s.renderScale * 100)), [&](int d) { s.renderScale = cyc(s.renderScale, {0.4f, 0.5f, 0.6f, 0.75f, 0.9f, 1.0f}, d); }, "Menor = mais FPS e mais pixelado."});
     rows.push_back({"Máx. de inimigos", fmt("%d", s.maxEnemies), [&](int d) { s.maxEnemies = (int)cyc((float)s.maxEnemies, {150, 220, 300, 400, 550}, d); }, "550 = valor do PC."});
     rows.push_back({"Vertex snapping (PS1)", onoff(s.snap), [&](int) { s.snap = !s.snap; }, ""});
@@ -179,12 +180,19 @@ void App::drawSettings() {
     if (y < top - 2 || y + rh > bottom + 2) continue;
     OptRow& r = rows[i];
     u.panel(L, y, Wd, rh - 3, Col(20, 14, 30, 220));
-    u.text(L + 6, y + 3, r.label, 1, WHITE);
-    if (!r.hint.empty()) u.text(L + 6, y + 12, r.hint, 1, DIM);
+    u.text(L + 6, y + 2, r.label, 1, WHITE);
+    if (!r.hint.empty()) u.text(L + 6, y + 10.5f, r.hint, 1, DIM);
     float vx = R - 128;
     if (u.button(vx, y + 2, 18, rh - 7, "<")) r.change(-1);
     u.text(vx + 64, y + 6, r.value, 1, GOLD, AL_CENTER);
     if (u.button(R - 22, y + 2, 18, rh - 7, ">")) r.change(1);
+  }
+  if (maxScroll > 0) { // scrollbar: drag the list to see the remaining options
+    float track = bottom - top - 4, th = std::max(14.f, track * (bottom - top) / (rows.size() * rh));
+    float ty = top + (-scrollY[0] / maxScroll) * (track - th);
+    u.rect(R + 3, top, 3, track, Col(255, 255, 255, 40));
+    u.rect(R + 3, ty, 3, th, Col(255, 214, 80, 220));
+    if (scrollY[0] > -maxScroll + 1) u.text(R - 64, bottom - 1, "arraste para mais", 1, DIM, AL_CENTER);
   }
   if (u.button(u.W * 0.5f - 60, u.H - 27, 120, 22, "OK", Col(60, 150, 70, 240))) { save(); scr = settingsBack; }
 }

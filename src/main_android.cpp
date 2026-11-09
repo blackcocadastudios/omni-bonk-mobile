@@ -265,7 +265,7 @@ void android_main(android_app* app) {
     }
     E.lastFrame = t;
     float dt = (float)(t - E.last); E.last = t;
-    if (dt > 0.1f) dt = 0.1f;
+    if (dt > 1.0f) dt = 1.0f; // app_frame clamps the simulation step; the raw value feeds the FPS counter
     if (E.insetPoll > 0 && (E.insetPoll-- % 15) == 0) readInsets();
     EGLint w = 0, h = 0;
     eglQuerySurface(E.display, E.surface, EGL_WIDTH, &w); eglQuerySurface(E.display, E.surface, EGL_HEIGHT, &h);
