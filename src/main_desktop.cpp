@@ -123,32 +123,95 @@ static void showcase(const std::string& file, const std::string& name, const std
     }
     u.panel(u.W * 0.5f - u.textW(name) - 10, 4, u.textW(name) * 2 + 20, 30, Col(10, 8, 16, 170), Col(255, 214, 80, 120));
     u.text(u.W * 0.5f, 8, name, 2, Col(255, 214, 80), AL_CENTER);
-    u.text(u.W - 6, u.H - 12, "Omni Bonk Mobile - render em tempo real (GLES 3.0)", 1, Col(255, 255, 255, 150), AL_RIGHT);
+    u.text(u.W - 6, u.H - 12, "Omni Bonk - real-time render (GLES 3.0)", 1, Col(255, 255, 255, 150), AL_RIGHT);
     gR.uiFlush();
     glFinish();
   }
   shot(file);
 }
 
+
+// ---------------------------------------------------------------- PortMaster cover (640x480): heroes vs the horde, with the logo
+static void coverShot() {
+  Game& g = gApp.game;
+  RunConfig c; c.map = MAP_FOREST; c.tier = 0; c.character = 0; c.seed = 31; c.godMode = true;
+  g.start(c);
+  g.enemies.clear(); g.inters.clear(); g.pickups.clear(); g.banners.clear(); g.texts.clear(); g.parts.clear();
+  g.fovDeg = 50; g.stormK = 0;
+  World& w = g.world;
+  w.pal.fogDensity *= 0.5f;
+  w.props.erase(std::remove_if(w.props.begin(), w.props.end(), [&](const PropInst& p) { return fabsf(p.pos.x) < 9 && p.pos.z > -14 && p.pos.z < 20 && !p.grass; }), w.props.end());
+  w.buildGrid(); g.worldGen++;
+  float h0 = w.T.height(0, 0);
+  g.P.pos = v3(0, -100, 0);
+  g.camEye = v3(0, h0 + 1.5f, -8.5f); g.camTgt = v3(0, h0 + 2.7f, 6.f);
+  gR.set.renderScale = 1.f; gR.set.vignette = 0.5f;
+  u32 rs = 12345; auto rnd = [&]() { rs = rs * 1664525u + 1013904223u; return (rs >> 8) / 16777216.f; };
+  struct Spawn { int model; float scale, x, z, yaw, t; int clip; };
+  std::vector<Spawn> sp;
+  auto addEnemy = [&](int e, float x, float z, float k = 1.f) { const EnemyDef& d = gEnemies[e]; sp.push_back({d.model, d.scale * k, x, z, PI + (rnd() - 0.5f) * 0.9f, rnd(), CL_MOVE}); };
+  const int horde[] = {E_SLIME, E_GOBLIN, E_BEE, E_GOBLIN_STRONG, E_BOOMER, E_GHOUL, E_SKELETON, E_SKELETON_ARMORED, E_GHOST, E_ZOMBIE, E_GOBLIN_TANK, E_MUMMY, E_HEAD};
+  for (int i = 0; i < 70; i++) {
+    float a = (rnd() - 0.5f) * 2.0f, r = 4.5f + rnd() * 15.f;
+    addEnemy(horde[(int)(rnd() * 13) % 13], sinf(a) * r * 1.15f, 3.5f + cosf(a) * r * 0.95f);
+  }
+  addEnemy(E_B_BIGBOB, 4.2f, 15.f, 1.f);
+  // the five heroes, center one in front
+  for (int i = 0; i < C_COUNT; i++) {
+    int off = i - 2; const CharDef& cd = gChars[i == 2 ? 0 : (i < 2 ? i + 1 : i)];
+    sp.push_back({cd.model, 1.75f, off * 2.35f, fabsf((float)off) * 0.9f - 1.4f, PI - off * 0.12f, 0.25f, CL_IDLE});
+  }
+  std::sort(sp.begin(), sp.end(), [](const Spawn& a, const Spawn& b) { return a.z > b.z; });
+  for (int pass = 0; pass < 2; pass++) {
+    gApp.ui.begin(W, H, 1.f, gApp.plat, 0.016f);
+    gR.beginFrame(W, H, 0.016f);
+    g.render(gR);
+    for (auto& e : sp) {
+      const ModelInfo& mi = gModels.info[e.model];
+      v3 p(e.x, w.T.height(e.x, e.z) - mi.minY * e.scale + (mi.minY < -0.01f ? 0.25f : 0.f), e.z);
+      gR.model(e.model, modelFrame(e.model, e.clip, e.t, 12), p, q4::yaw(e.yaw), v3(e.scale, e.scale, e.scale), 0, Col(255, 255, 255, 0));
+      gR.decal(v3(p.x, w.T.height(e.x, e.z), p.z), mi.radius * e.scale * 1.1f + 0.3f, SP_SHADOW, Col(0, 0, 0, 120));
+    }
+    gR.renderScene(true);
+    UI& u = gApp.ui;
+    float cx = u.W * 0.5f;
+    // logo: layered shadow, gold face
+    const char* logo = "OMNI BONK"; float sc = 5.5f, ly = 8;
+    for (int k = 4; k >= 1; k--) u.text(cx + k, ly + k + 1, logo, sc, Col(30, 8, 50, 255), AL_CENTER);
+    for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) u.text(cx + dx, ly + dy, logo, sc, Col(20, 8, 30, 255), AL_CENTER);
+    u.text(cx, ly, logo, sc, Col(255, 214, 80), AL_CENTER);
+    u.text(cx, ly + 12 * sc + 4, "SURVIVE THE BONK!", 1.5f, Col(255, 255, 255), AL_CENTER);
+    // ribbon + badges
+    u.panel(0, u.H - 28, u.W, 28, Col(14, 8, 28, 225), Col(255, 214, 80, 160));
+    u.text(8, u.H - 24, "FAN TRIBUTE TO MEGABONK", 1, Col(255, 214, 80));
+    u.text(8, u.H - 13, "Non-commercial  -  original assets", 1, Col(200, 190, 230));
+    u.panel(u.W - 110, u.H - 23, 102, 18, Col(60, 150, 70, 245), Col(255, 255, 255, 190));
+    u.text(u.W - 59, u.H - 18, "READY TO RUN", 1, Col(255, 255, 255), AL_CENTER);
+    gR.uiFlush();
+    glFinish();
+  }
+  shot("cover");
+}
+
 static void artSheets() {
   auto E = [](int e, float sc = 1, int clip = CL_MOVE, float t = 0.33f) { const EnemyDef& d = gEnemies[e]; return ShowItem{d.model, clip, t, sc * d.scale, d.name, Col(255, 255, 255, 0)}; };
-  showcase("art_01_inimigos_forest", "Inimigos - Forest", {E(E_SLIME), E(E_GOBLIN), E(E_BEE), E(E_GOBLIN_STRONG), E(E_BOOMER), E(E_GOLEM), E(E_GOBLIN_TANK), E(E_GHOUL), E(E_SKELETON), E(E_SKELETON_ARMORED)}, MAP_FOREST, 0, 2.6f);
-  showcase("art_02_inimigos_desert", "Inimigos - Desert", {E(E_TUMBLEBONE), E(E_MUMMY), E(E_WISP), E(E_CACTUS), E(E_SCORPION), E(E_SKELETON_DUSTY), E(E_SKELETON_ARMORED_DUSTY), E(E_SCORPION_BIG), E(E_MUMMY_TANK), E(E_MUMMY_ANCIENT)}, MAP_DESERT, 0, 2.8f);
-  showcase("art_03_inimigos_graveyard", "Inimigos - Graveyard e especiais", {E(E_GHOST), E(E_HEAD), E(E_ZOMBIE), E(E_GHOST_GREATER), E(E_GHOST_PURPLE), E(E_GHOST_RED), E(E_SKELETON_GOLD), E(E_SKELETON_XP), E(E_SWARMGHOST)}, MAP_GRAVEYARD, 0, 2.8f);
-  showcase("art_04_minichefes", "Minichefes", {E(E_MB_STONEGOLEM), E(E_MB_CHUNKHAM), E(E_MB_SANDGOLEM), E(E_MB_SCORPIONUSSY), E(E_MB_GHOSTHAM), E(E_MB_SKELETONKING)}, MAP_FOREST, 1, 5.0f);
-  showcase("art_05_chefes", "Chefes", {E(E_B_LILBARK, 1, CL_IDLE), E(E_B_CHADBARK), E(E_B_BARKVADER), E(E_B_LILANUBIS), E(E_B_ANUBRUH), E(E_B_JUGEANUBIS), E(E_B_BIGBOB), E(E_B_GHOSTKING, 0.75f)}, MAP_FOREST, 2, 6.0f);
+  showcase("art_01_enemies_forest", "Enemies - Forest", {E(E_SLIME), E(E_GOBLIN), E(E_BEE), E(E_GOBLIN_STRONG), E(E_BOOMER), E(E_GOLEM), E(E_GOBLIN_TANK), E(E_GHOUL), E(E_SKELETON), E(E_SKELETON_ARMORED)}, MAP_FOREST, 0, 2.6f);
+  showcase("art_02_enemies_desert", "Enemies - Desert", {E(E_TUMBLEBONE), E(E_MUMMY), E(E_WISP), E(E_CACTUS), E(E_SCORPION), E(E_SKELETON_DUSTY), E(E_SKELETON_ARMORED_DUSTY), E(E_SCORPION_BIG), E(E_MUMMY_TANK), E(E_MUMMY_ANCIENT)}, MAP_DESERT, 0, 2.8f);
+  showcase("art_03_enemies_graveyard", "Enemies - Graveyard and specials", {E(E_GHOST), E(E_HEAD), E(E_ZOMBIE), E(E_GHOST_GREATER), E(E_GHOST_PURPLE), E(E_GHOST_RED), E(E_SKELETON_GOLD), E(E_SKELETON_XP), E(E_SWARMGHOST)}, MAP_GRAVEYARD, 0, 2.8f);
+  showcase("art_04_minibosses", "Minibosses", {E(E_MB_STONEGOLEM), E(E_MB_CHUNKHAM), E(E_MB_SANDGOLEM), E(E_MB_SCORPIONUSSY), E(E_MB_GHOSTHAM), E(E_MB_SKELETONKING)}, MAP_FOREST, 1, 5.0f);
+  showcase("art_05_bosses", "Bosses", {E(E_B_LILBARK, 1, CL_IDLE), E(E_B_CHADBARK), E(E_B_BARKVADER), E(E_B_LILANUBIS), E(E_B_ANUBRUH), E(E_B_JUGEANUBIS), E(E_B_BIGBOB), E(E_B_GHOSTKING, 0.75f)}, MAP_FOREST, 2, 6.0f);
   std::vector<ShowItem> chars;
   for (int i = 0; i < C_COUNT; i++) chars.push_back({gChars[i].model, CL_IDLE, 0.25f, 1.6f, std::string(gChars[i].name) + " / " + gWeapons[gChars[i].weapon].name, Col(255, 255, 255, 0)});
-  showcase("art_06_personagens", "Personagens jogaveis", chars, MAP_FOREST, 0, 3.4f);
+  showcase("art_06_characters", "Playable characters", chars, MAP_FOREST, 0, 3.4f);
   // stepped animation strip: one character run cycle, consecutive 12 fps frames
   std::vector<ShowItem> strip;
   for (int f = 0; f < 6; f++) strip.push_back({M_NINJA, CL_MOVE, f / 12.f, 1.6f, fmt("frame %d - %.0f ms", f, f * 1000 / 12.f), Col(255, 255, 255, 0)});
-  showcase("art_07_animacao_stepped", "Animacao stepped 12 FPS - corrida do Ninja", strip, MAP_FOREST, 0, 2.6f);
+  showcase("art_07_stepped_animation", "Stepped 12 FPS animation - Ninja run cycle", strip, MAP_FOREST, 0, 2.6f);
   auto I = [](int m, const char* n, Col ta = Col(255, 255, 255, 0), int clip = CL_IDLE, float t = 0.3f) { return ShowItem{m, clip, t, 1.f, n, ta}; };
-  showcase("art_08_baus_shrines_torres", "Baus, shrines e torres de upgrade", {I(M_CHEST, "Baú"), I(M_CHEST_GOLD, "Baú Dourado"), I(M_CHEST, "Baú aberto", Col(255, 255, 255, 0), CL_SPECIAL, 1.0f), I(M_SHRINE_CHARGE, "Charge Shrine"), I(M_SHRINE_GREED, "Greed Shrine"), I(M_SHRINE_CURSED, "Cursed Shrine"), I(M_SHRINE_CHALLENGE, "Challenge Shrine"), I(M_MOAI, "Moai"), I(M_SHADY, "Shady Guy", hexc(kRarityColor[R_LEGENDARY], 0)), I(M_MICROWAVE, "Microwave"), I(M_SHRINE_SUCC, "Shrine of Succ")}, MAP_FOREST, 0, 3.4f);
-  showcase("art_09_portais_potes_chaves", "Portais, potes e chaves", {I(M_PORTAL_BOSS, "Portal do Chefe"), I(M_PORTAL_EXIT, "Portal de Saída"), I(M_POT, "Pote"), I(M_POT_BIG, "Pote Grande"), I(M_POT_SILVER, "Pote de Prata"), I(M_PUMPKIN, "Abóbora"), I(M_TUMBLEWEED, "Tumbleweed"), I(M_CRYPT_KEY, "Chave da Cripta"), I(M_ALTAR, "Altar")}, MAP_GRAVEYARD, 0, 3.6f);
+  showcase("art_08_chests_shrines_towers", "Chests, shrines and upgrade towers", {I(M_CHEST, "Chest"), I(M_CHEST_GOLD, "Golden Chest"), I(M_CHEST, "Open Chest", Col(255, 255, 255, 0), CL_SPECIAL, 1.0f), I(M_SHRINE_CHARGE, "Charge Shrine"), I(M_SHRINE_GREED, "Greed Shrine"), I(M_SHRINE_CURSED, "Cursed Shrine"), I(M_SHRINE_CHALLENGE, "Challenge Shrine"), I(M_MOAI, "Moai"), I(M_SHADY, "Shady Guy", hexc(kRarityColor[R_LEGENDARY], 0)), I(M_MICROWAVE, "Microwave"), I(M_SHRINE_SUCC, "Shrine of Succ")}, MAP_FOREST, 0, 3.4f);
+  showcase("art_09_portals_pots_keys", "Portals, pots and keys", {I(M_PORTAL_BOSS, "Boss Portal"), I(M_PORTAL_EXIT, "Exit Portal"), I(M_POT, "Pot"), I(M_POT_BIG, "Big Pot"), I(M_POT_SILVER, "Silver Pot"), I(M_PUMPKIN, "Pumpkin"), I(M_TUMBLEWEED, "Tumbleweed"), I(M_CRYPT_KEY, "Crypt Key"), I(M_ALTAR, "Altar")}, MAP_GRAVEYARD, 0, 3.6f);
   auto Pp = [](int m, const char* n, float s = 1) { return ShowItem{m, CL_IDLE, 0, s, n, Col(255, 255, 255, 0)}; };
-  showcase("art_10_pickups_powerups", "Pickups e powerups", {Pp(M_XP_SMALL, "XP", 3.4f), Pp(M_XP_MED, "XP+", 3.2f), Pp(M_XP_BIG, "XP++", 3.0f), Pp(M_GOLD_COIN, "Ouro", 3.2f), Pp(M_SILVER_COIN, "Prata", 3.2f), Pp(M_BORGAR, "Borgar", 3.0f), Pp(M_PU_SHIELD, "Escudo", 2.4f), Pp(M_PU_CLOCK, "Relógio", 2.4f), Pp(M_PU_GOLD, "Ouro x2", 2.4f), Pp(M_PU_RAGE, "Fúria", 2.4f), Pp(M_PU_MAGNET, "Ímã", 2.4f), Pp(M_PU_NUKE, "Bomba", 2.4f)}, MAP_DESERT, 0, 1.9f);
+  showcase("art_10_pickups_powerups", "Pickups and powerups", {Pp(M_XP_SMALL, "XP", 3.4f), Pp(M_XP_MED, "XP+", 3.2f), Pp(M_XP_BIG, "XP++", 3.0f), Pp(M_GOLD_COIN, "Gold", 3.2f), Pp(M_SILVER_COIN, "Silver", 3.2f), Pp(M_BORGAR, "Borgar", 3.0f), Pp(M_PU_SHIELD, "Shield", 2.4f), Pp(M_PU_CLOCK, "Clock", 2.4f), Pp(M_PU_GOLD, "Gold x2", 2.4f), Pp(M_PU_RAGE, "Rage", 2.4f), Pp(M_PU_MAGNET, "Magnet", 2.4f), Pp(M_PU_NUKE, "Bomb", 2.4f)}, MAP_DESERT, 0, 1.9f);
   // UI atlas (icons + font) and texture layers
   writePng(outDir + "/art_11_atlas_icones_fonte.png", gR.atlas.px.data(), ATLAS_SIZE, ATLAS_SIZE, false);
   std::vector<u8> layers; artBuildLayers(layers);
@@ -195,14 +258,14 @@ static void iconShot() {
 static void uiShots() {
   App& a = gApp;
   a.selMap = MAP_FOREST; a.selChar = C_NINJA; a.scr = SCR_TITLE; for (int i = 0; i < 240; i++) a.updateMenuGame(1 / 30.f);
-  frame(1 / 30.f, 3); shot("ui_01_titulo");
-  a.scr = SCR_CHARS; a.selChar = C_NINJA; frame(1 / 30.f, 2); shot("ui_02_personagens");
-  a.scr = SCR_MAP; a.selMap = MAP_FOREST; a.selTier = 1; frame(1 / 30.f, 2); shot("ui_03_mapa_tier_tempo");
-  a.scr = SCR_SETTINGS; a.settingsTab = 0; frame(1 / 30.f, 2); shot("ui_04_config_jogo");
-  a.settingsTab = 1; frame(1 / 30.f, 2); shot("ui_05_config_graficos");
-  a.scr = SCR_CATALOG; a.catTab = 2; frame(1 / 30.f, 2); shot("ui_06_catalogo_itens");
-  a.catTab = 0; frame(1 / 30.f, 2); shot("ui_07_catalogo_armas");
-  a.scr = SCR_SHOP; frame(1 / 30.f, 2); shot("ui_08_loja");
+  frame(1 / 30.f, 3); shot("ui_01_title");
+  a.scr = SCR_CHARS; a.selChar = C_NINJA; frame(1 / 30.f, 2); shot("ui_02_characters");
+  a.scr = SCR_MAP; a.selMap = MAP_FOREST; a.selTier = 1; frame(1 / 30.f, 2); shot("ui_03_map_tier_time");
+  a.scr = SCR_SETTINGS; a.settingsTab = 0; frame(1 / 30.f, 2); shot("ui_04_settings_game");
+  a.settingsTab = 1; frame(1 / 30.f, 2); shot("ui_05_settings_graphics");
+  a.scr = SCR_CATALOG; a.catTab = 2; frame(1 / 30.f, 2); shot("ui_06_catalog_items");
+  a.catTab = 0; frame(1 / 30.f, 2); shot("ui_07_catalog_weapons");
+  a.scr = SCR_SHOP; frame(1 / 30.f, 2); shot("ui_08_shop");
 }
 
 // ---------------------------------------------------------------- gamepad scenario (handheld UI)
@@ -217,53 +280,53 @@ static void padScenario() {
   App& a = gApp;
   a.testMode = false; a.set.vibration = false;
   a.selMap = MAP_FOREST; a.selChar = C_FOX; a.scr = SCR_TITLE; for (int i = 0; i < 240; i++) a.updateMenuGame(1 / 30.f);
-  padFrames(4); padLog("title"); shot("pad_01_titulo");
-  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_LEFT); padLog("title: 3x down, left"); shot("pad_02_titulo_config");
-  press(PB_A); padFrames(6); padLog("settings"); shot("pad_03_config");
+  padFrames(4); padLog("title"); shot("pad_01_title");
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_LEFT); padLog("title: 3x down, left"); shot("pad_02_title_config");
+  press(PB_A); padFrames(6); padLog("settings"); shot("pad_03_settings");
   for (int i = 0; i < 3; i++) press(PB_DOWN);
-  press(PB_RIGHT); padLog("settings: adjust"); shot("pad_04_config_ajuste");
+  press(PB_RIGHT); padLog("settings: adjust"); shot("pad_04_settings_adjust");
   for (int i = 0; i < 9; i++) press(PB_DOWN);
-  padLog("settings: scrolled"); shot("pad_05_config_rolagem");
-  press(PB_R1); padFrames(4); padLog("settings: R1 tab"); shot("pad_06_config_aba2");
-  press(PB_R1); padFrames(4); shot("pad_07_config_controles");
+  padLog("settings: scrolled"); shot("pad_05_settings_scroll");
+  press(PB_R1); padFrames(4); padLog("settings: R1 tab"); shot("pad_06_settings_tab2");
+  press(PB_R1); padFrames(4); shot("pad_07_settings_controls");
   press(PB_B); padFrames(6); padLog("back to title");
-  press(PB_DOWN); press(PB_A); padFrames(6); padLog("catalog"); shot("pad_08_catalogo");
+  press(PB_DOWN); press(PB_A); padFrames(6); padLog("catalog"); shot("pad_08_catalog");
   press(PB_R1); press(PB_R1); press(PB_DOWN); for (int i = 0; i < 9; i++) press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT);
-  padLog("catalog: items scrolled"); shot("pad_09_catalogo_itens");
-  press(PB_R1); press(PB_DOWN); press(PB_DOWN); for (int i = 0; i < 20; i++) press(PB_DOWN, 2, 2); padLog("catalog: enemies"); shot("pad_10_catalogo_inimigos");
+  padLog("catalog: items scrolled"); shot("pad_09_catalog_items");
+  press(PB_R1); press(PB_DOWN); press(PB_DOWN); for (int i = 0; i < 20; i++) press(PB_DOWN, 2, 2); padLog("catalog: enemies"); shot("pad_10_catalog_enemies");
   press(PB_B); padFrames(6);
-  press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("shop"); shot("pad_11_loja");
+  press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("shop"); shot("pad_11_shop");
   press(PB_B); padFrames(6);
-  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("about"); shot("pad_12_sobre"); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("credits"); shot("pad_12b_creditos"); press(PB_B); padFrames(4);
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("about"); shot("pad_12_about"); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("credits"); shot("pad_12b_credits"); press(PB_B); padFrames(4);
   press(PB_B); padFrames(6);
-  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("quit dialog"); shot("pad_13_sair");
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("quit dialog"); shot("pad_13_quit");
   press(PB_A); padFrames(6); padLog("quit dialog: no");
-  press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_personagens");
-  press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_personagens_calcium");
-  press(PB_A); padFrames(8); padLog("map"); shot("pad_16_mapa");
+  press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_characters");
+  press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_characters_calcium");
+  press(PB_A); padFrames(8); padLog("map"); shot("pad_16_map");
   press(PB_DOWN); press(PB_RIGHT); press(PB_A); press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT); padLog("map: tier2, time +2"); 
-  press(PB_DOWN); shot("pad_17_mapa_tempo");
+  press(PB_DOWN); shot("pad_17_map_time");
   press(PB_START); padFrames(20); padLog("game start");
   a.game.cfg.godMode = true;
   gPad.ly = -1; padFrames(40); gPad.buttons |= PB_A; padFrames(3); gPad.buttons &= ~PB_A; gPad.rx = 0.8f; padFrames(25); gPad.rx = 0; padFrames(30); gPad.ly = 0;
-  padLog("game: moved"); shot("pad_18_jogo_inicio");
+  padLog("game: moved"); shot("pad_18_game_start");
   a.game.autoPilot = true; for (int i = 0; i < 30 * 150; i++) { a.game.update(1 / 30.f); if (a.game.state != GS_PLAY) { a.game.pendingLevels = 0; a.game.state = GS_PLAY; } }
   a.game.autoPilot = false; a.game.state = GS_PLAY; a.game.pendingLevels = 0; padFrames(6);
-  padLog("game: 2.5 min"); shot("pad_19_jogo_hud");
-  press(PB_START); padFrames(16); padLog("pause"); shot("pad_20_pausa");
+  padLog("game: 2.5 min"); shot("pad_19_game_hud");
+  press(PB_START); padFrames(16); padLog("pause"); shot("pad_20_pause");
   press(PB_RIGHT); padLog("pause: right"); press(PB_B); padFrames(6); padLog("pause: B resumes");
-  press(PB_Y); padFrames(16); padLog("map (Y)"); shot("pad_21_mapa_completo");
+  press(PB_Y); padFrames(16); padLog("map (Y)"); shot("pad_21_full_map");
   press(PB_B); padFrames(6); padLog("map: B closes");
   Game& g = a.game;
   g.genLevelOffers(); g.pendingLevels = 1; g.state = GS_LEVELUP; gPad.buttons |= PB_A; padFrames(4); gPad.buttons &= ~PB_A; padFrames(14); padLog("levelup (A mash locked)"); shot("pad_22_level_up");
-  press(PB_RIGHT); padLog("levelup: right"); shot("pad_23_level_up_foco"); press(PB_A); padFrames(4); padLog("levelup: picked");
+  press(PB_RIGHT); padLog("levelup: right"); shot("pad_23_level_up_focus"); press(PB_A); padFrames(4); padLog("levelup: picked");
   g.state = GS_PLAY; for (auto& it : g.inters) if (it.type == I_CHEST && !it.used) { g.openChest(it, true); break; }
-  g.chestAnim = 2; padFrames(16); padLog("chest"); shot("pad_24_bau"); press(PB_A); padFrames(4); padLog("chest: taken");
+  g.chestAnim = 2; padFrames(16); padLog("chest"); shot("pad_24_chest"); press(PB_A); padFrames(4); padLog("chest: taken");
   g.state = GS_PLAY; g.genShrineOffers(false); g.state = GS_SHRINE; padFrames(16); shot("pad_25_shrine"); press(PB_A); padFrames(4); padLog("shrine: picked");
   for (auto& it : g.inters) if (it.type == I_SHADY) { g.curInter = (int)(&it - &g.inters[0]); g.P.gold = 5000; g.state = GS_SHOP; break; }
   padFrames(16); padLog("shady"); shot("pad_26_shady"); press(PB_B); padFrames(4); padLog("shady: B exits");
-  g.banner("Qualidade automática", "FPS 31 - escala de render 65%", Col(255, 214, 80), 3.f); padFrames(12); shot("pad_27_banner");
-  g.state = GS_DEAD; g.deathT = 0; padFrames(50); padLog("dead"); shot("pad_28_fim");
+  g.banner(tr("Auto quality"), fmt(tr("FPS %.0f - render scale %d%%"), 31.f, 65), Col(255, 214, 80), 3.f); padFrames(12); shot("pad_27_banner");
+  g.state = GS_DEAD; g.deathT = 0; padFrames(50); padLog("dead"); shot("pad_28_end");
   press(PB_RIGHT); press(PB_A); padFrames(10); padLog("end: menu");
 }
 
@@ -316,7 +379,7 @@ static void gameShots(int map, int tier, int ch, const std::string& tag, float s
   a.game.state = GS_PLAY; a.game.autoPilot = true;
   frame(1 / 30.f, 4);
   a.game.autoPilot = false; a.game.state = GS_PLAY; a.game.pendingLevels = 0; a.game.P.xp = 0; frame(1 / 60.f, 1);
-  shot("jogo_" + tag);
+  shot("game_" + tag);
 }
 
 static void balance(int map, int ch, float minutes, u32 seed) {
@@ -387,6 +450,7 @@ int main(int argc, char** argv) {
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();
   else if (scenario == "icon") iconShot();
+  else if (scenario == "cover") coverShot();
   else if (scenario == "balance") balance(bmap, bchar, bmin, seed);
   else if (scenario == "smoke") { startGame(bmap, 0, bchar, true, seed); simGame(gApp.game, 5); frame(1 / 30.f, 2); shot("smoke"); }
   else if (scenario == "game") {
@@ -401,12 +465,12 @@ int main(int argc, char** argv) {
     Game& g = a.game; g.autoPilot = false; g.state = GS_PLAY;
     g.genLevelOffers(); g.state = GS_LEVELUP; frame(1 / 30.f, 2); shot("ui_09_level_up");
     g.state = GS_PLAY; for (auto& it : g.inters) if (it.type == I_CHEST && !it.used) { g.openChest(it, true); break; }
-    g.chestAnim = 2; frame(1 / 30.f, 2); shot("ui_10_bau");
+    g.chestAnim = 2; frame(1 / 30.f, 2); shot("ui_10_chest");
     g.state = GS_PLAY; g.genShrineOffers(false); g.state = GS_SHRINE; frame(1 / 30.f, 2); shot("ui_11_charge_shrine");
-    g.state = GS_PAUSE; a.showMap = false; frame(1 / 30.f, 2); shot("ui_12_pausa_build");
-    a.showMap = true; frame(1 / 30.f, 2); shot("ui_13_mapa_completo"); a.showMap = false;
-    a.set.dpsMeter = true; g.state = GS_PLAY; frame(1 / 30.f, 3); shot("ui_14_hud_dps_contadores");
-    g.state = GS_DEAD; g.deathT = 2; frame(1 / 30.f, 2); shot("ui_15_fim_de_run");
+    g.state = GS_PAUSE; a.showMap = false; frame(1 / 30.f, 2); shot("ui_12_pause_build");
+    a.showMap = true; frame(1 / 30.f, 2); shot("ui_13_full_map"); a.showMap = false;
+    a.set.dpsMeter = true; g.state = GS_PLAY; frame(1 / 30.f, 3); shot("ui_14_hud_dps_counters");
+    g.state = GS_DEAD; g.deathT = 2; frame(1 / 30.f, 2); shot("ui_15_end_of_run");
   }
   LOGI("done");
   return 0;

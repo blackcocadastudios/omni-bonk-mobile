@@ -4,13 +4,13 @@ Roguelike de sobrevivência em 3D para Android, inspirado no **Megabonk** (vedin
 
 > Projeto de fã, sem vínculo com o Megabonk nem com o autor. Nenhum asset do jogo original é usado: modelos, texturas, ícones, fonte, música e efeitos sonoros são gerados por código no estilo do original.
 
-![Personagens](docs/art_06_personagens.jpg)
+![Personagens](docs/art_06_characters.jpg)
 
 | | |
 |---|---|
-| ![Forest](docs/jogo_02_forest_green_fox_min8.jpg) | ![Desert](docs/jogo_03_desert_calcium_min6.jpg) |
-| ![Inimigos](docs/art_01_inimigos_forest.jpg) | ![Chefes](docs/art_05_chefes.jpg) |
-| ![Mapa e tempo](docs/ui_03_mapa_tier_tempo.jpg) | |
+| ![Forest](docs/game_02_forest_green_fox_min8.jpg) | ![Desert](docs/game_03_desert_calcium_min6.jpg) |
+| ![Inimigos](docs/art_01_enemies_forest.jpg) | ![Chefes](docs/art_05_bosses.jpg) |
+| ![Mapa e tempo](docs/ui_03_map_tier_time.jpg) | |
 
 ## Conteúdo
 

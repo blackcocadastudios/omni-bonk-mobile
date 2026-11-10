@@ -8,5 +8,6 @@
     <publisher>BlackCocada Studios</publisher>
     <genre>Action</genre>
     <image>./omnibonk/screenshot.png</image>
+    <thumbnail>./omnibonk/cover.png</thumbnail>
   </game>
 </gameList>

@@ -17,7 +17,10 @@
       "action",
       "roguelike"
     ],
-    "image": {},
+    "image": {
+      "screenshot": "screenshot.png",
+      "cover": "cover.png"
+    },
     "rtr": true,
     "exp": false,
     "runtime": null,
