@@ -115,6 +115,10 @@ Device requirements: Android 8.0 (API 26) or newer, with OpenGL ES 3.0.
 
 No keystore is stored in this repository. If `KEYSTORE` is not set, `scripts/build_apk.sh` generates a throwaway debug keystore with a random password for that build (fine for sideloading and tests, but every build gets a different signature, so Android will not update over a previous install). For a stable signature, create your own keystore and provide it through the `KEYSTORE`, `KEYSTORE_PASS`, `KEY_ALIAS` and `KEY_PASS` environment variables. In GitHub Actions, add the repository secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64-encoded), `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASS`; the workflow uses them automatically when present.
 
+## License
+
+MIT, see [LICENSE](LICENSE).
+
 ## Credits
 
 Developed by BlackCocada Studios (Solo Indie Dev), with the help of Claude Opus 5.5. Non-profit fan port made in honor of the success of Megabonk.
