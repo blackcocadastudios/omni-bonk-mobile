@@ -25,11 +25,12 @@ before the Final Swarm gets you.
 2. Extract the zip into the `ports` folder so you end up with:
    ```
    ports/
-   ├── OmniBonk.sh
+   ├── Omni Bonk.sh
    └── omnibonk/
-       ├── omnibonk        (game binary, aarch64)
-       ├── port.json, gameinfo.xml, README.md, screenshot.png
-       └── conf/           (created on first run: save file and settings)
+       ├── omnibonk.aarch64   (game binary)
+       ├── version.txt
+       ├── log.txt            (created on each run)
+       └── conf/              (created on first run: save file and settings)
    ```
 3. Put the card back in the console, then *Start > Quit > Restart EmulationStation*.
 4. Launch **Omni Bonk** from the *Ports* system.
@@ -97,4 +98,6 @@ The save file is `omnibonk/conf/omnibonk_save.txt` (delete it to reset everythin
 - **Technology:** developed with the help of Claude Opus 5.5
 - Source code: <https://github.com/blackcocadastudios/omni-bonk-mobile>
 
-Omni Bonk is free and non-commercial. Megabonk and its characters belong to their respective owners.
+Thanks to vedinad for creating *Megabonk*, the game that inspired this tribute, and to the PortMaster team for the tools that make ports like this possible.
+
+Omni Bonk is free and non-commercial, released under the MIT license (see `omnibonk/licenses/`). Megabonk and its characters belong to their respective owners.

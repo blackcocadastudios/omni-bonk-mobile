@@ -45,9 +45,9 @@ Adjustable stage time · DPS meter and damage table at the end of the run (StatH
 
 ## R36S and other Linux handhelds
 
-*Ready to Run* port in `ports/r36s` (aarch64, SDL2, OpenGL ES 3.0), in the PortMaster format. The `OmniBonk-R36S.zip` package is published on the **r36s-latest** Release on every push.
+*Ready to Run* port in `ports/omnibonk` (aarch64, SDL2, OpenGL ES 3.0), in the PortMaster format. The `OmniBonk-R36S.zip` package is published on the **r36s-latest** Release on every push.
 
-1. Extract the zip into the `ports` folder of the SD card (EASYROMS partition): you get `OmniBonk.sh` and the `omnibonk` folder.
+1. Extract the zip into the `ports` folder of the SD card (EASYROMS partition): you get `Omni Bonk.sh` and the `omnibonk` folder.
 2. Restart EmulationStation. The game shows up under Ports.
 
 | Control | In a run | In menus |
@@ -78,7 +78,7 @@ The binary only depends on `libSDL2-2.0.so.0` and glibc 2.27 or newer; the OpenG
 |---|---|
 | `src/` | game (data, models, world, combat, render, UI, audio) plus the Android (`main_android.cpp`), SDL2 (`main_sdl.cpp`) and harness (`main_desktop.cpp`) platforms |
 | `android/` | `AndroidManifest.xml`, `MainActivity.java`, resources and icons |
-| `ports/r36s/` | R36S package: `OmniBonk.sh`, `port.json`, `gameinfo.xml`, README, cover and screenshot |
+| `ports/omnibonk/` | PortMaster port: `Omni Bonk.sh`, game folder `omnibonk/`, `port.json`, `gameinfo.xml`, README, cover and screenshot |
 | `scripts/build_r36s.sh` | cross-compiles the SDL2 port for aarch64 and produces `build/OmniBonk-R36S.zip` |
 | `scripts/r36s_smoke.sh` | runs the aarch64 binary under QEMU + Debian 13 and captures screenshots |
 | `scripts/build_apk.sh` | APK build: NDK/CMake → aapt2 → javac/d8 → zipalign → apksigner |
@@ -114,6 +114,10 @@ Device requirements: Android 8.0 (API 26) or newer, with OpenGL ES 3.0.
 ### APK signing
 
 No keystore is stored in this repository. If `KEYSTORE` is not set, `scripts/build_apk.sh` generates a throwaway debug keystore with a random password for that build (fine for sideloading and tests, but every build gets a different signature, so Android will not update over a previous install). For a stable signature, create your own keystore and provide it through the `KEYSTORE`, `KEYSTORE_PASS`, `KEY_ALIAS` and `KEY_PASS` environment variables. In GitHub Actions, add the repository secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64-encoded), `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASS`; the workflow uses them automatically when present.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
 
 ## Credits
 
