@@ -98,4 +98,6 @@ The save file is `omnibonk/conf/omnibonk_save.txt` (delete it to reset everythin
 - **Technology:** developed with the help of Claude Opus 5.5
 - Source code: <https://github.com/blackcocadastudios/omni-bonk-mobile>
 
+Thanks to vedinad for creating *Megabonk*, the game that inspired this tribute, and to the PortMaster team for the tools that make ports like this possible.
+
 Omni Bonk is free and non-commercial. Megabonk and its characters belong to their respective owners.
