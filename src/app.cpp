@@ -107,6 +107,7 @@ void App::back() {
   if (scr == SCR_SETTINGS) { scr = settingsBack; save(); return; }
   if (scr == SCR_TITLE) { confirmQuit = !confirmQuit; return; }
   if (scr == SCR_MAP) { scr = SCR_CHARS; return; }
+  if (scr == SCR_CREDITS) { scr = SCR_ABOUT; return; }
   scr = SCR_TITLE;
 }
 
@@ -228,6 +229,7 @@ void App::frame(float dt) {
       case SCR_SETTINGS: drawSettings(); break;
       case SCR_SHOP: drawShop(); break;
       case SCR_ABOUT: drawAbout(); break;
+      case SCR_CREDITS: drawCredits(); break;
       case SCR_CATALOG: drawCatalog(); break;
       default: break;
     }

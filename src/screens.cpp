@@ -307,7 +307,25 @@ void App::drawAbout() {
     tr("a hand appears near chests and shrines. Attacks are automatic.");
   u.panel(L - 4, 26, Wd + 8, u.H - 60);
   u.textBox(L + 2, 32, Wd - 4, t, 1, WHITE, AL_LEFT, 11);
-  if (u.button(u.W * 0.5f - 60, u.H - 27, 120, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
+  if (u.button(8 + u.safeL, u.H - 27, 110, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
+  if (u.button(u.W - 8 - u.safeR - 110, u.H - 27, 110, 22, tr("CREDITS"), Col(150, 110, 40, 235))) scr = SCR_CREDITS;
+}
+
+// ================================================================== CREDITS
+void App::drawCredits() {
+  UI& u = ui;
+  bgDim(0.75f);
+  float L = 12 + u.safeL, Wd = u.W - 24 - u.safeL - u.safeR;
+  u.text(u.W * 0.5f, 6, tr("CREDITS"), 2, WHITE, AL_CENTER);
+  u.panel(L - 4, 26, Wd + 8, u.H - 60);
+  float y = 40;
+  const char* heads[3] = {tr("Developer"), tr("Tribute"), tr("Technology")};
+  const char* lines[3] = {"BlackCocada Studios\n(Solo Indie Dev)", tr("Non-profit fan port in honor of the success of Megabonk."), tr("Developed with the help of Claude Opus 5.5")};
+  for (int i = 0; i < 3; i++) {
+    u.text(u.W * 0.5f, y, heads[i], 1.5f, GOLD, AL_CENTER); y += 18;
+    y += u.textBox(L + 2, y, Wd - 4, lines[i], 1, WHITE, AL_CENTER, 11) + 14;
+  }
+  if (u.button(u.W * 0.5f - 60, u.H - 27, 120, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_ABOUT;
 }
 
 // ================================================================== CATALOG

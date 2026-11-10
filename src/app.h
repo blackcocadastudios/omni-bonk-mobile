@@ -26,7 +26,7 @@ struct Meta {
   int upReroll = 0, upSkip = 0, upBanish = 0, upHp = 0, upLuck = 0;
   int lastChar = 0, lastMap = 0, lastTier = 0;
 };
-enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME };
+enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME, SCR_CREDITS };
 
 struct App {
   PlatformInfo plat; Settings set; Meta meta;
@@ -56,7 +56,7 @@ struct App {
   void applySettingsToGame(Game& g);
   void frame(float dt);
   void updateMenuGame(float dt);
-  void drawTitle(); void drawChars(); void drawMap(); void drawSettings(); void drawShop(); void drawAbout(); void drawCatalog();
+  void drawTitle(); void drawChars(); void drawMap(); void drawSettings(); void drawShop(); void drawAbout(); void drawCredits(); void drawCatalog();
   void drawGame(); void gameControls(); void drawHUD(); void drawWorldUI(); void drawMinimap(float cx, float cy, float r); void drawFullMap();
   void drawLevelUp(); void drawChest(); void drawShrine(); void drawShopOverlay(); void drawMicrowave(); void drawMoai(); void drawPause(); void drawEnd();
   void drawOfferCard(const Offer& o, float x, float y, float w, float h, bool sel);

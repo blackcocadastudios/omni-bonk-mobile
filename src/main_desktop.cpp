@@ -234,7 +234,7 @@ static void padScenario() {
   press(PB_B); padFrames(6);
   press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("shop"); shot("pad_11_loja");
   press(PB_B); padFrames(6);
-  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("about"); shot("pad_12_sobre");
+  press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_A); padFrames(6); padLog("about"); shot("pad_12_sobre"); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("credits"); shot("pad_12b_creditos"); press(PB_B); padFrames(4);
   press(PB_B); padFrames(6);
   press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("quit dialog"); shot("pad_13_sair");
   press(PB_A); padFrames(6); padLog("quit dialog: no");
