@@ -48,6 +48,19 @@ jobs:
           path: build/OmniBonk.apk
           if-no-files-found: error
 
+      - name: Release "apk-mais-recente" (branch pushes)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-mais-recente
+          name: Android APK - latest build (${{ github.run_number }})
+          body: |
+            Automatic build of commit ${{ github.sha }} (branch ${{ github.ref_name }}).
+            Download **OmniBonk.apk** and install it (allow installs from unknown sources).
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: build/OmniBonk.apk
+
       - name: GitHub release (tags v*)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
