@@ -1,0 +1,5 @@
+Omni Bonk is dynamically linked against SDL2 (libSDL2-2.0.so.0), which is provided by the
+device firmware / PortMaster and is NOT bundled in this package.
+
+SDL2 is Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org> and is distributed under
+the zlib license: https://www.libsdl.org/license.php

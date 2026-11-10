@@ -100,4 +100,4 @@ The save file is `omnibonk/conf/omnibonk_save.txt` (delete it to reset everythin
 
 Thanks to vedinad for creating *Megabonk*, the game that inspired this tribute, and to the PortMaster team for the tools that make ports like this possible.
 
-Omni Bonk is free and non-commercial. Megabonk and its characters belong to their respective owners.
+Omni Bonk is free and non-commercial, released under the MIT license (see `omnibonk/licenses/`). Megabonk and its characters belong to their respective owners.
