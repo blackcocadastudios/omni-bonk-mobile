@@ -1,4 +1,5 @@
 // Weapons, projectiles, areas, damage pipeline, item procs, enemy AI and bosses
+#include "i18n.h"
 #include "game.h"
 #include "audio.h"
 
@@ -50,7 +51,7 @@ void Game::lightning(v3 at, float dmg, int src, float r, float stun) {
 
 void Game::hitEnemy(Enemy& e, float dmg, int src, float procCoef, float critAdd, v3 from, float knock, bool canCrit, bool noProc) {
   if (!e.alive || e.spawnT < 0.05f) return;
-  if (e.invuln) { if (rng.chance(0.1f)) floatText(e.pos + v3(0, e.scale * 2.5f, 0), "IMUNE", Col(200, 200, 255), 0.8f); return; }
+  if (e.invuln) { if (rng.chance(0.1f)) floatText(e.pos + v3(0, e.scale * 2.5f, 0), tr("IMMUNE"), Col(200, 200, 255), 0.8f); return; }
   Player& p = P;
   float m = p.st[S_DAMAGE];
   m += p.items[IT_DEMONICSOUL] ? std::min(1.f, p.demonicKills * 0.001f * p.items[IT_DEMONICSOUL]) : 0;
@@ -109,7 +110,7 @@ void Game::hitEnemy(Enemy& e, float dmg, int src, float procCoef, float critAdd,
       if (bloodCh > 0 && rng.f() < bloodCh * procCoef) { e.bleed++; }
       if (pc(IT_CURSEDGRABBIES, 0.05f)) { Area& a = addArea(); a.kind = AK_EXPLOSION; a.pos = e.pos + v3(0, 0.8f, 0); a.radius = 3.f; a.life = a.maxLife = 0.3f; a.color = 0xb040ff; areaDamage(e.pos, 3.f, dmg, SRC_ITEM + IT_CURSEDGRABBIES, 0, 0.5f, -1, false); }
       if (p.items[IT_SLURPGLOVES] && p.slurpCd <= 0) { p.slurpCd = 9.f; Area& a = addArea(); a.kind = AK_EXPLOSION; a.pos = e.pos + v3(0, 0.8f, 0); a.radius = 3.5f; a.life = a.maxLife = 0.35f; a.color = 0xff2050; areaDamage(e.pos, 3.5f, dmg * 2.f * p.items[IT_SLURPGLOVES], SRC_ITEM + IT_SLURPGLOVES, 0, 0.5f, -1, false); heal(p.st[S_MAXHP] * 0.075f); }
-      if (p.items[IT_JOESDAGGER] && e.rank == RK_NORMAL && rng.f() < 0.01f * p.items[IT_JOESDAGGER] * procCoef) { e.hp = -1; p.joesExec++; floatText(e.pos + v3(0, 2, 0), "EXECUTADO", Col(255, 60, 60), 1.1f); }
+      if (p.items[IT_JOESDAGGER] && e.rank == RK_NORMAL && rng.f() < 0.01f * p.items[IT_JOESDAGGER] * procCoef) { e.hp = -1; p.joesExec++; floatText(e.pos + v3(0, 2, 0), tr("EXECUTED"), Col(255, 60, 60), 1.1f); }
       if (P.mirrorCd < 99 && P.items[IT_KEVIN] && P.landT > -1 && rng.f() < 0.25f * procCoef && realTime - P.lastHitT > 0.5f && fmodf(realTime, 0.5f) < 0.05f) { damagePlayer(1.f + stage, nullptr, false, true); floatText(p.pos + v3(0, 2.4f, 0), "KEVIN!", Col(255, 100, 100), 1.0f); }
       // lifesteal: chance to heal
       float ls = p.st[S_LIFESTEAL];
@@ -154,7 +155,7 @@ void Game::killEnemy(Enemy& e, int src) {
   }
   if (e.challenge) {
     int left = 0; for (auto& o : enemies) if (o.alive && o.challenge && o.aiState == e.aiState) left++;
-    if (left == 0) { Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c); banner("DESAFIO CONCLUÍDO!", "Um baú dourado apareceu", Col(194, 107, 255), 2.5f); }
+    if (left == 0) { Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c); banner(tr("CHALLENGE COMPLETE!"), tr("A golden chest appeared"), Col(194, 107, 255), 2.5f); }
   }
   if (e.rank == RK_MINIBOSS) {
     Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c);
@@ -176,18 +177,18 @@ void Game::damagePlayer(float dmg, Enemy* src, bool canDodge, bool kevin) {
   if (canDodge && !kevin) {
     float ev = p.st[S_EVASION]; float ch = ev / (ev + 100.f);
     if (rng.f() < ch) {
-      floatText(p.pos + v3(0, 2.3f, 0), "ESQUIVA", Col(170, 220, 255), 0.9f);
+      floatText(p.pos + v3(0, 2.3f, 0), tr("DODGE"), Col(170, 220, 255), 0.9f);
       if (p.items[IT_PHANTOMSHROUD]) { p.nextDouble = true; p.phantomT = 3.f; }
       if (p.ch == C_NINJA) p.nextCrit = true;
       p.iframes = 0.25f; return;
     }
   }
   if (!kevin) dmg *= 100.f / (100.f + std::max(0.f, p.st[S_ARMOR]));
-  lastHitBy = kevin ? "Kevin" : src ? gEnemies[src->type].name : "projetil/area"; lastHitDmg = dmg;
+  lastHitBy = kevin ? "Kevin" : src ? gEnemies[src->type].name : tr("projectile/area"); lastHitDmg = dmg;
   if (p.shield > 0) { float a = std::min(p.shield, dmg); p.shield -= a; dmg -= a; }
   if (kevin) { p.hp = std::max(1.f, p.hp - dmg); }
   else {
-    if (p.hp - dmg <= 0 && p.items[IT_ZAWARUDO] > 0) { p.items[IT_ZAWARUDO]--; p.hp = 1; p.zaT = 3.f; p.iframes = 3.f; banner("ZA WARUDO!", "O tempo parou", Col(255, 215, 60), 2); dmg = 0; statsDirty = true; }
+    if (p.hp - dmg <= 0 && p.items[IT_ZAWARUDO] > 0) { p.items[IT_ZAWARUDO]--; p.hp = 1; p.zaT = 3.f; p.iframes = 3.f; banner("ZA WARUDO!", tr("Time has stopped"), Col(255, 215, 60), 2); dmg = 0; statsDirty = true; }
     p.hp -= dmg;
   }
   p.lastHitT = stageTime;
@@ -553,7 +554,7 @@ void Game::updateProjectiles(float dt) {
       int slot = pr.src >= 0 && pr.src < 8 ? pr.src : 7;
       if (persistent) { if (e.hitCd[slot] > 0) continue; e.hitCd[slot] = pr.kind == PK_BOOMERANG ? 0.3f : 0.45f; }
       else { bool seen = false; for (int h = 0; h < pr.nhits; h++) if (pr.hits[h] == e.id) seen = true; if (seen) continue; if (pr.nhits < 10) pr.hits[pr.nhits++] = e.id; }
-      if (pr.src < 8 && pr.src < (int)P.weapons.size() && P.weapons[pr.src].def == W_DEXECUTIONER && e.rank == RK_NORMAL && rng.chance(0.02f)) { e.hp = 0; floatText(e.pos + v3(0, 2, 0), "EXECUTADO", Col(255, 60, 60), 1.0f); killEnemy(e, pr.src); }
+      if (pr.src < 8 && pr.src < (int)P.weapons.size() && P.weapons[pr.src].def == W_DEXECUTIONER && e.rank == RK_NORMAL && rng.chance(0.02f)) { e.hp = 0; floatText(e.pos + v3(0, 2, 0), tr("EXECUTED"), Col(255, 60, 60), 1.0f); killEnemy(e, pr.src); }
       else hitEnemy(e, pr.dmg, pr.src, pr.procCoef, pr.crit, pr.pos - pr.vel * 0.05f, pr.knock);
       if (pr.explode > 0 && !persistent) {
         areaDamage(pr.pos, pr.explode, pr.dmg * 0.8f, pr.src, 0.3f, pr.knock, e.id);
@@ -800,9 +801,9 @@ void Game::bossAI(Enemy& e, float dt) {
     if ((int)e.phase < phase) {
       e.phase = (float)phase; e.invuln = true; int c = 0;
       for (auto& it : inters) if (it.type == I_ALTAR && it.used && c < 2) { it.used = false; it.progress = 0; c++; }
-      banner("O CHEFE ESTÁ IMUNE", "Capture 2 altares para quebrar o escudo", Col(255, 120, 120), 3);
+      banner(tr("THE BOSS IS IMMUNE"), tr("Capture 2 altars to break the shield"), Col(255, 120, 120), 3);
     }
-    if (e.invuln) { int open = 0; for (auto& it : inters) if (it.type == I_ALTAR && !it.used) open++; if (open == 0) { e.invuln = false; banner("ESCUDO QUEBRADO!", "", Col(120, 255, 140), 2); } }
+    if (e.invuln) { int open = 0; for (auto& it : inters) if (it.type == I_ALTAR && !it.used) open++; if (open == 0) { e.invuln = false; banner(tr("SHIELD BROKEN!"), "", Col(120, 255, 140), 2); } }
     mv = dir * e.speed * (dist > 8 ? 1.f : -0.3f);
     if (e.aiT <= 0) { e.aiT = 3.0f - phase * 0.6f; ring(14 + phase * 6, 7 + phase, 0.6f); e.clip = CL_ATTACK; e.clipT = 0; }
     if (e.aiT2 <= 0) { e.aiT2 = 6.f; for (int k = 0; k < 3 + phase; k++) tele(P.pos + rng.inDisk(4.f), 3.f, 1.2f, 1.2f, 0xc060ff); summon(E_SWARMGHOST, 3 + phase * 2); }

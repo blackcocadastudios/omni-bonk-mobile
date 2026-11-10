@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "ui.h"
 #include "render.h"
 #include "audio.h"
@@ -82,13 +83,14 @@ void UI::drawFocus() {
   rect(r->x - o - 1, r->y + r->h + o, 4, 1, c); rect(r->x - o - 1, r->y + r->h + o - 3, 1, 4, c);
   rect(r->x + r->w + o - 3, r->y + r->h + o, 4, 1, c); rect(r->x + r->w + o, r->y + r->h + o - 3, 1, 4, c);
 }
-std::string UI::fit(const std::string& str, float maxW, float scale) {
-  if (textW(str, scale) <= maxW) return str;
+std::string UI::fit(const std::string& in, float maxW, float scale) {
+  std::string str = i18nActive() ? std::string(trv(in)) : in;   // translated once; the result is drawn with textRaw by callers via text() (no table hit)
+  if (textWRaw(str, scale) <= maxW) return str;
   std::string out; size_t i = 0;
   while (i < str.size()) {
     size_t j = i; utf8Next(str, j);
     std::string cand = out + str.substr(i, j - i);
-    if (textW(cand + "..", scale) > maxW) break;
+    if (textWRaw(cand + "..", scale) > maxW) break;
     out = cand; i = j;
   }
   while (!out.empty() && out.back() == ' ') out.pop_back();
@@ -129,13 +131,21 @@ void UI::icon(int id, float x, float y, float size, Col c) {
 void UI::sprite(int sp, float x, float y, float w, float h, Col c) { gR.uiQuad(x * s, y * s, w * s, h * s, gR.atlas.sprite[sp], c); }
 
 float UI::textW(const std::string& str, float scale) {
+  if (i18nActive()) return textWRaw(std::string(trv(str)), scale);
+  return textWRaw(str, scale);
+}
+float UI::textWRaw(const std::string& str, float scale) {
   float w = 0, best = 0; size_t i = 0;
-  while (i < str.size()) { int cp = utf8Next(str, i); if (cp == '\n') { best = std::max(best, w); w = 0; continue; } w += gR.atlas.glyphW[cp & 255] * scale; }
+  while (i < str.size()) { int cp = utf8Next(str, i); if (cp == '\n') { best = std::max(best, w); w = 0; continue; } w += gR.atlas.glyphW[glyphIdx(cp)] * scale; }
   return std::max(best, w);
 }
 
 float UI::text(float x, float y, const std::string& str, float scale, Col c, int align) {
-  float w = textW(str, scale);
+  if (i18nActive()) return textRaw(x, y, std::string(trv(str)), scale, c, align);
+  return textRaw(x, y, str, scale, c, align);
+}
+float UI::textRaw(float x, float y, const std::string& str, float scale, Col c, int align) {
+  float w = textWRaw(str, scale);
   float cx = align == AL_CENTER ? x - w * 0.5f : align == AL_RIGHT ? x - w : x;
   // snap to physical pixels
   float px = roundf(cx * s), py = roundf(y * s); float k = scale * s;
@@ -143,20 +153,21 @@ float UI::text(float x, float y, const std::string& str, float scale, Col c, int
   while (i < str.size()) {
     int cp = utf8Next(str, i);
     if (cp == '\n') { px = startX; py += 11 * k; continue; }
-    const ARect& g = gR.atlas.glyph[cp & 255];
-    if ((cp & 255) != ' ') gR.uiQuad(px - k, py - 2 * k, GLYPH_CW * k, GLYPH_CH * k, g, c);
-    px += gR.atlas.glyphW[cp & 255] * k;
+    const ARect& g = gR.atlas.glyph[glyphIdx(cp)];
+    if (cp != ' ') gR.uiQuad(px - k, py - 2 * k, GLYPH_CW * k, GLYPH_CH * k, g, c);
+    px += gR.atlas.glyphW[glyphIdx(cp)] * k;
   }
   return w;
 }
 
-int UI::wrap(const std::string& str, float maxW, float scale, std::vector<std::string>& out) {
+int UI::wrap(const std::string& in, float maxW, float scale, std::vector<std::string>& out) {
   out.clear();
+  const std::string str = i18nActive() ? std::string(trv(in)) : in;
   std::string line, word;
   auto flushWord = [&]() {
     if (word.empty()) return;
     std::string cand = line.empty() ? word : line + " " + word;
-    if (textW(cand, scale) > maxW && !line.empty()) { out.push_back(line); line = word; }
+    if (textWRaw(cand, scale) > maxW && !line.empty()) { out.push_back(line); line = word; }
     else line = cand;
     word.clear();
   };
@@ -174,7 +185,7 @@ int UI::wrap(const std::string& str, float maxW, float scale, std::vector<std::s
 float UI::textBox(float x, float y, float w, const std::string& str, float scale, Col c, int align, float lineH) {
   std::vector<std::string> lines; wrap(str, w, scale, lines);
   float yy = y;
-  for (auto& l : lines) { text(align == AL_CENTER ? x + w * 0.5f : x, yy, l, scale, c, align); yy += lineH * scale; }
+  for (auto& l : lines) { textRaw(align == AL_CENTER ? x + w * 0.5f : x, yy, l, scale, c, align); yy += lineH * scale; }
   return yy - y;
 }
 

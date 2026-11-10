@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "game.h"
 #include "audio.h"
 
@@ -44,8 +45,8 @@ void Game::loadStage(int s) {
   egN = (int)(world.T.size / egCell) + 2; egOrigin = -world.T.half() - egCell;
   egHead.assign(egN * egN, -1);
   const char* sname = gMaps[cfg.map].tiers[std::min(2, cfg.tier)].name;
-  banner(sname, fmt("Estágio %d/%d  •  Tier %d", s + 1, numStages, cfg.tier + 1), Col(255, 255, 255), 3.5f);
-  if (cfg.map == MAP_GRAVEYARD) banner("Encontre 4 Chaves da Cripta", "para abrir o portal do chefe", Col(127, 255, 159), 3.5f);
+  banner(sname, fmt(tr("Stage %d/%d  •  Tier %d"), s + 1, numStages, cfg.tier + 1), Col(255, 255, 255), 3.5f);
+  if (cfg.map == MAP_GRAVEYARD) banner(tr("Find 4 Crypt Keys"), tr("to open the boss portal"), Col(127, 255, 159), 3.5f);
   // a few starting enemies
   for (int i = 0; i < 6; i++) spawnEnemy(gSpawnTables[cfg.map][i % 2].enemy, spawnRingPos(22, 30));
 }
@@ -84,7 +85,7 @@ void Game::startFinalArena() {
   finalSwarm = false; finalSwarmT = 0; bossSummoned = true; bossesAlive = 0; eventsDone = 0xff;
   Enemy* b = spawnEnemy(E_B_GHOSTKING, v3(0, 0, 8));
   if (b) { b->hp = b->maxHp = 60000 * (1 + 0.5f * stage) * (1 + P.st[S_DIFFICULTY] / 200.f) * (P.level / 40.f + 0.6f); bossesAlive = 1; }
-  banner("CHEFE FINAL", "Ghost King", Col(216, 160, 255), 4);
+  banner(tr("FINAL BOSS"), "Ghost King", Col(216, 160, 255), 4);
   audioPlay(SFX_BOSS);
 }
 
@@ -342,9 +343,9 @@ void Game::applyOffer(const Offer& o) {
 std::string offerTitle(const Offer& o, const Game& g) {
   switch (o.kind) {
     case 0: return gWeapons[o.id].name;
-    case 1: { int lv = 1; for (auto& w : g.P.weapons) if (w.def == o.id) lv = w.level; return fmt("%s  Nv %d", gWeapons[o.id].name, lv + 1); }
+    case 1: { int lv = 1; for (auto& w : g.P.weapons) if (w.def == o.id) lv = w.level; return fmt(tr("%s  Lv %d"), gWeapons[o.id].name, lv + 1); }
     case 2: return gTomes[o.id].name;
-    case 3: { int lv = 1; for (int i = 0; i < g.P.ntomes; i++) if (g.P.tomes[i].def == o.id) lv = g.P.tomes[i].level; return fmt("%s  Nv %d", gTomes[o.id].name, lv + 1); }
+    case 3: { int lv = 1; for (int i = 0; i < g.P.ntomes; i++) if (g.P.tomes[i].def == o.id) lv = g.P.tomes[i].level; return fmt(tr("%s  Lv %d"), gTomes[o.id].name, lv + 1); }
     case 4: return kStats[o.id].name;
     case 5: return gItems[o.id].name;
   }
@@ -353,26 +354,26 @@ std::string offerTitle(const Offer& o, const Game& g) {
 std::string offerDesc(const Offer& o, const Game& g) {
   (void)g;
   switch (o.kind) {
-    case 0: return std::string("NOVA ARMA! ") + gWeapons[o.id].desc;
+    case 0: return std::string(tr("NEW WEAPON! ")) + tr(gWeapons[o.id].desc);
     case 1: {
       std::string s;
       for (auto& gn : o.gains) {
         if (!s.empty()) s += "\n";
-        if (gn.stat == U_DMG) s += fmt("+%.1f Dano", gn.v);
-        else if (gn.stat == U_PROJ) s += fmt("+%d Projétil", (int)gn.v);
-        else if (gn.stat == U_BOUNCE) s += fmt("+%d Ricochete", (int)gn.v);
-        else if (gn.stat == U_CRIT) s += fmt("+%.0f%% Crítico", gn.v);
-        else if (gn.stat == U_ATKSPD) s += fmt("+%.0f%% Vel. Ataque", gn.v);
-        else s += fmt("+%.0f%% %s", gn.v * 100, kUpStatName[gn.stat]);
+        if (gn.stat == U_DMG) s += fmt(tr("+%.1f Damage"), gn.v);
+        else if (gn.stat == U_PROJ) s += fmt(tr("+%d Projectile"), (int)gn.v);
+        else if (gn.stat == U_BOUNCE) s += fmt(tr("+%d Ricochet"), (int)gn.v);
+        else if (gn.stat == U_CRIT) s += fmt(tr("+%.0f%% Crit"), gn.v);
+        else if (gn.stat == U_ATKSPD) s += fmt(tr("+%.0f%% Attack Spd."), gn.v);
+        else s += fmt("+%.0f%% %s", gn.v * 100, tr(kUpStatName[gn.stat]));
       }
       return s;
     }
     case 2: case 3: {
       const TomeDef& t = gTomes[o.id];
-      if (t.stat < 0) return std::string(o.kind == 2 ? "NOVO TOME! " : "") + t.desc;
-      return std::string(o.kind == 2 ? "NOVO TOME! " : "") + statValueStr(t.stat, o.value) + " " + kStats[t.stat].name;
+      if (t.stat < 0) return std::string(o.kind == 2 ? tr("NEW TOME! ") : "") + tr(t.desc);
+      return std::string(o.kind == 2 ? tr("NEW TOME! ") : "") + statValueStr(t.stat, o.value) + " " + tr(kStats[t.stat].name);
     }
-    case 4: return statValueStr(o.id, o.value) + " " + kStats[o.id].name;
+    case 4: return statValueStr(o.id, o.value) + " " + tr(kStats[o.id].name);
     case 5: return gItems[o.id].desc;
   }
   return "";
@@ -398,19 +399,19 @@ int Game::nearestInter(float maxD) const {
 std::string Game::interLabel(int idx) const {
   const Inter& it = inters[idx];
   switch (it.type) {
-    case I_CHEST: return fmt("Abrir baú (%d ouro)", chestCost());
-    case I_CHEST_GOLD: return "Abrir baú dourado";
-    case I_GREED_SHRINE: return "Greed Shrine: +5% dificuldade";
-    case I_CURSED_SHRINE: return "Cursed Shrine: +1 chefe";
-    case I_CHALLENGE_SHRINE: return "Iniciar desafio de elites";
-    case I_MOAI: return "Moai: escolher item";
-    case I_SHADY: return "Negociar com Shady Guy";
-    case I_MICROWAVE: return fmt("Microwave (%d usos)", it.uses);
-    case I_SUCC_SHRINE: return "Shrine of Succ: puxar XP";
+    case I_CHEST: return fmt(tr("Open chest (%d gold)"), chestCost());
+    case I_CHEST_GOLD: return tr("Open golden chest");
+    case I_GREED_SHRINE: return tr("Greed Shrine: +5% difficulty");
+    case I_CURSED_SHRINE: return tr("Cursed Shrine: +1 boss");
+    case I_CHALLENGE_SHRINE: return tr("Start elite challenge");
+    case I_MOAI: return tr("Moai: choose an item");
+    case I_SHADY: return tr("Trade with Shady Guy");
+    case I_MICROWAVE: return fmt(tr("Microwave (%d uses)"), it.uses);
+    case I_SUCC_SHRINE: return tr("Shrine of Succ: pull XP");
     case I_BOSS_PORTAL:
-      if (portalOpen) return stage + 1 >= numStages ? (cfg.tier == 2 && !finalArena ? "Enfrentar o Chefe Final" : "Concluir a run!") : "Entrar no portal";
-      if (cfg.map == MAP_GRAVEYARD && cryptKeys < 4) return fmt("Chaves da Cripta: %d/4", cryptKeys);
-      return bossCount > 1 ? fmt("Invocar %d chefes", bossCount) : "Invocar o chefe";
+      if (portalOpen) return stage + 1 >= numStages ? (cfg.tier == 2 && !finalArena ? tr("Face the Final Boss") : tr("Finish the run!")) : tr("Go through the portal");
+      if (cfg.map == MAP_GRAVEYARD && cryptKeys < 4) return fmt(tr("Crypt Keys: %d/4"), cryptKeys);
+      return bossCount > 1 ? fmt(tr("Summon %d bosses"), bossCount) : tr("Summon the boss");
   }
   return gInters[it.type].name;
 }
@@ -440,13 +441,13 @@ void Game::interact(int idx) {
       int cost = chestCost();
       float n = (float)P.items[IT_KEY]; float pfree = 0.1f * n / (1 + 0.1f * n);
       bool free = rng.f() < pfree;
-      if (!free && P.gold < cost) { floatText(it.pos + v3(0, 1.5f, 0), "Ouro insuficiente", Col(255, 120, 90)); audioPlay(SFX_DENY); return; }
-      if (free) floatText(it.pos + v3(0, 1.8f, 0), "GRÁTIS!", Col(255, 230, 90), 1.3f); else P.gold -= cost;
+      if (!free && P.gold < cost) { floatText(it.pos + v3(0, 1.5f, 0), tr("Not enough gold"), Col(255, 120, 90)); audioPlay(SFX_DENY); return; }
+      if (free) floatText(it.pos + v3(0, 1.8f, 0), tr("FREE!"), Col(255, 230, 90), 1.3f); else P.gold -= cost;
       openChest(it, free);
     } break;
     case I_CHEST_GOLD: openChest(it, true); break;
-    case I_GREED_SHRINE: it.used = true; P.greedDiff += 5; P.gold += 20 * (1 + stage) * P.st[S_GOLDGAIN]; statsDirty = true; floatText(it.pos + v3(0, 2, 0), "+5% Dificuldade", Col(255, 210, 80), 1.2f); audioPlay(SFX_SHRINE); ghosts(); break;
-    case I_CURSED_SHRINE: it.used = true; bossCount++; cursedUsed++; floatText(it.pos + v3(0, 3, 0), "+1 CHEFE", Col(200, 80, 255), 1.4f); audioPlay(SFX_SHRINE); ghosts(); break;
+    case I_GREED_SHRINE: it.used = true; P.greedDiff += 5; P.gold += 20 * (1 + stage) * P.st[S_GOLDGAIN]; statsDirty = true; floatText(it.pos + v3(0, 2, 0), tr("+5% Difficulty"), Col(255, 210, 80), 1.2f); audioPlay(SFX_SHRINE); ghosts(); break;
+    case I_CURSED_SHRINE: it.used = true; bossCount++; cursedUsed++; floatText(it.pos + v3(0, 3, 0), tr("+1 BOSS"), Col(200, 80, 255), 1.4f); audioPlay(SFX_SHRINE); ghosts(); break;
     case I_CHALLENGE_SHRINE: {
       it.used = true; it.challengeLeft = 5 + stage * 2;
       const auto& tab = gSpawnTables[cfg.map];
@@ -456,7 +457,7 @@ void Game::interact(int idx) {
         v3 p = it.pos + v3(cosf(a) * 9, 0, sinf(a) * 9); p.y = world.T.height(p.x, p.z);
         Enemy* e = spawnEnemy(t, p, true); if (e) { e->challenge = true; e->aiState = idx; }
       }
-      banner("DESAFIO!", "Derrote as elites para ganhar um baú", Col(194, 107, 255), 2.5f); audioPlay(SFX_SHRINE); ghosts();
+      banner(tr("CHALLENGE!"), tr("Defeat the elites to win a chest"), Col(194, 107, 255), 2.5f); audioPlay(SFX_SHRINE); ghosts();
     } break;
     case I_MOAI: {
       it.used = true; offers.clear();
@@ -468,7 +469,7 @@ void Game::interact(int idx) {
     case I_SUCC_SHRINE: it.used = true; for (auto& p : pickups) if (p.kind == PI_XP || p.kind == PI_GOLD) p.magnet = true; floatText(it.pos + v3(0, 3, 0), "SUCC!", Col(190, 120, 255), 1.4f); audioPlay(SFX_SHRINE); ghosts(); break;
     case I_BOSS_PORTAL:
       if (portalOpen) { state = GS_TRANSITION; transitionT = 0; audioPlay(SFX_PORTAL); return; }
-      if (cfg.map == MAP_GRAVEYARD && cryptKeys < 4) { floatText(it.pos + v3(0, 3, 0), fmt("Faltam %d chaves", 4 - cryptKeys), Col(127, 255, 159)); return; }
+      if (cfg.map == MAP_GRAVEYARD && cryptKeys < 4) { floatText(it.pos + v3(0, 3, 0), fmt(tr("%d keys missing"), 4 - cryptKeys), Col(127, 255, 159)); return; }
       if (!bossSummoned) summonBoss(it);
       break;
   }
@@ -482,7 +483,7 @@ void Game::summonBoss(Inter& portal) {
     v3 p = portal.pos + v3(cosf(a) * 6 + 0.01f, 0, sinf(a) * 6 + 4); p.y = world.T.height(p.x, p.z);
     Enemy* e = spawnEnemy(bt, p); if (e) { e->bossIdx = k; bossesAlive++; }
   }
-  banner(gEnemies[bt].name, bossCount > 1 ? fmt("x%d — Cursed Shrine", bossCount) : "CHEFE DO ESTÁGIO", Col(255, 80, 80), 3);
+  banner(gEnemies[bt].name, bossCount > 1 ? fmt(tr("x%d - Cursed Shrine"), bossCount) : tr("STAGE BOSS"), Col(255, 80, 80), 3);
   audioPlay(SFX_BOSS);
   shake = 0.6f;
 }
@@ -492,12 +493,12 @@ void Game::bossDied(Enemy& e) {
   Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c);
   int silver = (int)((20 + 15 * stage + 10 * cfg.tier) * P.st[S_SILVERGAIN] * (1 + 0.5f * cursedUsed));
   P.silver += silver; totalSilverEarned += silver;
-  floatText(e.pos + v3(0, 3, 0), fmt("+%d prata", silver), Col(220, 225, 235), 1.3f);
+  floatText(e.pos + v3(0, 3, 0), fmt(tr("+%d silver"), silver), Col(220, 225, 235), 1.3f);
   if (finalArena) { state = GS_VICTORY; deathT = 0; audioPlay(SFX_VICTORY); return; }
   if (bossesAlive == 0) {
     bossDefeated = true; portalOpen = true;
     for (auto& p : pickups) if (p.kind == PI_XP) p.magnet = true;
-    banner("CHEFE DERROTADO!", stage + 1 >= numStages ? (cfg.tier == 2 ? "Entre no portal para o chefe final" : "Entre no portal para vencer") : "O portal para o próximo estágio abriu", Col(120, 255, 140), 3.5f);
+    banner(tr("BOSS DEFEATED!"), stage + 1 >= numStages ? (cfg.tier == 2 ? tr("Enter the portal for the final boss") : tr("Enter the portal to win")) : tr("The portal to the next stage has opened"), Col(120, 255, 140), 3.5f);
     audioPlay(SFX_LEVELUP);
   }
 }
@@ -688,7 +689,7 @@ void Game::updateSpawning(float dt) {
   if (finalArena) {
     spawnAcc += dt * (1.5f + stageTime * 0.01f);
     while (spawnAcc > 1 && (int)enemies.size() < cfg.maxEnemies / 2) { spawnAcc -= 1; spawnEnemy(E_SWARMGHOST, spawnRingPos(20, 30)); }
-    if (stageTime > stageDur && !finalSwarm) { finalSwarm = true; banner("O ENXAME FINAL COMEÇOU", "Derrote o Ghost King!", Col(255, 90, 90)); }
+    if (stageTime > stageDur && !finalSwarm) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), tr("Defeat the Ghost King!"), Col(255, 90, 90)); }
     return;
   }
   bool infinite = cfg.stageMinutes <= 0;
@@ -726,18 +727,18 @@ void Game::updateSpawning(float dt) {
       int t = tab[std::min((int)tab.size() - 1, rng.irange(std::max(1, (int)(uEff * tab.size()))))].enemy;
       Enemy* e = spawnEnemy(t, p); if (e) e->speed *= 1.25f;
     }
-    banner("ENXAME!", "Uma horda se aproxima", Col(255, 170, 60), 2.5f); audioPlay(SFX_SWARM);
+    banner(tr("SWARM!"), tr("A horde approaches"), Col(255, 170, 60), 2.5f); audioPlay(SFX_SWARM);
   };
   auto miniboss = [&](int k) {
     int t = gMinibosses[cfg.map][k];
     spawnEnemy(t, spawnRingPos(26, 32));
-    banner("MINICHEFE!", gEnemies[t].name, Col(255, 120, 120), 2.5f); audioPlay(SFX_BOSS);
+    banner(tr("MINIBOSS!"), gEnemies[t].name, Col(255, 120, 120), 2.5f); audioPlay(SFX_BOSS);
   };
   if (!infinite || true) {
     event(1, 0.30f, swarm); event(2, 0.30f, [&] { miniboss(0); }); event(4, 0.70f, swarm); event(8, 0.80f, [&] { miniboss(1); });
   }
-  if (!infinite && cfg.swarmMode == 0 && uu >= 1.f && !finalSwarm) { finalSwarm = true; banner("O ENXAME FINAL COMEÇOU", bossDefeated ? "Corra para o portal!" : "Mate o chefe e fuja pelo portal!", Col(255, 80, 80), 4); audioPlay(SFX_SWARM); }
-  if (cfg.swarmMode == 1 && bossDefeated && !finalSwarm && !infinite && uu >= 1.f) { finalSwarm = true; banner("O ENXAME FINAL COMEÇOU", "Entre no portal!", Col(255, 80, 80), 4); }
+  if (!infinite && cfg.swarmMode == 0 && uu >= 1.f && !finalSwarm) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), bossDefeated ? tr("Run to the portal!") : tr("Kill the boss and flee through the portal!"), Col(255, 80, 80), 4); audioPlay(SFX_SWARM); }
+  if (cfg.swarmMode == 1 && bossDefeated && !finalSwarm && !infinite && uu >= 1.f) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), tr("Enter the portal!"), Col(255, 80, 80), 4); }
   if (finalSwarm) {
     finalSwarmT += dt;
     float rate = 3.f + finalSwarmT * 0.12f;
@@ -780,7 +781,7 @@ void Game::updatePickups(float dt) {
         case PI_BORGAR: heal(P.st[S_MAXHP] * 0.2f); audioPlay(SFX_HEAL); break;
         case PI_POWERUP: {
           float mult = P.st[S_POWERUP];
-          const char* nm = gPowerups[p.sub].name;
+          const char* nm = tr(gPowerups[p.sub].name);
           floatText(P.pos + v3(0, 2.3f, 0), nm, hexc(gPowerups[p.sub].color), 1.4f);
           switch (p.sub) {
             case PU_SHIELD: P.shieldT = 6 * mult; break;
@@ -824,7 +825,7 @@ void Game::updateInters(float dt) {
         }
         break;
       case I_CRYPT_KEY:
-        if (!it.used && d < 1.8f) { it.used = true; cryptKeys++; banner(fmt("Chave da Cripta %d/4", cryptKeys), cryptKeys >= 4 ? "O portal do chefe está aberto!" : "", Col(127, 255, 159), 2.5f); audioPlay(SFX_POWERUP); }
+        if (!it.used && d < 1.8f) { it.used = true; cryptKeys++; banner(fmt(tr("Crypt Key %d/4"), cryptKeys), cryptKeys >= 4 ? tr("The boss portal is open!") : "", Col(127, 255, 159), 2.5f); audioPlay(SFX_POWERUP); }
         break;
       case I_CHARGE_SHRINE:
         if (!it.used) {

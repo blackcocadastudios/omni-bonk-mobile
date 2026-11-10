@@ -53,6 +53,16 @@ void artDrawIcon(Canvas& c, const IconRecipe& r);
 
 // ---------- UI atlas ----------
 constexpr int ATLAS_SIZE = 1024;
+// Font cells: 0..255 = Latin-1, 256..319 = Cyrillic U+0410..U+044F, 320/321 = Yo/yo (U+0401/U+0451)
+constexpr int GLYPH_COUNT = 322;
+inline int glyphIdx(int cp) {
+  if (cp >= 0 && cp < 256) return cp;
+  if (cp >= 0x410 && cp <= 0x44F) return 256 + (cp - 0x410);
+  if (cp == 0x401) return 320;
+  if (cp == 0x451) return 321;
+  return '?';
+}
+inline int glyphCp(int idx) { return idx < 256 ? idx : idx < 320 ? 0x410 + (idx - 256) : idx == 320 ? 0x401 : 0x451; }
 struct ARect { u16 x = 0, y = 0, w = 0, h = 0; };
 enum Sprite {
   SP_WHITE, SP_SOFT, SP_RING, SP_SPARK, SP_STAR, SP_SMOKE, SP_SHADOW, SP_DECAL_RING, SP_DECAL_DISC,
@@ -61,12 +71,12 @@ enum Sprite {
 };
 struct UIAtlas {
   std::vector<u8> px; // ATLAS_SIZE^2 RGBA
-  ARect glyph[256];
-  int glyphW[256];
+  ARect glyph[GLYPH_COUNT];
+  int glyphW[GLYPH_COUNT];
   ARect icon[512];
   ARect sprite[SP_COUNT];
 };
 constexpr int GLYPH_CW = 8, GLYPH_CH = 12; // cell incl. outline
 void artBuildAtlas(UIAtlas& a, const std::vector<IconRecipe>& icons);
-// decode next UTF-8 codepoint (Latin-1 range mapped), advances i
+// decode next UTF-8 codepoint (Latin-1 + Cyrillic kept, anything else becomes '?'), advances i
 int utf8Next(const std::string& s, size_t& i);

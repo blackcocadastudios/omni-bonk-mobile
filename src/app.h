@@ -6,6 +6,7 @@
 #include "game.h"
 
 struct Settings {
+  int lang = 0;               // Lang enum (src/i18n.h); 0 = English (default)
   // gameplay (QoL)
   int stageMin = 15;          // 10,12,15,20,25,30, 0 = infinite (no timer)
   bool scaleStages = true;    // stage 2/3 use 90%/80% of the time like the original

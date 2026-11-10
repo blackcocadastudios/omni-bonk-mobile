@@ -1,5 +1,6 @@
 // Headless desktop harness (Mesa EGL surfaceless + GLES3): screenshots, art sheets, balance sims.
 #include "app.h"
+#include "i18n.h"
 #include "render.h"
 #include "audio.h"
 #include <png.h>
@@ -340,7 +341,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
 
 int main(int argc, char** argv) {
   std::string scenario = "ui";
-  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false;
+  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false; std::string langCode;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     auto next = [&]() { return i + 1 < argc ? std::string(argv[++i]) : std::string(); };
@@ -352,6 +353,7 @@ int main(int argc, char** argv) {
     else if (a == "--minutes") bmin = (float)atof(next().c_str());
     else if (a == "--seed") seed = (u32)atoi(next().c_str());
     else if (a == "--handheld") handheld = true;
+    else if (a == "--lang") langCode = next();
   }
   mkdir(outDir.c_str(), 0755);
   auto getPlat = (EGLDisplay(*)(EGLenum, void*, const EGLint*))eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -378,6 +380,7 @@ int main(int argc, char** argv) {
   gApp.testMode = true;
   if (!handheld) gApp.set = Settings();
   if (handheld) gApp.ui.padMode = true;
+  if (!langCode.empty()) { int li = i18nFromCode(langCode.c_str()); if (li >= 0) { gApp.set.lang = li; i18nSet(li); } }
   if (scenario == "ui") uiShots();
   else if (scenario == "pad") padScenario();
   else if (scenario == "attract") attractScenario();

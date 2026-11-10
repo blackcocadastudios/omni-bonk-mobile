@@ -34,6 +34,9 @@ jobs:
           cmake --version | head -1
           ninja --version || true
 
+      - name: Check translation tables
+        run: python3 scripts/check_lang.py
+
       - name: Build APK
         env:
           VERSION_CODE: ${{ github.run_number }}

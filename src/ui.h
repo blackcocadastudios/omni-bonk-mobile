@@ -29,6 +29,10 @@ struct UI {
   void sprite(int sp, float x, float y, float w, float h, Col c);
   float text(float x, float y, const std::string& str, float scale = 1, Col c = Col(255, 255, 255), int align = AL_LEFT);
   float textW(const std::string& str, float scale = 1);
+  // Text entry points translate `str` through the i18n table first (exact match on the English text).
+  // *Raw variants draw/measure the string as given; the layout helpers translate once and then use them.
+  float textRaw(float x, float y, const std::string& str, float scale, Col c, int align);
+  float textWRaw(const std::string& str, float scale);
   int wrap(const std::string& str, float maxW, float scale, std::vector<std::string>& out);
   float textBox(float x, float y, float w, const std::string& str, float scale, Col c, int align = AL_LEFT, float lineH = 11);
   // interaction

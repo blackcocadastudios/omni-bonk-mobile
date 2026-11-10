@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "app.h"
 #include "render.h"
 #include "audio.h"
@@ -10,6 +11,7 @@ void App::save() {
   FILE* f = fopen(savePath().c_str(), "w");
   if (!f) return;
   Settings& s = set; Meta& m = meta;
+  fprintf(f, "lang=%d\n", s.lang);
   fprintf(f, "stageMin=%d\nscaleStages=%d\nswarmMode=%d\nanimFps=%d\nautoBhop=%d\ninstantChests=%d\ndmgNumbers=%d\ndpsMeter=%d\ncounters=%d\nautoCam=%d\n",
           s.stageMin, s.scaleStages, s.swarmMode, s.animFps, s.autoBhop, s.instantChests, s.dmgNumbers, s.dpsMeter, s.counters, s.autoCam);
   fprintf(f, "autoQuality=%d\nrenderScale=%.2f\nsnap=%d\nmaxEnemies=%d\nparticles=%d\nshadows=%d\nfpsCap=%d\nfxAlpha=%.2f\nvignette=%d\nviewDist=%.0f\nfov=%.0f\ncamDist=%.1f\nshake=%.2f\n",
@@ -34,13 +36,14 @@ bool App::load() {
 #define B_(name) if (k == #name) s.name = v != 0;
 #define F_(name) if (k == #name) s.name = v;
 #define M_(name) if (k == #name) m.name = (int)v;
-    I_(stageMin) B_(scaleStages) I_(swarmMode) I_(animFps) B_(autoBhop) B_(instantChests) B_(dmgNumbers) B_(dpsMeter) B_(counters) B_(autoCam)
+    I_(lang) I_(stageMin) B_(scaleStages) I_(swarmMode) I_(animFps) B_(autoBhop) B_(instantChests) B_(dmgNumbers) B_(dpsMeter) B_(counters) B_(autoCam)
     B_(autoQuality) F_(renderScale) B_(snap) I_(maxEnemies) I_(particles) B_(shadows) I_(fpsCap) F_(fxAlpha) B_(vignette) F_(viewDist) F_(fov) F_(camDist) F_(shake)
     F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) B_(invertY) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
     for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
   }
   fclose(f);
+  set.lang = clampi(set.lang, 0, LANG_COUNT - 1); i18nSet(set.lang);
   selChar = clampi(meta.lastChar, 0, C_COUNT - 1); selMap = clampi(meta.lastMap, 0, MAP_COUNT - 1); selTier = clampi(meta.lastTier, 0, 2);
   return true;
 }
@@ -133,16 +136,16 @@ void App::autoQualityTick() {
   if (avg >= target * 0.72f) return;
   if (set.renderScale > 0.51f) {
     set.renderScale = std::max(0.5f, set.renderScale - 0.1f);
-    game.banner("Qualidade automática", fmt("FPS %.0f - escala de render %d%%", avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - render scale %d%%"), avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
   } else if (set.particles > 0) {
     set.particles--; applySettingsToGame(game);
-    game.banner("Qualidade automática", fmt("FPS %.0f - menos partículas", avg), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - fewer particles"), avg), Col(255, 214, 80), 2.2f);
   } else if (set.viewDist > 71) {
     set.viewDist = set.viewDist > 91 ? 90.f : 70.f;
-    game.banner("Qualidade automática", fmt("FPS %.0f - visão %dm", avg, (int)set.viewDist), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - view distance %dm"), avg, (int)set.viewDist), Col(255, 214, 80), 2.2f);
   } else if (set.maxEnemies > 150) {
     set.maxEnemies = set.maxEnemies > 220 ? 220 : 150; game.cfg.maxEnemies = set.maxEnemies;
-    game.banner("Qualidade automática", fmt("FPS %.0f - máx. %d inimigos", avg, set.maxEnemies), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - max. %d enemies"), avg, set.maxEnemies), Col(255, 214, 80), 2.2f);
   } else return;
   save();
 }
@@ -247,6 +250,10 @@ void app_init(const PlatformInfo& info) {
     gApp.hadSave = gApp.load();
     if (info.handheld && !gApp.hadSave) { // first run on a handheld (RK3326 class): lighter defaults
       Settings& s = gApp.set; s.maxEnemies = 220; s.viewDist = 90; s.particles = 1; s.renderScale = 0.75f; s.vibration = false;
+    }
+    { // "lang=<code>" launch argument (e.g. lang=pt-BR) overrides the saved language for this run (screenshots, smoke tests)
+      size_t lp = info.args.find("lang=");
+      if (lp != std::string::npos) { int li = i18nFromCode(info.args.substr(lp + 5, info.args.find(' ', lp) - lp - 5).c_str()); if (li >= 0) { gApp.set.lang = li; i18nSet(li); } }
     }
     gInit = true;
   }

@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "world.h"
 #include "models.h"
 

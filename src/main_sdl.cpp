@@ -197,12 +197,13 @@ int main(int argc, char** argv) {
     else if (a == "--device") pi.deviceName = next();
     else if (a == "--data") pi.dataDir = next();
     else if (a == "--window") { std::string s = next(); sscanf(s.c_str(), "%dx%d", &winW, &winH); }
-    else if (a == "--demo") pi.args = "demo=" + next();        // bot-played run: "char,map"
+    else if (a == "--demo") pi.args += " demo=" + next();        // bot-played run: "char,map"
+    else if (a == "--lang") pi.args += " lang=" + next();         // en, pt-BR, es, fr, ru, de
     else if (a == "--frames") maxFrames = atoi(next().c_str()); // quit after N frames (CI smoke test)
     else if (a == "--dt") fixedDt = (float)atof(next().c_str());
     else if (a == "--shot") shotPath = next();                  // BMP written when --frames is reached
     else if (a == "--no-audio") noAudio = true;
-    else if (a == "--help") { printf("omnibonk [--handheld] [--device NAME] [--data DIR] [--window WxH] [--demo C,M] [--frames N] [--dt S] [--shot F.bmp] [--no-audio]\n"); return 0; }
+    else if (a == "--help") { printf("omnibonk [--handheld] [--device NAME] [--data DIR] [--window WxH] [--lang CODE] [--demo C,M] [--frames N] [--dt S] [--shot F.bmp] [--no-audio]\n"); return 0; }
   }
   if (const char* e = getenv("OMNIBONK_HANDHELD")) if (*e && *e != '0') pi.handheld = true;
   gHandheld = pi.handheld;

@@ -531,13 +531,73 @@ static const GlyphDef kFont[] = {
   {0xD7, ".....|#...#|.#.#.|..#..|.#.#.|#...#|.....|....."}, // ×
   {0xB0, ".##..|#..#.|.##..|.....|.....|.....|.....|....."}, // °
   {0x95, ".....|.....|.....|.##..|.##..|.....|.....|....."}, // bullet (mapped from U+2022)
+  {0xDF, ".##..|#..#.|#.##.|#..#.|#..#.|#.##.|#....|#...."}, // ss (sharp s)
+  {0xBF, "..#..|.....|..#..|.#...|#....|#...#|.###.|....."}, // inverted ?
+  {0xA1, "..#..|.....|..#..|..#..|..#..|..#..|..#..|....."}, // inverted !
+  {0xAB, ".....|..#.#|.#.#.|#.#..|.#.#.|..#.#|.....|....."}, // <<
+  {0xBB, ".....|#.#..|.#.#.|..#.#|.#.#.|#.#..|.....|....."}, // >>
+  // ---- Cyrillic (letters that look like Latin ones are aliased in cyrAlias below)
+  {0x411, "#####|#....|#....|####.|#...#|#...#|####.|....."}, // B
+  {0x413, "#####|#....|#....|#....|#....|#....|#....|....."}, // G
+  {0x414, ".###.|.#.#.|.#.#.|.#.#.|.#.#.|#####|#...#|....."}, // D
+  {0x416, "#.#.#|#.#.#|.###.|..#..|.###.|#.#.#|#.#.#|....."}, // Zh
+  {0x417, "####.|....#|....#|.###.|....#|....#|####.|....."}, // Z
+  {0x418, "#...#|#...#|#..##|#.#.#|##..#|#...#|#...#|....."}, // I
+  {0x41B, "..###|.#..#|.#..#|.#..#|.#..#|.#..#|#...#|....."}, // L
+  {0x41F, "#####|#...#|#...#|#...#|#...#|#...#|#...#|....."}, // P
+  {0x423, "#...#|#...#|.#.#.|..#..|..#..|.#...|#....|....."}, // U
+  {0x424, "..#..|.###.|#.#.#|#.#.#|.###.|..#..|..#..|....."}, // F
+  {0x426, "#..#.|#..#.|#..#.|#..#.|#..#.|#####|....#|....."}, // Ts
+  {0x427, "#...#|#...#|#...#|.####|....#|....#|....#|....."}, // Ch
+  {0x428, "#.#.#|#.#.#|#.#.#|#.#.#|#.#.#|#.#.#|#####|....."}, // Sh
+  {0x429, "#.#.#|#.#.#|#.#.#|#.#.#|#.#.#|#####|....#|....."}, // Shch
+  {0x42A, "##...|.#...|.#...|.###.|.#..#|.#..#|.###.|....."}, // hard sign
+  {0x42B, "#...#|#...#|#...#|##..#|#.#.#|#.#.#|##..#|....."}, // Y
+  {0x42C, "#....|#....|#....|####.|#...#|#...#|####.|....."}, // soft sign
+  {0x42D, ".###.|#...#|....#|..###|....#|#...#|.###.|....."}, // E
+  {0x42E, "#..#.|#.#.#|#.#.#|###.#|#.#.#|#.#.#|#..#.|....."}, // Yu
+  {0x42F, ".####|#...#|#...#|.####|..#.#|.#..#|#...#|....."}, // Ya
+  {0x431, ".##..|#....|####.|#...#|#...#|#...#|.###.|....."}, // b
+  {0x432, ".....|.....|####.|#...#|####.|#...#|####.|....."}, // v
+  {0x433, ".....|.....|####.|#....|#....|#....|#....|....."}, // g
+  {0x434, ".....|.....|.###.|.#.#.|.#.#.|#####|#...#|....."}, // d
+  {0x436, ".....|.....|#.#.#|.###.|..#..|.###.|#.#.#|....."}, // zh
+  {0x437, ".....|.....|####.|....#|.###.|....#|####.|....."}, // z
+  {0x438, ".....|.....|#...#|#..##|#.#.#|##..#|#...#|....."}, // i
+  {0x43A, ".....|.....|#..#.|#.#..|##...|#.#..|#..#.|....."}, // k
+  {0x43B, ".....|.....|..###|.#..#|.#..#|.#..#|#...#|....."}, // l
+  {0x43C, ".....|.....|#...#|##.##|#.#.#|#...#|#...#|....."}, // m
+  {0x43D, ".....|.....|#...#|#...#|#####|#...#|#...#|....."}, // n
+  {0x43F, ".....|.....|#####|#...#|#...#|#...#|#...#|....."}, // p
+  {0x442, ".....|.....|#####|..#..|..#..|..#..|..#..|....."}, // t
+  {0x444, "..#..|..#..|.###.|#.#.#|#.#.#|.###.|..#..|..#.."}, // f
+  {0x446, ".....|.....|#..#.|#..#.|#..#.|#..#.|#####|....#"}, // ts
+  {0x447, ".....|.....|#...#|#...#|.####|....#|....#|....."}, // ch
+  {0x448, ".....|.....|#.#.#|#.#.#|#.#.#|#.#.#|#####|....."}, // sh
+  {0x449, ".....|.....|#.#.#|#.#.#|#.#.#|#.#.#|#####|....#"}, // shch
+  {0x44A, ".....|.....|##...|.#...|.###.|.#..#|.###.|....."}, // hard sign
+  {0x44B, ".....|.....|#...#|#...#|##..#|#.#.#|##..#|....."}, // y
+  {0x44C, ".....|.....|#....|#....|####.|#...#|####.|....."}, // soft sign
+  {0x44D, ".....|.....|####.|....#|..###|....#|####.|....."}, // e
+  {0x44E, ".....|.....|#..#.|#.#.#|###.#|#.#.#|#..#.|....."}, // yu
+  {0x44F, ".....|.....|.####|#...#|.####|.#..#|#...#|....."}, // ya
 };
+// Cyrillic letters drawn with the matching Latin glyph
+static int cyrAlias(int cp) {
+  switch (cp) {
+    case 0x410: return 'A'; case 0x412: return 'B'; case 0x415: return 'E'; case 0x41A: return 'K'; case 0x41C: return 'M';
+    case 0x41D: return 'H'; case 0x41E: return 'O'; case 0x420: return 'P'; case 0x421: return 'C'; case 0x422: return 'T'; case 0x425: return 'X';
+    case 0x430: return 'a'; case 0x435: return 'e'; case 0x43E: return 'o'; case 0x440: return 'p'; case 0x441: return 'c'; case 0x443: return 'y'; case 0x445: return 'x';
+  }
+  return cp;
+}
 static const char* kAccent[] = {
   "...#.|..#..", // acute
   ".#...|..#..", // grave
   "..#..|.#.#.", // circumflex
   ".##.#|#..#.", // tilde
   ".#.#.|.....", // diaeresis
+  ".#.#.|..#..", // breve
 };
 struct AccentDef { int cp; int base; int acc; };
 static const AccentDef kAccented[] = {
@@ -545,13 +605,20 @@ static const AccentDef kAccented[] = {
   {0xD3, 'O', 0}, {0xD4, 'O', 2}, {0xD5, 'O', 3}, {0xDA, 'U', 0}, {0xDC, 'U', 4},
   {0xE0, 'a', 1}, {0xE1, 'a', 0}, {0xE2, 'a', 2}, {0xE3, 'a', 3}, {0xE9, 'e', 0}, {0xEA, 'e', 2}, {0xED, 'i', 0},
   {0xF3, 'o', 0}, {0xF4, 'o', 2}, {0xF5, 'o', 3}, {0xFA, 'u', 0}, {0xFC, 'u', 4},
+  // German / Spanish / French extras
+  {0xC4, 'A', 4}, {0xD6, 'O', 4}, {0xC8, 'E', 1}, {0xCB, 'E', 4}, {0xCC, 'I', 1}, {0xCE, 'I', 2}, {0xCF, 'I', 4}, {0xD2, 'O', 1},
+  {0xD9, 'U', 1}, {0xDB, 'U', 2}, {0xD1, 'N', 3},
+  {0xE4, 'a', 4}, {0xF6, 'o', 4}, {0xE8, 'e', 1}, {0xEB, 'e', 4}, {0xEC, 'i', 1}, {0xEE, 'i', 2}, {0xEF, 'i', 4}, {0xF2, 'o', 1},
+  {0xF9, 'u', 1}, {0xFB, 'u', 2}, {0xF1, 'n', 3},
+  // Cyrillic with marks
+  {0x419, 0x418, 5}, {0x439, 0x438, 5}, {0x401, 'E', 4}, {0x451, 'e', 4},
 };
 
 int utf8Next(const std::string& s, size_t& i) {
   u8 c = (u8)s[i++];
   if (c < 0x80) return c;
-  if ((c & 0xE0) == 0xC0 && i < s.size()) { int cp = ((c & 0x1F) << 6) | ((u8)s[i++] & 0x3F); return cp < 256 ? cp : '?'; }
-  if ((c & 0xF0) == 0xE0 && i + 1 < s.size()) { int cp = ((c & 0x0F) << 12) | (((u8)s[i] & 0x3F) << 6) | ((u8)s[i + 1] & 0x3F); i += 2; if (cp == 0x2022) return 0x95; if (cp == 0x2014 || cp == 0x2013) return '-'; if (cp == 0x2026) return '.'; return '?'; }
+  if ((c & 0xE0) == 0xC0 && i < s.size()) { int cp = ((c & 0x1F) << 6) | ((u8)s[i++] & 0x3F); return (cp < 256 || (cp >= 0x410 && cp <= 0x44F) || cp == 0x401 || cp == 0x451) ? cp : '?'; }
+  if ((c & 0xF0) == 0xE0 && i + 1 < s.size()) { int cp = ((c & 0x0F) << 12) | (((u8)s[i] & 0x3F) << 6) | ((u8)s[i + 1] & 0x3F); i += 2; if (cp == 0x2022) return 0x95; if (cp == 0x2014 || cp == 0x2013 || cp == 0x2212) return '-'; if (cp == 0x2018 || cp == 0x2019) return '\''; if (cp == 0x201C || cp == 0x201D) return '"'; if (cp == 0x2026) return '.'; return '?'; }
   if ((c & 0xF8) == 0xF0 && i + 2 < s.size()) { i += 3; return '?'; }
   return '?';
 }
@@ -567,12 +634,13 @@ static void glyphBits(int cp, bool bits[10][5], int& width) {
       col++;
     }
   };
+  cp = cyrAlias(cp);
   for (auto& g : kFont) if (g.cp == cp) { putRows(g.rows, 2); goto done; }
   for (auto& a : kAccented)
     if (a.cp == cp) {
       for (auto& g : kFont) if (g.cp == a.base) putRows(g.rows, 2);
-      bool upper = a.base < 'a';
-      if (a.base == 'i') { for (int c2 = 0; c2 < 5; c2++) bits[2][c2] = false; }
+      bool upper = a.base < 'a' || a.base == 0x418;
+      if (a.base == 'i' && a.acc != 5) { for (int c2 = 0; c2 < 5; c2++) bits[2][c2] = false; }
       int ar = upper ? 0 : 2;
       if (!upper) { bits[2][0] = bits[2][1] = bits[2][2] = bits[2][3] = bits[2][4] = false; bits[3][0] = bits[3][1] = bits[3][2] = bits[3][3] = bits[3][4] = false; }
       putRows(kAccent[a.acc], ar);
@@ -607,14 +675,16 @@ done:
 void artBuildAtlas(UIAtlas& A, const std::vector<IconRecipe>& icons) {
   A.px.assign((size_t)ATLAS_SIZE * ATLAS_SIZE * 4, 0);
   auto P = [&](int x, int y, Col c) { if (x < 0 || y < 0 || x >= ATLAS_SIZE || y >= ATLAS_SIZE) return; u8* d = &A.px[((size_t)y * ATLAS_SIZE + x) * 4]; d[0] = c.r; d[1] = c.g; d[2] = c.b; d[3] = c.a; };
-  // --- font: 256 cells of 8x12 at (0,0) 32 per row
-  for (int cp = 0; cp < 256; cp++) {
-    int cx = (cp % 32) * GLYPH_CW, cy = (cp / 32) * GLYPH_CH;
-    A.glyph[cp] = {(u16)cx, (u16)cy, (u16)GLYPH_CW, (u16)GLYPH_CH};
-    if (cp < 32) { A.glyphW[cp] = 0; continue; }
+  // --- font: Latin-1 cells of 8x12 at (0,0), 32 per row; Cyrillic cells in the strip y=96..108
+  for (int gi = 0; gi < GLYPH_COUNT; gi++) {
+    int cp = glyphCp(gi);
+    // Latin-1 cells: 32 per row from y=0; extended cells (Cyrillic): one wide row at y=96
+    int cx = gi < 256 ? (gi % 32) * GLYPH_CW : ((gi - 256) % 128) * GLYPH_CW, cy = gi < 256 ? (gi / 32) * GLYPH_CH : 96 + ((gi - 256) / 128) * GLYPH_CH;
+    A.glyph[gi] = {(u16)cx, (u16)cy, (u16)GLYPH_CW, (u16)GLYPH_CH};
+    if (gi < 32) { A.glyphW[gi] = 0; continue; }
     bool bits[10][5]; int w;
     glyphBits(cp, bits, w);
-    A.glyphW[cp] = w + 1;
+    A.glyphW[gi] = w + 1;
     // outline first
     for (int r = 0; r < 10; r++)
       for (int c = 0; c < 5; c++) {
