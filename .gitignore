@@ -1,6 +1,76 @@
+# --- Build output (CMake / Ninja / NDK) ---
 build/
-build-desktop/
-shots/
+build-*/
+cmake-build-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+.cache/
+*.o
+*.a
+*.so
+*.obj
+
+# --- Android ---
 *.apk
+*.aab
 *.idsig
+*.dex
+*.class
+*.ap_
+*.flat
+local.properties
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+# Signing material: never commit keys or passwords
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+signing.properties
+*.base64
+
+# --- R36S / PortMaster packaging output ---
+OmniBonk-R36S.zip
+ports/r36s/omnibonk/omnibonk
+ports/r36s/omnibonk/conf/
+ports/r36s/omnibonk/log.txt
+ports/r36s/omnibonk/*.sav
+
+# --- Desktop harness output and QEMU / emulator test results ---
+shots/
+screenshots/
+emulator-out/
+r36s-out/
+*.bmp
+logcat*.txt
+*.log
+
+# --- Secrets / environment ---
+.env
+.env.*
+*.secret
+secrets.*
+
+# --- IDE, OS and temp files ---
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
 .DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
+core
+core.*

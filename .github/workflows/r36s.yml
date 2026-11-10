@@ -55,15 +55,15 @@ jobs:
           name: OmniBonk-R36S
           path: build
 
-      - name: Release "r36s-mais-recente" (branch pushes)
+      - name: Release "r36s-latest" (branch pushes)
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: r36s-mais-recente
-          name: R36S - build mais recente (${{ github.run_number }})
+          tag_name: r36s-latest
+          name: R36S - latest build (${{ github.run_number }})
           body: |
-            Port Ready to Run para R36S (aarch64, SDL2, OpenGL ES 3.0). Build automático do commit ${{ github.sha }} (branch ${{ github.ref_name }}).
-            Extraia o **OmniBonk-R36S.zip** dentro da pasta `ports` do cartão (partição EASYROMS) e reinicie o EmulationStation.
+            Ready to Run port for the R36S (aarch64, SDL2, OpenGL ES 3.0). Automatic build of commit ${{ github.sha }} (branch ${{ github.ref_name }}).
+            Extract **OmniBonk-R36S.zip** into the `ports` folder of the SD card (EASYROMS partition) and restart EmulationStation.
           prerelease: true
           target_commitish: ${{ github.sha }}
           files: build/OmniBonk-R36S.zip
@@ -126,7 +126,7 @@ jobs:
         if: always()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: r36s-mais-recente
+          tag_name: r36s-latest
           prerelease: true
           files: |
             build/smoke/*.png

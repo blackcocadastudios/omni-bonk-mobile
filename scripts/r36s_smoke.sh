@@ -18,8 +18,8 @@ run() { # name, extra args...
   echo "exit: ${PIPESTATUS[0]}" | tee -a "$OUT/$name.log"
 }
 run r36s_01_titulo --frames 30 --dt 0.033
-run r36s_02_jogo_forest --demo 1,0 --frames 100 --dt 0.05
-run r36s_03_jogo_desert --demo 3,1 --frames 100 --dt 0.05
+run r36s_02_game_forest --demo 1,0 --frames 100 --dt 0.05
+run r36s_03_game_desert --demo 3,1 --frames 100 --dt 0.05
 ls -la "$OUT"
 grep -h -E "GL renderer|GL version|init:|perf:|wrote|FATAL|exit:" "$OUT"/*.log
 exit 0
