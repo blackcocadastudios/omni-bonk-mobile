@@ -37,7 +37,7 @@ before the Final Swarm gets you.
 PortMaster users can also drop the zip into `ports/autoinstall` (or install it from the PortMaster app).
 
 **Requirements:** a 64-bit ARM handheld CFW with SDL2 and OpenGL ES 3.0 drivers (dArkOS, ArkOS, ROCKNIX, AmberELEC and similar).
-Developed for the R36S with 1 GB of RAM; hardware testing is still in progress, so please report what you find.
+Developed and tested on the R36S with 1 GB of RAM (see Performance). Reports from other devices are welcome.
 
 ## Controls
 
@@ -56,9 +56,33 @@ Developed for the R36S with 1 GB of RAM; hardware testing is still in progress, 
 
 ## Performance
 
-Defaults are tuned for the RK3326: render scale 75%, up to 220 enemies, medium particles. *Auto quality* (on by default) lowers the
-render scale, particles, view distance and enemy cap by itself when the frame rate drops. In **Settings > Graphics** you can show the
-FPS counter or cap the frame rate at 30 for steadier pacing.
+Tested on an **R36S with 1 GB of RAM** (RK3326, dArkOS, March 2026 release):
+
+| Mode | Settings | Measured FPS |
+|---|---|---|
+| **Auto quality** (default) | Defaults below, adjusted on the fly | **40 - 60 FPS**, consistently |
+| Heaviest | Shadows on, particles high, max enemies, render scale 75% | 24 - 30 FPS |
+
+The handheld defaults are: render scale 75%, up to 220 enemies, medium particles, view distance 90 m, vibration off.
+
+### Auto quality mode
+
+*Auto quality* (Settings > Graphics, **on by default**) watches the real frame rate while you play and lowers the cost of the game
+by itself, so you never have to dig through the menus:
+
+1. It measures the average FPS over 5-second windows, ignoring the first 4 seconds of every stage (loading hitches).
+2. The target is your FPS limit, capped at 60 (Settings > Graphics > FPS limit). If the average falls below **72% of the target**
+   (about 43 FPS with a 60 FPS limit, about 22 FPS with a 30 FPS limit), it takes **one step down**, shows a short on-screen banner
+   with the new value, and measures again 5 seconds later. The steps, in order:
+   1. **Render scale** drops 10% at a time, down to a minimum of 50% (the picture gets a bit more pixelated)
+   2. **Particles** go down one level (high > medium > low)
+   3. **View distance** goes to 90 m, then 70 m
+   4. **Maximum enemies** goes to 220, then 150
+3. Once the frame rate is back above the threshold it stops. It only ever lowers quality, never raises it again, and the result is
+   saved, so the next run starts already adjusted.
+
+To go back to the full-quality settings, turn Auto quality off and set the values you want in Settings > Graphics (or delete
+`omnibonk/conf/omnibonk_save.txt`). You can also show the FPS counter there, or cap the frame rate at 30 for steadier pacing.
 
 ## Troubleshooting
 
