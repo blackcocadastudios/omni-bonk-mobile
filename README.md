@@ -77,7 +77,7 @@ O binário depende só de `libSDL2-2.0.so.0` e de glibc 2.27 ou mais nova; as fu
 |---|---|
 | `src/` | jogo (dados, modelos, mundo, combate, render, UI, áudio) e plataformas Android (`main_android.cpp`), SDL2 (`main_sdl.cpp`) e harness (`main_desktop.cpp`) |
 | `android/` | `AndroidManifest.xml`, `MainActivity.java`, recursos e ícones, keystore de teste |
-| `ports/r36s/` | pacote do R36S: `OmniBonk.sh`, `port.json`, `gameinfo.xml`, LEIA-ME |
+| `ports/r36s/` | R36S package: `OmniBonk.sh`, `port.json`, `gameinfo.xml`, README |
 | `scripts/build_r36s.sh` | cross-compila o port SDL2 para aarch64 e gera `build/OmniBonk-R36S.zip` |
 | `scripts/r36s_smoke.sh` | roda o binário aarch64 em QEMU + Debian 13 e captura telas |
 | `scripts/build_apk.sh` | build do APK: NDK/CMake → aapt2 → javac/d8 → zipalign → apksigner |

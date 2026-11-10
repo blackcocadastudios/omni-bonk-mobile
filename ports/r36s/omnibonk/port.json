@@ -1,19 +1,31 @@
 {
   "version": 2,
   "name": "omnibonk.zip",
-  "items": ["OmniBonk.sh", "omnibonk"],
-  "items_opt": [],
+  "items": [
+    "OmniBonk.sh",
+    "omnibonk"
+  ],
+  "items_opt": null,
   "attr": {
     "title": "Omni Bonk",
-    "porter": ["blackcocadastudios"],
-    "desc": "Roguelike de sobrevivencia em 3D low-poly inspirado em Megabonk: 3 mapas, 43 inimigos, 30 armas, 86 itens, tempo por estagio ajustavel. Assets originais gerados por codigo.",
-    "inst": "Ready to run. Copie OmniBonk.sh e a pasta omnibonk para ports/.",
-    "genres": ["action", "arcade"],
+    "porter": [
+      "BlackCocada Studios"
+    ],
+    "desc": "A 3D low-poly roguelite survivor in honor of Megabonk. Your attacks are automatic: run, jump and slide through 3 maps, 43 enemies, 30 weapons, 23 tomes and 86 items. Non-commercial fan project with original procedural art, music and sound. Adjustable time per stage (15 min by default) and 6 languages.",
+    "inst": "Ready to Run, no game files needed. Extract the zip into the ports folder (OmniBonk.sh and the omnibonk folder) and restart EmulationStation.",
+    "genres": [
+      "action",
+      "roguelike"
+    ],
     "image": {},
     "rtr": true,
     "exp": false,
-    "runtime": [],
-    "reqs": ["opengles3"],
-    "arch": ["aarch64"]
+    "runtime": null,
+    "reqs": [
+      "opengles3"
+    ],
+    "arch": [
+      "aarch64"
+    ]
   }
 }

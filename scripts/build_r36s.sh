@@ -41,7 +41,6 @@ cp -r "$ROOT/ports/r36s/." "$PKG/"
 cp "$BIN" "$PKG/omnibonk/omnibonk"
 chmod +x "$PKG/OmniBonk.sh" "$PKG/omnibonk/omnibonk"
 echo "$VERSION ($(date -u +%Y-%m-%d))" > "$PKG/omnibonk/version.txt"
-cp "$ROOT/README.md" "$PKG/omnibonk/README.md"
 rm -f "$ROOT/build/OmniBonk-R36S.zip"
 (cd "$PKG" && zip -q -r -9 "$ROOT/build/OmniBonk-R36S.zip" OmniBonk.sh omnibonk)
 ls -la "$ROOT/build/OmniBonk-R36S.zip"
