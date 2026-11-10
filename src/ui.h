@@ -7,6 +7,9 @@
 struct Touch { int id; v2 pos, start, prev; float t0 = 0; bool down = true, released = false, began = true; int owner = 0; };
 
 enum { AL_LEFT = 0, AL_CENTER = 1, AL_RIGHT = 2 };
+// gamepad focus navigation: every clickable rect registers itself each frame; the D-pad moves between them
+enum { FOCUS_ADJUST = 1, FOCUS_DEFAULT = 2 };
+struct FocusRect { float x = 0, y = 0, w = 0, h = 0; int flags = 0, group = 0; };
 
 struct UI {
   float W = 480, H = 270, s = 1;      // virtual size and px per unit
@@ -26,6 +29,10 @@ struct UI {
   void sprite(int sp, float x, float y, float w, float h, Col c);
   float text(float x, float y, const std::string& str, float scale = 1, Col c = Col(255, 255, 255), int align = AL_LEFT);
   float textW(const std::string& str, float scale = 1);
+  // Text entry points translate `str` through the i18n table first (exact match on the English text).
+  // *Raw variants draw/measure the string as given; the layout helpers translate once and then use them.
+  float textRaw(float x, float y, const std::string& str, float scale, Col c, int align);
+  float textWRaw(const std::string& str, float scale);
   int wrap(const std::string& str, float maxW, float scale, std::vector<std::string>& out);
   float textBox(float x, float y, float w, const std::string& str, float scale, Col c, int align = AL_LEFT, float lineH = 11);
   // interaction
@@ -36,4 +43,18 @@ struct UI {
   v2 toV(float px, float py) const { return v2(px / s, py / s); }
   Touch* find(int id) { for (auto& t : touches) if (t.id == id) return &t; return nullptr; }
   float dragY(float x, float y, float w, float h); // vertical drag delta inside area this frame
+  std::string fit(const std::string& str, float maxW, float scale = 1); // truncate with ".." to fit maxW
+  // ---- gamepad focus
+  bool padMode = false, hasFocus = false, focusMoved = false, padAccept = false;
+  FocusRect focus; std::vector<FocusRect> foc, focPrev;
+  int navX = 0, navY = 0, adjustPending = 0, group = 0, nextFlags = 0, resetFrames = 0;
+  float padScroll = 0;
+  void padInput(int nx, int ny, bool accept, float scroll) { navX = nx; navY = ny; padAccept = accept; padScroll = scroll; }
+  void resetFocus() { hasFocus = false; resetFrames = 1; }        // screen changed: pick the default next frame
+  void focusable(float x, float y, float w, float h, int flags = 0);
+  bool isFocus(float x, float y, float w, float h) const;
+  int adjust(float x, float y, float w, float h);                 // -1/+1: left/right on the focused FOCUS_ADJUST rect
+  float focusScroll(int grp, float top, float bottom);            // delta that keeps a list's focused row visible
+  void drawFocus();
+  void resolveFocus();
 };

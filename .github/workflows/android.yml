@@ -34,10 +34,18 @@ jobs:
           cmake --version | head -1
           ninja --version || true
 
+      - name: Check translation tables
+        run: python3 scripts/check_lang.py
+
       - name: Build APK
         env:
           VERSION_CODE: ${{ github.run_number }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
         run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"; export KEYSTORE="$RUNNER_TEMP/release.keystore"; fi
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then export VERSION_NAME="${GITHUB_REF_NAME#v}"; else export VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"; fi
           bash scripts/build_apk.sh
 
@@ -47,6 +55,19 @@ jobs:
           name: OmniBonk-apk
           path: build/OmniBonk.apk
           if-no-files-found: error
+
+      - name: Release "apk-latest" (branch pushes)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Android APK - latest build (${{ github.run_number }})
+          body: |
+            Automatic build of commit ${{ github.sha }} (branch ${{ github.ref_name }}).
+            Download **OmniBonk.apk** and install it (allow installs from unknown sources).
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: build/OmniBonk.apk
 
       - name: GitHub release (tags v*)
         if: startsWith(github.ref, 'refs/tags/v')

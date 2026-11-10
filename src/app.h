@@ -6,6 +6,7 @@
 #include "game.h"
 
 struct Settings {
+  int lang = 0;               // Lang enum (src/i18n.h); 0 = English (default)
   // gameplay (QoL)
   int stageMin = 15;          // 10,12,15,20,25,30, 0 = infinite (no timer)
   bool scaleStages = true;    // stage 2/3 use 90%/80% of the time like the original
@@ -16,7 +17,7 @@ struct Settings {
   bool autoQuality = true;    // lower render scale / particles when FPS stays low
   float renderScale = 0.75f; bool snap = true; int maxEnemies = 300; int particles = 2; bool shadows = true; int fpsCap = 60; float fxAlpha = 1.f; bool vignette = true; float viewDist = 120; float fov = 62; float camDist = 7.5f; float shake = 1.f;
   // controls
-  float camSens = 1.f, joySize = 1.f, uiScale = 1.f, ctrlAlpha = 0.85f; bool leftHanded = false, vibration = true;
+  float camSens = 1.f, joySize = 1.f, uiScale = 1.f, ctrlAlpha = 0.85f; bool leftHanded = false, vibration = true, invertY = false;
   // audio
   float music = 0.55f, sfx = 0.8f; bool showFps = false;
 };
@@ -25,7 +26,7 @@ struct Meta {
   int upReroll = 0, upSkip = 0, upBanish = 0, upHp = 0, upLuck = 0;
   int lastChar = 0, lastMap = 0, lastTier = 0;
 };
-enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME };
+enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME, SCR_CREDITS };
 
 struct App {
   PlatformInfo plat; Settings set; Meta meta;
@@ -37,6 +38,12 @@ struct App {
   int pauseTab = 0; bool showMap = false; bool banishMode = false; bool confirmQuit = false; int microSel = -1;
   // touch controls
   int joyTouch = -1, camTouch = -1, jumpTouch = -1, slideTouch = -1; v2 joyBase, joyCur;
+  // gamepad (handhelds): focus navigation in menus, sticks + buttons in game
+  PadState pad, padPrev; unsigned padPressed = 0; int navDirX = 0, navDirY = 0, uiKey = -1, padTab = 0;
+  float navRepeat = 0, acceptLock = 0, quitHold = 0, menuStable = 0; bool padStart = false, hadSave = false;
+  void processPad(float dt);
+  bool narrow() const { return ui.W < 400; }
+  int stepper(float x, float y, float w, float h, const std::string& value, Col c, float scale = 1);
   // scripted/test hooks (desktop harness)
   bool testMode = false, demoDone = false;
   float realDt = 0;  // unclamped frame time (FPS counter)
@@ -44,12 +51,12 @@ struct App {
   void autoQualityTick();
   void startDemo();
   std::string savePath() const { return plat.dataDir + "/omnibonk_save.txt"; }
-  void load(); void save();
+  bool load(); void save();
   void startRun();
   void applySettingsToGame(Game& g);
   void frame(float dt);
   void updateMenuGame(float dt);
-  void drawTitle(); void drawChars(); void drawMap(); void drawSettings(); void drawShop(); void drawAbout(); void drawCatalog();
+  void drawTitle(); void drawChars(); void drawMap(); void drawSettings(); void drawShop(); void drawAbout(); void drawCredits(); void drawCatalog();
   void drawGame(); void gameControls(); void drawHUD(); void drawWorldUI(); void drawMinimap(float cx, float cy, float r); void drawFullMap();
   void drawLevelUp(); void drawChest(); void drawShrine(); void drawShopOverlay(); void drawMicrowave(); void drawMoai(); void drawPause(); void drawEnd();
   void drawOfferCard(const Offer& o, float x, float y, float w, float h, bool sel);

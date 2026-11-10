@@ -22,8 +22,10 @@ MIN_SDK=26
 TARGET_SDK=34
 VERSION_CODE="${VERSION_CODE:-1}"
 VERSION_NAME="${VERSION_NAME:-1.0.0}"
-KS="${KEYSTORE:-$ROOT/android/omnibonk-test.keystore}"
-KS_PASS="${KEYSTORE_PASS:-omnibonk}"
+# Signing: use KEYSTORE/KEYSTORE_PASS/KEY_ALIAS/KEY_PASS when provided; otherwise a throwaway
+# debug keystore with a random password is generated for this build (never stored in the repo).
+KS="${KEYSTORE:-}"
+KS_PASS="${KEYSTORE_PASS:-}"
 KS_ALIAS="${KEY_ALIAS:-omnibonk}"
 KEY_PASS="${KEY_PASS:-$KS_PASS}"
 GEN="Unix Makefiles"; command -v ninja >/dev/null 2>&1 && GEN="Ninja"
@@ -33,6 +35,15 @@ echo "SDK=$SDK"; echo "NDK=$NDK"; echo "build-tools=$BT"; echo "platform=$PLATFO
 
 rm -rf "$OUT"
 mkdir -p "$OUT/apk" "$OUT/flat" "$OUT/classes" "$OUT/dex"
+if [ -z "$KS" ]; then
+  command -v keytool >/dev/null || { echo "keytool (JDK) not found"; exit 1; }
+  KS="$OUT/debug.keystore"
+  KS_PASS="$(head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 20)"
+  KEY_PASS="$KS_PASS"
+  keytool -genkeypair -keystore "$KS" -storepass "$KS_PASS" -keypass "$KEY_PASS" -alias "$KS_ALIAS" \
+    -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Omni Bonk debug, O=BlackCocada Studios" >/dev/null 2>&1
+  echo "Using a throwaway debug keystore (set KEYSTORE to sign with your own key)"
+fi
 
 # 1) native library for every ABI
 STRIP="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip"

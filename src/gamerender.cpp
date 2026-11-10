@@ -1,4 +1,5 @@
 // Rendering of the game world (entities, effects). World-space UI lives in ui.cpp.
+#include "i18n.h"
 #include "game.h"
 #include "render.h"
 

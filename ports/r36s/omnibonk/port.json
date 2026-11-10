@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "name": "omnibonk.zip",
+  "items": [
+    "OmniBonk.sh",
+    "omnibonk"
+  ],
+  "items_opt": null,
+  "attr": {
+    "title": "Omni Bonk",
+    "porter": [
+      "BlackCocada Studios"
+    ],
+    "desc": "A 3D low-poly roguelite survivor in honor of Megabonk. Your attacks are automatic: run, jump and slide through 3 maps, 43 enemies, 30 weapons, 23 tomes and 86 items. Non-commercial fan project with original procedural art, music and sound. Adjustable time per stage (15 min by default), 6 languages and an Auto quality mode that holds 40-60 FPS on the R36S (1 GB).",
+    "inst": "Ready to Run, no game files needed. Extract the zip into the ports folder (OmniBonk.sh and the omnibonk folder) and restart EmulationStation.",
+    "genres": [
+      "action",
+      "roguelike"
+    ],
+    "image": {
+      "screenshot": "screenshot.png",
+      "cover": "cover.png"
+    },
+    "rtr": true,
+    "exp": false,
+    "runtime": null,
+    "reqs": [
+      "opengles3"
+    ],
+    "arch": [
+      "aarch64"
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+#include "i18n.h"
 #include "app.h"
 #include "render.h"
 #include "audio.h"
@@ -10,21 +11,22 @@ void App::save() {
   FILE* f = fopen(savePath().c_str(), "w");
   if (!f) return;
   Settings& s = set; Meta& m = meta;
+  fprintf(f, "lang=%d\n", s.lang);
   fprintf(f, "stageMin=%d\nscaleStages=%d\nswarmMode=%d\nanimFps=%d\nautoBhop=%d\ninstantChests=%d\ndmgNumbers=%d\ndpsMeter=%d\ncounters=%d\nautoCam=%d\n",
           s.stageMin, s.scaleStages, s.swarmMode, s.animFps, s.autoBhop, s.instantChests, s.dmgNumbers, s.dpsMeter, s.counters, s.autoCam);
   fprintf(f, "autoQuality=%d\nrenderScale=%.2f\nsnap=%d\nmaxEnemies=%d\nparticles=%d\nshadows=%d\nfpsCap=%d\nfxAlpha=%.2f\nvignette=%d\nviewDist=%.0f\nfov=%.0f\ncamDist=%.1f\nshake=%.2f\n",
           s.autoQuality, s.renderScale, s.snap, s.maxEnemies, s.particles, s.shadows, s.fpsCap, s.fxAlpha, s.vignette, s.viewDist, s.fov, s.camDist, s.shake);
-  fprintf(f, "camSens=%.2f\njoySize=%.2f\nuiScale=%.2f\nctrlAlpha=%.2f\nleftHanded=%d\nvibration=%d\nmusic=%.2f\nsfx=%.2f\nshowFps=%d\n",
-          s.camSens, s.joySize, s.uiScale, s.ctrlAlpha, s.leftHanded, s.vibration, s.music, s.sfx, s.showFps);
+  fprintf(f, "camSens=%.2f\njoySize=%.2f\nuiScale=%.2f\nctrlAlpha=%.2f\nleftHanded=%d\nvibration=%d\ninvertY=%d\nmusic=%.2f\nsfx=%.2f\nshowFps=%d\n",
+          s.camSens, s.joySize, s.uiScale, s.ctrlAlpha, s.leftHanded, s.vibration, s.invertY, s.music, s.sfx, s.showFps);
   fprintf(f, "silver=%d\nruns=%d\nwins=%d\ntotalKills=%d\nbestKills=%d\nupReroll=%d\nupSkip=%d\nupBanish=%d\nupHp=%d\nupLuck=%d\nlastChar=%d\nlastMap=%d\nlastTier=%d\n",
           m.silver, m.runs, m.wins, m.totalKills, m.bestKills, m.upReroll, m.upSkip, m.upBanish, m.upHp, m.upLuck, m.lastChar, m.lastMap, m.lastTier);
   for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) fprintf(f, "best_%d_%d=%.0f\n", a, b, m.bestTime[a][b]);
   fclose(f);
 }
 
-void App::load() {
+bool App::load() {
   FILE* f = fopen(savePath().c_str(), "r");
-  if (!f) return;
+  if (!f) return false;
   char line[256];
   while (fgets(line, sizeof(line), f)) {
     char* eq = strchr(line, '='); if (!eq) continue; *eq = 0;
@@ -34,14 +36,16 @@ void App::load() {
 #define B_(name) if (k == #name) s.name = v != 0;
 #define F_(name) if (k == #name) s.name = v;
 #define M_(name) if (k == #name) m.name = (int)v;
-    I_(stageMin) B_(scaleStages) I_(swarmMode) I_(animFps) B_(autoBhop) B_(instantChests) B_(dmgNumbers) B_(dpsMeter) B_(counters) B_(autoCam)
+    I_(lang) I_(stageMin) B_(scaleStages) I_(swarmMode) I_(animFps) B_(autoBhop) B_(instantChests) B_(dmgNumbers) B_(dpsMeter) B_(counters) B_(autoCam)
     B_(autoQuality) F_(renderScale) B_(snap) I_(maxEnemies) I_(particles) B_(shadows) I_(fpsCap) F_(fxAlpha) B_(vignette) F_(viewDist) F_(fov) F_(camDist) F_(shake)
-    F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) F_(music) F_(sfx) B_(showFps)
+    F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) B_(invertY) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
     for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
   }
   fclose(f);
+  set.lang = clampi(set.lang, 0, LANG_COUNT - 1); i18nSet(set.lang);
   selChar = clampi(meta.lastChar, 0, C_COUNT - 1); selMap = clampi(meta.lastMap, 0, MAP_COUNT - 1); selTier = clampi(meta.lastTier, 0, 2);
+  return true;
 }
 
 void App::applySettingsToGame(Game& g) {
@@ -67,15 +71,23 @@ void App::startRun() {
 }
 
 void App::updateMenuGame(float dt) {
-  if (!menuInit || menuGame.cfg.map != selMap || menuGame.P.ch != selChar) {
+  bool differs = menuGame.cfg.map != selMap || menuGame.P.ch != selChar;
+  menuStable = differs ? menuStable + dt : 0;   // wait until the selection settles: regenerating the world is slow on handhelds
+  if (!menuInit || (differs && menuStable > (plat.handheld ? 0.6f : 0.f))) {
+    menuStable = 0;
     RunConfig c; c.map = selMap; c.tier = 1; c.character = selChar; c.stageMinutes = 15; c.seed = 4242 + selMap; c.maxEnemies = 70; c.godMode = true;
     menuGame.start(c); menuGame.autoPilot = true; menuGame.stageTime = 200; menuInit = true;
     menuGame.banners.clear();
   }
   applySettingsToGame(menuGame);
   menuGame.dmgNumbers = false;
+  // Attract mode: the autopilot resolves level-ups, chests and shrines by itself inside Game::update().
+  // Never force the state back to GS_PLAY here: that left pendingLevels > 0 forever, so every frame
+  // regenerated the offers and replayed the level-up jingle (the endless sound loop on the title screen).
+  audioAttract(true);                 // soften/rate-limit gameplay SFX coming from the background run
   menuGame.update(dt);
-  if (menuGame.state != GS_PLAY) menuGame.state = GS_PLAY;
+  audioAttract(false);
+  if (menuGame.state == GS_DEAD || menuGame.state == GS_VICTORY) menuInit = false;   // restart the demo run
   if (menuGame.P.hp < 50) menuGame.P.hp = menuGame.P.st[S_MAXHP];
   menuGame.banners.clear();
   // slow cinematic orbit
@@ -85,14 +97,17 @@ void App::updateMenuGame(float dt) {
 void App::back() {
   audioPlay(SFX_CLICK);
   if (scr == SCR_GAME) {
-    if (showMap) { showMap = false; return; }
+    if (showMap) { showMap = false; game.state = GS_PLAY; return; }
     if (game.state == GS_PLAY) { game.prevState = GS_PLAY; game.state = GS_PAUSE; }
     else if (game.state == GS_PAUSE) game.state = GS_PLAY;
+    else if (game.state == GS_SHOP || game.state == GS_MICROWAVE) { game.state = GS_PLAY; microSel = -1; }
+    else if (game.state == GS_LEVELUP && banishMode) banishMode = false;
     return;
   }
   if (scr == SCR_SETTINGS) { scr = settingsBack; save(); return; }
   if (scr == SCR_TITLE) { confirmQuit = !confirmQuit; return; }
   if (scr == SCR_MAP) { scr = SCR_CHARS; return; }
+  if (scr == SCR_CREDITS) { scr = SCR_ABOUT; return; }
   scr = SCR_TITLE;
 }
 
@@ -122,15 +137,59 @@ void App::autoQualityTick() {
   if (avg >= target * 0.72f) return;
   if (set.renderScale > 0.51f) {
     set.renderScale = std::max(0.5f, set.renderScale - 0.1f);
-    game.banner("Qualidade automática", fmt("FPS %.0f - escala de render %d%%", avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - render scale %d%%"), avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
   } else if (set.particles > 0) {
     set.particles--; applySettingsToGame(game);
-    game.banner("Qualidade automática", fmt("FPS %.0f - menos partículas", avg), Col(255, 214, 80), 2.2f);
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - fewer particles"), avg), Col(255, 214, 80), 2.2f);
+  } else if (set.viewDist > 71) {
+    set.viewDist = set.viewDist > 91 ? 90.f : 70.f;
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - view distance %dm"), avg, (int)set.viewDist), Col(255, 214, 80), 2.2f);
+  } else if (set.maxEnemies > 150) {
+    set.maxEnemies = set.maxEnemies > 220 ? 220 : 150; game.cfg.maxEnemies = set.maxEnemies;
+    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - max. %d enemies"), avg, set.maxEnemies), Col(255, 214, 80), 2.2f);
   } else return;
   save();
 }
 
+// gamepad: menus are driven by focus navigation (D-pad / left stick, A accepts, B goes back,
+// L1/R1 switch tabs, Start is the screen's main action); in play the sticks and buttons go to the game
+void App::processPad(float dt) {
+  unsigned b = pad.buttons;
+  padPressed = b & ~padPrev.buttons; padPrev = pad;
+  bool stick = fabsf(pad.lx) > 0.5f || fabsf(pad.ly) > 0.5f || fabsf(pad.rx) > 0.5f || fabsf(pad.ry) > 0.5f;
+  if (plat.handheld || padPressed || stick) ui.padMode = true;
+  if (!plat.handheld) for (auto& t : ui.touches) if (t.began) ui.padMode = false;
+  // Select + Start: save and quit (same combo PortMaster ports use)
+  if ((b & PB_SELECT) && (b & PB_START)) { quitHold += dt; if (quitHold > 0.3f) { quitHold = -100; save(); plat_quit(); } } else quitHold = 0;
+  bool playing = scr == SCR_GAME && game.state == GS_PLAY;
+  // new screen / overlay: focus goes to its default widget, and accept is locked for a moment
+  // so a jump press does not pick a level-up card the instant it appears
+  int key = (int)scr * 1000 + (scr == SCR_GAME ? (int)game.state * 4 + (showMap ? 1 : 0) : (confirmQuit ? 1 : 0));
+  if (key != uiKey) {
+    uiKey = key; ui.resetFocus();
+    acceptLock = scr != SCR_GAME ? 0.12f : (game.state == GS_DEAD || game.state == GS_VICTORY) ? 1.2f : 0.4f;
+  }
+  acceptLock = std::max(0.f, acceptLock - dt);
+  int nx = 0, ny = 0; bool accept = false; float scroll = 0;
+  padStart = false; padTab = 0;
+  if (ui.padMode && !playing) {
+    if ((b & PB_UP) || pad.ly < -0.6f) ny = -1; else if ((b & PB_DOWN) || pad.ly > 0.6f) ny = 1;
+    else if ((b & PB_LEFT) || pad.lx < -0.6f) nx = -1; else if ((b & PB_RIGHT) || pad.lx > 0.6f) nx = 1;
+    if (nx != navDirX || ny != navDirY) { navDirX = nx; navDirY = ny; navRepeat = 0.38f; }
+    else if (nx || ny) { navRepeat -= dt; if (navRepeat <= 0) navRepeat = 0.12f; else nx = ny = 0; }
+    if (acceptLock <= 0) {
+      accept = (padPressed & PB_A) != 0;
+      padStart = (padPressed & PB_START) != 0;
+      padTab = ((padPressed & PB_R1) ? 1 : 0) - ((padPressed & PB_L1) ? 1 : 0);
+      if (padPressed & PB_B) back();
+    }
+    if (fabsf(pad.ry) > 0.25f) scroll = -pad.ry * 170 * dt;
+  } else navDirX = navDirY = 0;
+  ui.padInput(nx, ny, accept, scroll);
+}
+
 void App::frame(float dt) {
+  processPad(dt);
   if (!demoDone && plat.args.find("demo") != std::string::npos) startDemo();
   frameDt = dt;
   fpsAcc += realDt > 0 ? realDt : dt; fpsFrames++;
@@ -170,11 +229,13 @@ void App::frame(float dt) {
       case SCR_SETTINGS: drawSettings(); break;
       case SCR_SHOP: drawShop(); break;
       case SCR_ABOUT: drawAbout(); break;
+      case SCR_CREDITS: drawCredits(); break;
       case SCR_CATALOG: drawCatalog(); break;
       default: break;
     }
   }
   if (set.showFps) ui.text(ui.W - 4 - ui.safeR, ui.H - 12, fmt("%d FPS", (int)roundf(fps)), 1, Col(160, 255, 160), AL_RIGHT);
+  ui.drawFocus();
   gR.uiFlush();
   ui.end();
 }
@@ -188,13 +249,21 @@ void app_init(const PlatformInfo& info) {
     gModels.build();
     artBuildAtlas(gR.atlas, buildIconList());
     audioInit(48000);
-    gApp.load();
+    gApp.hadSave = gApp.load();
+    if (info.handheld && !gApp.hadSave) { // first run on a handheld (RK3326 class): lighter defaults
+      Settings& s = gApp.set; s.maxEnemies = 220; s.viewDist = 90; s.particles = 1; s.renderScale = 0.75f; s.vibration = false;
+    }
+    { // "lang=<code>" launch argument (e.g. lang=pt-BR) overrides the saved language for this run (screenshots, smoke tests)
+      size_t lp = info.args.find("lang=");
+      if (lp != std::string::npos) { int li = i18nFromCode(info.args.substr(lp + 5, info.args.find(' ', lp) - lp - 5).c_str()); if (li >= 0) { gApp.set.lang = li; i18nSet(li); } }
+    }
     gInit = true;
   }
 }
 void app_gl_init() { gR.init(); gR.curWorld = nullptr; gR.curGen = -1; gApp.glReady = true; }
 void app_gl_lost() { gR.destroy(); gApp.glReady = false; }
 void app_resize(int w, int h) { gApp.plat.width = w; gApp.plat.height = h; }
+void app_gamepad(const PadState& s) { gApp.pad = s; }
 void app_event(const InputEv& e) {
   if (e.type == EV_BACK) { gApp.back(); return; }
   gApp.ui.event(e);
@@ -205,5 +274,10 @@ void app_resume() {}
 void app_save() { gApp.save(); }
 void app_audio(float* stereo, int frames, int rate) { (void)rate; audioRender(stereo, frames); }
 int app_fps_cap() { return gApp.set.fpsCap; }
+std::string app_status() {
+  const App& a = gApp; const Renderer::Stats& st = gR.lastStats;
+  return fmt("screen %d state %d | %dx%d scale %.2f | enemies %d | draws %d inst %d tris %d | t %.0fs", (int)a.scr, (int)a.game.state, a.plat.width, a.plat.height,
+             a.set.renderScale, (int)a.game.enemies.size(), st.draws, st.insts, st.tris, a.game.runTime);
+}
 void app_set_insets(float l, float r, float t, float b) { gApp.plat.safeLeft = l; gApp.plat.safeRight = r; gApp.plat.safeTop = t; gApp.plat.safeBottom = b; }
 void plat_vibrate_safe(int ms) { if (gApp.set.vibration && !gApp.testMode) plat_vibrate(ms); }

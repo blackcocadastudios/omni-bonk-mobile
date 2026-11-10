@@ -22,7 +22,7 @@ alive() { if adb shell pidof "$PKG" >/dev/null; then echo "process alive ($1)"; 
 
 adb shell am start -W -n "$PKG/.MainActivity"
 sleep 30
-shot emu_01_titulo
+shot emu_01_title
 alive titulo
 
 run_demo() { # $1 = name, $2 = "char,map", $3 = seconds before the first shot
@@ -33,28 +33,28 @@ run_demo() { # $1 = name, $2 = "char,map", $3 = seconds before the first shot
   shot "$1"
   alive "$1"
 }
-run_demo emu_02_jogo_forest_ninja 1,0 50
+run_demo emu_02_game_forest_ninja 1,0 50
 sleep 40
-shot emu_03_jogo_forest_ninja_b
-run_demo emu_04_jogo_desert_monke 3,1 60
-run_demo emu_05_jogo_graveyard_calcium 2,2 60
+shot emu_03_game_forest_ninja_b
+run_demo emu_04_game_desert_monke 3,1 60
+run_demo emu_05_game_graveyard_calcium 2,2 60
 
-# touch flow on a 1600x720 landscape screen (UI scale 3): JOGAR -> PRÓXIMO -> COMEÇAR!, then the joystick
+# touch flow on a 1600x720 landscape screen (UI scale 3): PLAY -> NEXT -> START!, then the joystick
 adb shell am force-stop "$PKG"
 sleep 2
 adb shell am start -W -n "$PKG/.MainActivity"
 sleep 25
 adb shell input tap 800 353
 sleep 5
-shot emu_06_toque_personagens
+shot emu_06_touch_characters
 adb shell input tap 1396 669
 sleep 5
-shot emu_07_toque_mapa_tempo
+shot emu_07_touch_map_time
 adb shell input tap 1396 669
 sleep 20
-shot emu_08_toque_jogo
+shot emu_08_touch_game
 adb shell input swipe 250 560 250 470 4000
-shot emu_09_toque_joystick
+shot emu_09_touch_joystick
 alive toque
 
 adb shell dumpsys gfxinfo "$PKG" > "$OUT/gfxinfo.txt" 2>&1 || true

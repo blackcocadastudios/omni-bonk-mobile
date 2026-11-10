@@ -95,83 +95,174 @@ typedef ptrdiff_t GLsizeiptr; typedef ptrdiff_t GLintptr; typedef unsigned char 
 #define GL_NO_ERROR 0
 #define GL_FUNC_ADD 0x8006
 #define GL_MAX_TEXTURE_SIZE 0x0D33
+// X-macro list of every GL ES 3.0 entry point the game uses
+#define OMNI_GL_FUNCS(X) \
+  X(void, glActiveTexture, (GLenum)) \
+  X(void, glAttachShader, (GLuint, GLuint)) \
+  X(void, glBindBuffer, (GLenum, GLuint)) \
+  X(void, glBindFramebuffer, (GLenum, GLuint)) \
+  X(void, glBindRenderbuffer, (GLenum, GLuint)) \
+  X(void, glBindTexture, (GLenum, GLuint)) \
+  X(void, glBindVertexArray, (GLuint)) \
+  X(void, glBlendFunc, (GLenum, GLenum)) \
+  X(void, glBlendFuncSeparate, (GLenum, GLenum, GLenum, GLenum)) \
+  X(void, glBlitFramebuffer, (GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum)) \
+  X(void, glBufferData, (GLenum, GLsizeiptr, const void*, GLenum)) \
+  X(void, glBufferSubData, (GLenum, GLintptr, GLsizeiptr, const void*)) \
+  X(GLenum, glCheckFramebufferStatus, (GLenum)) \
+  X(void, glClear, (GLbitfield)) \
+  X(void, glClearColor, (GLfloat, GLfloat, GLfloat, GLfloat)) \
+  X(void, glColorMask, (GLboolean, GLboolean, GLboolean, GLboolean)) \
+  X(void, glCompileShader, (GLuint)) \
+  X(GLuint, glCreateProgram, (void)) \
+  X(GLuint, glCreateShader, (GLenum)) \
+  X(void, glCullFace, (GLenum)) \
+  X(void, glDeleteBuffers, (GLsizei, const GLuint*)) \
+  X(void, glDeleteFramebuffers, (GLsizei, const GLuint*)) \
+  X(void, glDeleteProgram, (GLuint)) \
+  X(void, glDeleteRenderbuffers, (GLsizei, const GLuint*)) \
+  X(void, glDeleteShader, (GLuint)) \
+  X(void, glDeleteTextures, (GLsizei, const GLuint*)) \
+  X(void, glDeleteVertexArrays, (GLsizei, const GLuint*)) \
+  X(void, glDepthFunc, (GLenum)) \
+  X(void, glDepthMask, (GLboolean)) \
+  X(void, glDisable, (GLenum)) \
+  X(void, glDisableVertexAttribArray, (GLuint)) \
+  X(void, glDrawArrays, (GLenum, GLint, GLsizei)) \
+  X(void, glDrawArraysInstanced, (GLenum, GLint, GLsizei, GLsizei)) \
+  X(void, glDrawElements, (GLenum, GLsizei, GLenum, const void*)) \
+  X(void, glDrawElementsInstanced, (GLenum, GLsizei, GLenum, const void*, GLsizei)) \
+  X(void, glEnable, (GLenum)) \
+  X(void, glEnableVertexAttribArray, (GLuint)) \
+  X(void, glFinish, (void)) \
+  X(void, glFramebufferRenderbuffer, (GLenum, GLenum, GLenum, GLuint)) \
+  X(void, glFramebufferTexture2D, (GLenum, GLenum, GLenum, GLuint, GLint)) \
+  X(void, glFrontFace, (GLenum)) \
+  X(void, glGenBuffers, (GLsizei, GLuint*)) \
+  X(void, glGenFramebuffers, (GLsizei, GLuint*)) \
+  X(void, glGenRenderbuffers, (GLsizei, GLuint*)) \
+  X(void, glGenTextures, (GLsizei, GLuint*)) \
+  X(void, glGenVertexArrays, (GLsizei, GLuint*)) \
+  X(void, glGenerateMipmap, (GLenum)) \
+  X(GLenum, glGetError, (void)) \
+  X(void, glGetIntegerv, (GLenum, GLint*)) \
+  X(void, glGetProgramInfoLog, (GLuint, GLsizei, GLsizei*, GLchar*)) \
+  X(void, glGetProgramiv, (GLuint, GLenum, GLint*)) \
+  X(void, glGetShaderInfoLog, (GLuint, GLsizei, GLsizei*, GLchar*)) \
+  X(void, glGetShaderiv, (GLuint, GLenum, GLint*)) \
+  X(const GLubyte*, glGetString, (GLenum)) \
+  X(GLint, glGetUniformLocation, (GLuint, const GLchar*)) \
+  X(void, glLinkProgram, (GLuint)) \
+  X(void, glPixelStorei, (GLenum, GLint)) \
+  X(void, glPolygonOffset, (GLfloat, GLfloat)) \
+  X(void, glReadPixels, (GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*)) \
+  X(void, glRenderbufferStorage, (GLenum, GLenum, GLsizei, GLsizei)) \
+  X(void, glScissor, (GLint, GLint, GLsizei, GLsizei)) \
+  X(void, glShaderSource, (GLuint, GLsizei, const GLchar* const*, const GLint*)) \
+  X(void, glTexImage2D, (GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void*)) \
+  X(void, glTexImage3D, (GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const void*)) \
+  X(void, glTexParameteri, (GLenum, GLenum, GLint)) \
+  X(void, glTexSubImage2D, (GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const void*)) \
+  X(void, glUniform1f, (GLint, GLfloat)) \
+  X(void, glUniform1i, (GLint, GLint)) \
+  X(void, glUniform2f, (GLint, GLfloat, GLfloat)) \
+  X(void, glUniform3f, (GLint, GLfloat, GLfloat, GLfloat)) \
+  X(void, glUniform4f, (GLint, GLfloat, GLfloat, GLfloat, GLfloat)) \
+  X(void, glUniformMatrix4fv, (GLint, GLsizei, GLboolean, const GLfloat*)) \
+  X(void, glUseProgram, (GLuint)) \
+  X(void, glVertexAttrib4f, (GLuint, GLfloat, GLfloat, GLfloat, GLfloat)) \
+  X(void, glVertexAttribDivisor, (GLuint, GLuint)) \
+  X(void, glVertexAttribPointer, (GLuint, GLint, GLenum, GLboolean, GLsizei, const void*)) \
+  X(void, glViewport, (GLint, GLint, GLsizei, GLsizei))
+
+#ifdef OMNIBONK_GL_LOADER
+// SDL build (handhelds): no link-time dependency on a GLES library name. The entry points are function
+// pointers filled through SDL_GL_GetProcAddress after the context exists (main_sdl.cpp).
+#define X(ret, name, args) extern ret (*omni_##name) args;
+OMNI_GL_FUNCS(X)
+#undef X
+#define glActiveTexture omni_glActiveTexture
+#define glAttachShader omni_glAttachShader
+#define glBindBuffer omni_glBindBuffer
+#define glBindFramebuffer omni_glBindFramebuffer
+#define glBindRenderbuffer omni_glBindRenderbuffer
+#define glBindTexture omni_glBindTexture
+#define glBindVertexArray omni_glBindVertexArray
+#define glBlendFunc omni_glBlendFunc
+#define glBlendFuncSeparate omni_glBlendFuncSeparate
+#define glBlitFramebuffer omni_glBlitFramebuffer
+#define glBufferData omni_glBufferData
+#define glBufferSubData omni_glBufferSubData
+#define glCheckFramebufferStatus omni_glCheckFramebufferStatus
+#define glClear omni_glClear
+#define glClearColor omni_glClearColor
+#define glColorMask omni_glColorMask
+#define glCompileShader omni_glCompileShader
+#define glCreateProgram omni_glCreateProgram
+#define glCreateShader omni_glCreateShader
+#define glCullFace omni_glCullFace
+#define glDeleteBuffers omni_glDeleteBuffers
+#define glDeleteFramebuffers omni_glDeleteFramebuffers
+#define glDeleteProgram omni_glDeleteProgram
+#define glDeleteRenderbuffers omni_glDeleteRenderbuffers
+#define glDeleteShader omni_glDeleteShader
+#define glDeleteTextures omni_glDeleteTextures
+#define glDeleteVertexArrays omni_glDeleteVertexArrays
+#define glDepthFunc omni_glDepthFunc
+#define glDepthMask omni_glDepthMask
+#define glDisable omni_glDisable
+#define glDisableVertexAttribArray omni_glDisableVertexAttribArray
+#define glDrawArrays omni_glDrawArrays
+#define glDrawArraysInstanced omni_glDrawArraysInstanced
+#define glDrawElements omni_glDrawElements
+#define glDrawElementsInstanced omni_glDrawElementsInstanced
+#define glEnable omni_glEnable
+#define glEnableVertexAttribArray omni_glEnableVertexAttribArray
+#define glFinish omni_glFinish
+#define glFramebufferRenderbuffer omni_glFramebufferRenderbuffer
+#define glFramebufferTexture2D omni_glFramebufferTexture2D
+#define glFrontFace omni_glFrontFace
+#define glGenBuffers omni_glGenBuffers
+#define glGenFramebuffers omni_glGenFramebuffers
+#define glGenRenderbuffers omni_glGenRenderbuffers
+#define glGenTextures omni_glGenTextures
+#define glGenVertexArrays omni_glGenVertexArrays
+#define glGenerateMipmap omni_glGenerateMipmap
+#define glGetError omni_glGetError
+#define glGetIntegerv omni_glGetIntegerv
+#define glGetProgramInfoLog omni_glGetProgramInfoLog
+#define glGetProgramiv omni_glGetProgramiv
+#define glGetShaderInfoLog omni_glGetShaderInfoLog
+#define glGetShaderiv omni_glGetShaderiv
+#define glGetString omni_glGetString
+#define glGetUniformLocation omni_glGetUniformLocation
+#define glLinkProgram omni_glLinkProgram
+#define glPixelStorei omni_glPixelStorei
+#define glPolygonOffset omni_glPolygonOffset
+#define glReadPixels omni_glReadPixels
+#define glRenderbufferStorage omni_glRenderbufferStorage
+#define glScissor omni_glScissor
+#define glShaderSource omni_glShaderSource
+#define glTexImage2D omni_glTexImage2D
+#define glTexImage3D omni_glTexImage3D
+#define glTexParameteri omni_glTexParameteri
+#define glTexSubImage2D omni_glTexSubImage2D
+#define glUniform1f omni_glUniform1f
+#define glUniform1i omni_glUniform1i
+#define glUniform2f omni_glUniform2f
+#define glUniform3f omni_glUniform3f
+#define glUniform4f omni_glUniform4f
+#define glUniformMatrix4fv omni_glUniformMatrix4fv
+#define glUseProgram omni_glUseProgram
+#define glVertexAttrib4f omni_glVertexAttrib4f
+#define glVertexAttribDivisor omni_glVertexAttribDivisor
+#define glVertexAttribPointer omni_glVertexAttribPointer
+#define glViewport omni_glViewport
+#else
 extern "C" {
-void glActiveTexture(GLenum);
-void glAttachShader(GLuint, GLuint);
-void glBindBuffer(GLenum, GLuint);
-void glBindFramebuffer(GLenum, GLuint);
-void glBindRenderbuffer(GLenum, GLuint);
-void glBindTexture(GLenum, GLuint);
-void glBindVertexArray(GLuint);
-void glBlendFunc(GLenum, GLenum);
-void glBlendFuncSeparate(GLenum, GLenum, GLenum, GLenum);
-void glBlitFramebuffer(GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum);
-void glBufferData(GLenum, GLsizeiptr, const void*, GLenum);
-void glBufferSubData(GLenum, GLintptr, GLsizeiptr, const void*);
-GLenum glCheckFramebufferStatus(GLenum);
-void glClear(GLbitfield);
-void glClearColor(GLfloat, GLfloat, GLfloat, GLfloat);
-void glColorMask(GLboolean, GLboolean, GLboolean, GLboolean);
-void glCompileShader(GLuint);
-GLuint glCreateProgram(void);
-GLuint glCreateShader(GLenum);
-void glCullFace(GLenum);
-void glDeleteBuffers(GLsizei, const GLuint*);
-void glDeleteFramebuffers(GLsizei, const GLuint*);
-void glDeleteProgram(GLuint);
-void glDeleteRenderbuffers(GLsizei, const GLuint*);
-void glDeleteShader(GLuint);
-void glDeleteTextures(GLsizei, const GLuint*);
-void glDeleteVertexArrays(GLsizei, const GLuint*);
-void glDepthFunc(GLenum);
-void glDepthMask(GLboolean);
-void glDisable(GLenum);
-void glDisableVertexAttribArray(GLuint);
-void glDrawArrays(GLenum, GLint, GLsizei);
-void glDrawArraysInstanced(GLenum, GLint, GLsizei, GLsizei);
-void glDrawElements(GLenum, GLsizei, GLenum, const void*);
-void glDrawElementsInstanced(GLenum, GLsizei, GLenum, const void*, GLsizei);
-void glEnable(GLenum);
-void glEnableVertexAttribArray(GLuint);
-void glFinish(void);
-void glFramebufferRenderbuffer(GLenum, GLenum, GLenum, GLuint);
-void glFramebufferTexture2D(GLenum, GLenum, GLenum, GLuint, GLint);
-void glFrontFace(GLenum);
-void glGenBuffers(GLsizei, GLuint*);
-void glGenFramebuffers(GLsizei, GLuint*);
-void glGenRenderbuffers(GLsizei, GLuint*);
-void glGenTextures(GLsizei, GLuint*);
-void glGenVertexArrays(GLsizei, GLuint*);
-void glGenerateMipmap(GLenum);
-GLenum glGetError(void);
-void glGetIntegerv(GLenum, GLint*);
-void glGetProgramInfoLog(GLuint, GLsizei, GLsizei*, GLchar*);
-void glGetProgramiv(GLuint, GLenum, GLint*);
-void glGetShaderInfoLog(GLuint, GLsizei, GLsizei*, GLchar*);
-void glGetShaderiv(GLuint, GLenum, GLint*);
-const GLubyte* glGetString(GLenum);
-GLint glGetUniformLocation(GLuint, const GLchar*);
-void glLinkProgram(GLuint);
-void glPixelStorei(GLenum, GLint);
-void glPolygonOffset(GLfloat, GLfloat);
-void glReadPixels(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void*);
-void glRenderbufferStorage(GLenum, GLenum, GLsizei, GLsizei);
-void glScissor(GLint, GLint, GLsizei, GLsizei);
-void glShaderSource(GLuint, GLsizei, const GLchar* const*, const GLint*);
-void glTexImage2D(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void*);
-void glTexImage3D(GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const void*);
-void glTexParameteri(GLenum, GLenum, GLint);
-void glTexSubImage2D(GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const void*);
-void glUniform1f(GLint, GLfloat);
-void glUniform1i(GLint, GLint);
-void glUniform2f(GLint, GLfloat, GLfloat);
-void glUniform3f(GLint, GLfloat, GLfloat, GLfloat);
-void glUniform4f(GLint, GLfloat, GLfloat, GLfloat, GLfloat);
-void glUniformMatrix4fv(GLint, GLsizei, GLboolean, const GLfloat*);
-void glUseProgram(GLuint);
-void glVertexAttrib4f(GLuint, GLfloat, GLfloat, GLfloat, GLfloat);
-void glVertexAttribDivisor(GLuint, GLuint);
-void glVertexAttribPointer(GLuint, GLint, GLenum, GLboolean, GLsizei, const void*);
-void glViewport(GLint, GLint, GLsizei, GLsizei);
+#define X(ret, name, args) ret name args;
+OMNI_GL_FUNCS(X)
+#undef X
 }
+#endif
 #endif
