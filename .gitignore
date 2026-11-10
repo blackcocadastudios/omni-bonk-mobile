@@ -39,10 +39,10 @@ signing.properties
 
 # --- R36S / PortMaster packaging output ---
 OmniBonk-R36S.zip
-ports/r36s/omnibonk/omnibonk
-ports/r36s/omnibonk/conf/
-ports/r36s/omnibonk/log.txt
-ports/r36s/omnibonk/*.sav
+ports/omnibonk/omnibonk/omnibonk.aarch64
+ports/omnibonk/omnibonk/conf/
+ports/omnibonk/omnibonk/log.txt
+ports/omnibonk/omnibonk/*.sav
 
 # --- Desktop harness output and QEMU / emulator test results ---
 shots/

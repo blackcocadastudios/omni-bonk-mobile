@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <gameList>
   <game>
-    <path>./OmniBonk.sh</path>
+    <path>./Omni Bonk.sh</path>
     <name>Omni Bonk</name>
     <desc>A 3D low-poly roguelite survivor in honor of Megabonk. Automatic attacks, 3 maps with 3 tiers, 43 enemies, 30 weapons, 23 tomes, 86 items and an adjustable time per stage (15 minutes by default). Ready to Run, non-commercial fan project.</desc>
     <developer>BlackCocada Studios</developer>
     <publisher>BlackCocada Studios</publisher>
     <genre>Action</genre>
-    <image>./omnibonk/screenshot.png</image>
-    <thumbnail>./omnibonk/cover.png</thumbnail>
+    <image>./screenshot.png</image>
+    <thumbnail>./cover.png</thumbnail>
   </game>
 </gameList>

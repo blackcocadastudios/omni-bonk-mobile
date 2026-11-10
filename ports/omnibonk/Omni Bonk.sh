@@ -32,6 +32,7 @@ elif [ -n "$directory" ] && [ -d "/$directory/ports/omnibonk" ]; then
 else
   GAMEDIR="/roms/ports/omnibonk"
 fi
+EXE="omnibonk.${DEVICE_ARCH:-aarch64}"
 cd "$GAMEDIR" || exit 1
 mkdir -p "$GAMEDIR/conf"
 
@@ -45,14 +46,14 @@ echo "gamedir: $GAMEDIR"
 
 [ -n "$sdl_controllerconfig" ] && export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$ESUDO chmod +x "$GAMEDIR/omnibonk" 2>/dev/null
+$ESUDO chmod +x "$GAMEDIR/$EXE" 2>/dev/null
 
 if [ -n "$GPTOKEYB" ]; then
-  $GPTOKEYB "omnibonk" &
+  $GPTOKEYB "$EXE" &
 fi
-type pm_platform_helper >/dev/null 2>&1 && pm_platform_helper "$GAMEDIR/omnibonk"
+type pm_platform_helper >/dev/null 2>&1 && pm_platform_helper "$GAMEDIR/$EXE"
 
-"$GAMEDIR/omnibonk" --handheld --device "${OMNIBONK_DEVICE:-R36S}" --data "$GAMEDIR/conf"
+"$GAMEDIR/$EXE" --handheld --device "${OMNIBONK_DEVICE:-R36S}" --data "$GAMEDIR/conf"
 echo "exit code: $?"
 
 if type pm_finish >/dev/null 2>&1; then

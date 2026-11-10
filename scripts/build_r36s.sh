@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cross-compiles the SDL2 port for aarch64 Linux handhelds (R36S & other RK3326 devices) and packages
-# build/OmniBonk-R36S.zip in the PortMaster layout (OmniBonk.sh + omnibonk/).
+# build/OmniBonk-R36S.zip in the PortMaster layout ("Omni Bonk.sh" + omnibonk/).
 #
 # Meant to run on Ubuntu 20.04 so the binary only needs glibc 2.31 (see .github/workflows/r36s.yml for the
 # multiarch apt setup): cmake ninja-build zip file g++-aarch64-linux-gnu libsdl2-dev:arm64
@@ -34,14 +34,16 @@ echo "== newest glibc symbol version required"
 "${CROSS}objdump" -T "$BIN" | grep -o 'GLIBC_[0-9.]*' | sort -Vu | tail -1
 if "${CROSS}readelf" -d "$BIN" | grep -E 'NEEDED.*(libstdc\+\+|libGL|libEGL)'; then echo "unexpected dependency"; exit 1; fi
 
-# package: OmniBonk.sh + omnibonk/ (extract into ports/)
+# package: "Omni Bonk.sh" + omnibonk/ (extract into ports/); metadata stays in the repo for the PortMaster PR
 PKG="$OUT/pkg"
 mkdir -p "$PKG"
-cp -r "$ROOT/ports/r36s/." "$PKG/"
-cp "$BIN" "$PKG/omnibonk/omnibonk"
-chmod +x "$PKG/OmniBonk.sh" "$PKG/omnibonk/omnibonk"
+cp "$ROOT/ports/omnibonk/Omni Bonk.sh" "$PKG/"
+cp -r "$ROOT/ports/omnibonk/omnibonk" "$PKG/omnibonk"
+rm -f "$PKG/omnibonk/.gitkeep"
+cp "$BIN" "$PKG/omnibonk/omnibonk.aarch64"
+chmod +x "$PKG/Omni Bonk.sh" "$PKG/omnibonk/omnibonk.aarch64"
 echo "$VERSION ($(date -u +%Y-%m-%d))" > "$PKG/omnibonk/version.txt"
 rm -f "$ROOT/build/OmniBonk-R36S.zip"
-(cd "$PKG" && zip -q -r -9 "$ROOT/build/OmniBonk-R36S.zip" OmniBonk.sh omnibonk)
+(cd "$PKG" && zip -q -r -9 "$ROOT/build/OmniBonk-R36S.zip" "Omni Bonk.sh" omnibonk)
 ls -la "$ROOT/build/OmniBonk-R36S.zip"
 unzip -l "$ROOT/build/OmniBonk-R36S.zip"
