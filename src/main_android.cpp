@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <atomic>
 #include "platform.h"
+#include "audio.h"
 
 #ifndef EGL_OPENGL_ES3_BIT_KHR
 #define EGL_OPENGL_ES3_BIT_KHR 0x00000040
@@ -93,6 +94,7 @@ static void audioErr(AAudioStream*, void*, aaudio_result_t err) {
 }
 static void startAudio() {
   if (E.audio) return;
+  audioFlush();   // drop commands queued while the stream was stopped (they would all play at once)
   AAudioStreamBuilder* b = nullptr;
   if (AAudio_createStreamBuilder(&b) != AAUDIO_OK) return;
   AAudioStreamBuilder_setFormat(b, AAUDIO_FORMAT_PCM_FLOAT);

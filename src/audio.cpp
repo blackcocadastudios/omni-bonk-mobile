@@ -8,7 +8,7 @@ static std::atomic<float> gMusicVol{0.55f}, gSfxVol{0.8f}, gIntensity{0.f};
 static std::atomic<int> gTrack{-1};
 
 // SPSC ring of play commands
-struct Cmd { int sfx; float vol, pitch; };
+struct Cmd { int sfx; float vol, pitch; bool attract; };
 static Cmd gQ[256];
 static std::atomic<int> gQHead{0}, gQTail{0};
 
@@ -16,6 +16,8 @@ struct Voice { int sfx = -1; float pos = 0, vol = 1, pitch = 1; };
 static Voice gV[24];
 static float gLastPlay[SFX_COUNT];
 static double gClock = 0;
+static bool gAttract = false;                 // written by the main thread only
+static std::atomic<bool> gFlush{false};        // asks the audio thread to clear its voices
 
 static float osc(int type, float ph) {
   ph -= floorf(ph);
@@ -82,9 +84,11 @@ void audioPlay(int sfx, float vol, float pitch) {
   if (sfx < 0 || sfx >= SFX_COUNT) return;
   int h = gQHead.load(std::memory_order_relaxed), nh = (h + 1) & 255;
   if (nh == gQTail.load(std::memory_order_acquire)) return;
-  gQ[h] = {sfx, vol, pitch};
+  gQ[h] = {sfx, gAttract ? vol * 0.3f : vol, pitch, gAttract};
   gQHead.store(nh, std::memory_order_release);
 }
+void audioAttract(bool on) { gAttract = on; }
+void audioFlush() { gFlush.store(true, std::memory_order_release); }
 void audioMusic(int track) { gTrack.store(track); }
 void audioSetVolume(float music, float sfx) { gMusicVol.store(music); gSfxVol.store(sfx); }
 void audioSetIntensity(float x) { gIntensity.store(clampf(x, 0, 1)); }
@@ -151,11 +155,17 @@ static float musicSample() {
 
 void audioRender(float* out, int frames) {
   // pull commands
+  if (gFlush.exchange(false, std::memory_order_acq_rel)) {
+    // stream was stopped/restarted: discard stale commands so they do not burst out all at once
+    for (auto& v : gV) v.sfx = -1;
+    gQTail.store(gQHead.load(std::memory_order_acquire), std::memory_order_release);
+    for (auto& tl : gLastPlay) tl = -1;
+  }
   int t = gQTail.load(std::memory_order_relaxed);
   while (t != gQHead.load(std::memory_order_acquire)) {
     Cmd c = gQ[t];
     t = (t + 1) & 255;
-    if (gClock - gLastPlay[c.sfx] < 0.03) continue; // de-dupe spam
+    if (gClock - gLastPlay[c.sfx] < (c.attract ? 0.25 : 0.03)) continue; // de-dupe spam (demo run is limited harder)
     gLastPlay[c.sfx] = (float)gClock;
     int best = 0; float bp = -1;
     for (int i = 0; i < 24; i++) { if (gV[i].sfx < 0) { best = i; bp = 1e9f; break; } if (gV[i].pos > bp) { bp = gV[i].pos; best = i; } }

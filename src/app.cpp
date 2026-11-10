@@ -78,8 +78,13 @@ void App::updateMenuGame(float dt) {
   }
   applySettingsToGame(menuGame);
   menuGame.dmgNumbers = false;
+  // Attract mode: the autopilot resolves level-ups, chests and shrines by itself inside Game::update().
+  // Never force the state back to GS_PLAY here: that left pendingLevels > 0 forever, so every frame
+  // regenerated the offers and replayed the level-up jingle (the endless sound loop on the title screen).
+  audioAttract(true);                 // soften/rate-limit gameplay SFX coming from the background run
   menuGame.update(dt);
-  if (menuGame.state != GS_PLAY) menuGame.state = GS_PLAY;
+  audioAttract(false);
+  if (menuGame.state == GS_DEAD || menuGame.state == GS_VICTORY) menuInit = false;   // restart the demo run
   if (menuGame.P.hp < 50) menuGame.P.hp = menuGame.P.st[S_MAXHP];
   menuGame.banners.clear();
   // slow cinematic orbit

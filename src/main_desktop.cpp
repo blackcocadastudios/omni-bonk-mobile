@@ -267,6 +267,20 @@ static void padScenario() {
 }
 
 // CPU profile of a busy scene: time in game.update, in building the draw lists, and the batch counts
+// Regression test for the title-screen audio loop: the background demo run must consume its own level-ups.
+static int gLevelUpPlays = 0;
+static void attractScenario() {
+  App& a = gApp; int stuck = 0, maxPending = 0;
+  for (int i = 0; i < 30 * 240; i++) {   // 4 minutes of title screen at 30 fps
+    a.updateMenuGame(1 / 30.f);
+    Game& m = a.menuGame; maxPending = std::max(maxPending, m.pendingLevels);
+    if (m.pendingLevels > 0 && m.state == GS_PLAY) stuck++;
+  }
+  Game& m = a.menuGame;
+  LOGI("attract: level %d, max pending %d, frames with unresolved level-up %d", m.P.level, maxPending, stuck);
+  if (maxPending > 3 || stuck > 30 * 2) { LOGI("attract: FAIL (level-up never consumed -> audio loop)"); exit(1); }
+  LOGI("attract: PASS");
+}
 static void perfScenario(int map, int ch, float minutes) {
   App& a = gApp; Game& g = a.game;
   for (float at : {2.f, minutes}) {
@@ -366,6 +380,7 @@ int main(int argc, char** argv) {
   if (handheld) gApp.ui.padMode = true;
   if (scenario == "ui") uiShots();
   else if (scenario == "pad") padScenario();
+  else if (scenario == "attract") attractScenario();
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();
   else if (scenario == "icon") iconShot();
