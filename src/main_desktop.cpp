@@ -485,6 +485,27 @@ static void modesUi() {
   gModeArg = 0; gMutArg = 0;
 }
 
+// new maps and the boss upgrade: each new map in play, the map hazards, enraged bosses, the new line-ups
+static void mapsScenario() {
+  App& a = gApp; gModeArg = 0; gMutArg = 0;
+  gameShots(MAP_FROST, 0, C_DIGBY, "maps_01_frostpeak_t1", 200, 31); gameShots(MAP_FROST, 2, C_HOOT, "maps_02_frostpeak_t3", 260, 32);
+  gameShots(MAP_EMBER, 0, C_SIZZLE, "maps_03_caldera_t1", 200, 33); gameShots(MAP_EMBER, 2, C_OGRE, "maps_04_caldera_t3", 260, 34);
+  Game& g = a.game;
+  startGame(MAP_FROST, 0, C_FOX, true, 51); simGame(g, 130); g.state = GS_PLAY; g.pendingLevels = 0; frame(1 / 30.f, 4); shot("maps_05_blizzard");
+  startGame(MAP_EMBER, 0, C_FOX, true, 52); simGame(g, 61.2f); g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = false; frame(1 / 30.f, 25); shot("maps_06_meteor_shower");
+  auto enraged = [&](int map, int tier, const char* tag) {
+    startGame(map, tier, C_OGRE, true, 53); simGame(g, 20); g.state = GS_PLAY; g.pendingLevels = 0; g.cryptKeys = 4;
+    for (auto& it : g.inters) if (it.type == I_BOSS_PORTAL) { g.summonBoss(it); break; }
+    for (auto& e : g.enemies) if (e.rank == RK_BOSS) { e.hp = e.maxHp * 0.45f; g.P.pos = e.pos + v3(0, 0, -10); g.P.pos.y = g.world.T.height(g.P.pos.x, g.P.pos.z); }
+    g.autoPilot = false; frame(1 / 30.f, 70); shot(tag);
+  };
+  enraged(MAP_FOREST, 1, "maps_07_chadbark_enraged"); enraged(MAP_FROST, 1, "maps_08_rimeback_alpha_enraged"); enraged(MAP_EMBER, 2, "maps_09_pyre_tyrant_enraged");
+  auto S = [](int e, float sc = 1) { const EnemyDef& d = gEnemies[e]; Col ta = d.tint ? Col((d.tint >> 16) & 255, (d.tint >> 8) & 255, d.tint & 255, 150) : Col(255, 255, 255, 0); return ShowItem{d.model, CL_IDLE, 0.33f, sc * d.scale, d.name, ta}; };
+  showcase("art_14_new_bosses", "Frostpeak and Caldera bosses", {S(E_B_RIMEBACK), S(E_B_RIMEALPHA), S(E_B_GLACIERTYRANT), S(E_B_CINDERHORN), S(E_B_MAGMAW), S(E_B_PYRETYRANT)}, MAP_FROST, 0, 5.5f);
+  showcase("art_15_frostpeak_enemies", "Enemies - Frostpeak", {S(E_F_SLIME), S(E_F_GOBLIN), S(E_F_MOTH), S(E_F_SKELETON), S(E_F_PHANTOM), S(E_F_BOOMER), S(E_F_GOLEM), S(E_F_KNIGHT), S(E_F_BRUTE), S(E_MB_GLACIERGOLEM, 0.6f), S(E_MB_CRYSTALSCORPION, 0.6f)}, MAP_FROST, 0, 2.8f);
+  showcase("art_16_caldera_enemies", "Enemies - Caldera", {S(E_V_SLIME), S(E_V_GOBLIN), S(E_V_WASP), S(E_V_SKELETON), S(E_V_PHANTOM), S(E_V_BOOMER), S(E_V_GOLEM), S(E_V_SCORPION), S(E_V_BRUTE), S(E_MB_MAGMACOLOSSUS, 0.6f), S(E_MB_ASHCHARGER, 0.6f)}, MAP_EMBER, 0, 2.8f);
+}
+
 static void balance(int map, int ch, float minutes, u32 seed) {
   App& a = gApp;
   startGame(map, 0, ch, false, seed, minutes);
@@ -556,6 +577,7 @@ int main(int argc, char** argv) {
   else if (scenario == "qol") qolScenario();
   else if (scenario == "audio") audioScenario();
   else if (scenario == "modesui") modesUi();
+  else if (scenario == "maps") mapsScenario();
   else if (scenario == "models") {   // per-character mesh cost (vertices x baked frames), to keep the bake time in check
     long tot = 0; for (int m = 0; m < M_COUNT; m++) tot += (long)gModels.info[m].vtx * gModels.info[m].frames;
     for (int i = 0; i < C_COUNT; i++) { const ModelInfo& mi = gModels.info[gChars[i].model]; LOGI("model %-8s %5d verts x %3d frames = %7d anim verts", gChars[i].name, mi.vtx, mi.frames, mi.vtx * mi.frames); }
