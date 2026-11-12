@@ -154,7 +154,8 @@ void App::drawModes() {
     info(fmt(tr("Today: %s on %s"), gChars[d.character].name, gMaps[d.map].name), GOLD);
     if (meta.dailyKey == d.key && meta.dailyBest > 0) info(fmt(tr("Best score today: %d"), meta.dailyBest), CYAN);
   } else if (selMode == MODE_ENDLESS) {
-    info(fmt(tr("Best: Forest %s  Desert %s  Graveyard %s"), fmtTime(meta.endlessBest[0]).c_str(), fmtTime(meta.endlessBest[1]).c_str(), fmtTime(meta.endlessBest[2]).c_str()), CYAN);
+    int bm = 0; for (int m = 1; m < MAP_COUNT; m++) if (meta.endlessBest[m] > meta.endlessBest[bm]) bm = m;
+    if (meta.endlessBest[bm] > 0) info(fmt(tr("Best: %s on %s"), fmtTime(meta.endlessBest[bm]).c_str(), tr(gMaps[bm].name)), CYAN);
   } else if (selMode == MODE_REVERSE) {
     if (meta.reverseBest > 0) info(fmt(tr("Best: %d heroes crushed  •  %d wins"), meta.reverseBest, meta.reverseWins), CYAN);
   } else if (selMode == MODE_BOSSRUSH) {
@@ -225,23 +226,26 @@ void App::drawMap() {
   bgDim(0.35f);
   float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
   u.text(u.W * 0.5f, 8, tr("MAP, TIER AND TIME"), 2, WHITE, AL_CENTER);
-  float cw = std::min(150.f, (Wd - 10) / 3), ch = 70, x0 = u.W * 0.5f - (cw * 3 + 10) * 0.5f, y0 = 32;
+  bool nar = narrow();
+  const float mgap = nar ? 3 : 5;
+  float cw = std::min(150.f, (Wd - (MAP_COUNT - 1) * mgap) / MAP_COUNT), ch = nar ? 52 : 70, x0 = u.W * 0.5f - (cw * MAP_COUNT + (MAP_COUNT - 1) * mgap) * 0.5f, y0 = 32;
   for (int m = 0; m < MAP_COUNT; m++) {
-    float x = x0 + m * (cw + 5); bool sel = m == selMap;
+    float x = x0 + m * (cw + mgap); bool sel = m == selMap;
     const Palette& p = gMaps[m].tiers[selTier].pal;
     u.panel(x, y0, cw, ch, Col(20, 14, 30, 230), sel ? GOLD : Col(255, 255, 255, 60));
     // palette preview: sky gradient + ground
     for (int k = 0; k < 8; k++) u.rect(x + 3, y0 + 3 + k * 3, cw - 6, 3, mixc(hexc(p.skyTop), hexc(p.skyHorizon), k / 7.f));
     u.rect(x + 3, y0 + 27, cw - 6, 6, hexc(p.foliage2)); u.rect(x + 3, y0 + 33, cw - 6, 4, hexc(p.ground1));
-    u.text(x + cw * 0.5f, y0 + 41, gMaps[m].name, 1.5f, sel ? GOLD : WHITE, AL_CENTER);
-    u.text(x + cw * 0.5f, y0 + 57, gMaps[m].tiers[selTier].name, 1, GREY, AL_CENTER);
+    float ns = !nar && u.textW(gMaps[m].name, 1.5f) <= cw - 6 ? 1.5f : 1.f;
+    u.text(x + cw * 0.5f, y0 + (ns > 1 ? 41 : 40), gMaps[m].name, ns, sel ? GOLD : WHITE, AL_CENTER);
+    if (!nar) u.textRaw(x + cw * 0.5f, y0 + 57, u.fit(tr(gMaps[m].tiers[selTier].name), cw - 4), 1, GREY, AL_CENTER);
     if (sel) u.nextFlags = FOCUS_DEFAULT;
     bool ck = u.clicked(x, y0, cw, ch);
     if (u.isFocus(x, y0, cw, ch)) selMap = m;
     if (ck) { selMap = m; audioPlay(SFX_CLICK); }
   }
   float y = y0 + ch + 8;
-  bool nar = narrow();
+  if (nar) { u.text(u.W * 0.5f, y0 + ch + 3, gMaps[selMap].tiers[selTier].name, 1, GREY, AL_CENTER); y += 8; }   // tier name of the selected map
   const char* tierInfo[3] = {tr("1 stage"), tr("2 stages"), nar ? tr("3 + final boss") : tr("3 stages + final boss")};
   float tw = std::min(120.f, (Wd - 10) / 3);
   for (int t = 0; t < 3; t++) {
@@ -513,7 +517,7 @@ void App::drawCatalog() {
   } else if (catTab == 3) {
     const EnemyDef& e = gEnemies[s];
     title(e.name, e.rank == RK_BOSS ? RED : e.rank == RK_MINIBOSS ? GOLD : WHITE);
-    std::string maps; if (e.maps & 1) maps += "Forest "; if (e.maps & 2) maps += "Desert "; if (e.maps & 4) maps += "Graveyard";
+    std::string maps; for (int m = 0; m < MAP_COUNT; m++) if (e.maps & (1 << m)) maps += std::string(maps.empty() ? "" : " ") + tr(gMaps[m].name);
     body(std::string(e.rank == RK_BOSS ? tr("Boss") : e.rank == RK_MINIBOSS ? tr("Miniboss") : e.flying ? tr("Flying") : tr("Ground")) + "  •  " + maps, GREY);
     body(fmt("HP base %.0f\nDano base %.0f\nVelocidade %.1f\nXP %.0f", e.hp, e.dmg, e.spd / 0.72f, e.xp), CYAN);
     body(tr("Scales with stage time, tier and the Difficulty stat."), DIM);
@@ -849,8 +853,11 @@ void App::drawHUD() {
   // boss bar
   for (auto& e : g.enemies) if (e.alive && e.rank == RK_BOSS) {
     float bw = u.W * 0.42f, bx = u.W * 0.5f - bw * 0.5f, by = npu ? 56 : (nar ? 32 : 30);
-    u.text(u.W * 0.5f, by, gEnemies[e.type].name, 1, e.invuln ? Col(190, 170, 255) : Col(255, 120, 120), AL_CENTER);
-    bar(u, bx, by + 11, bw, 7, e.hp / e.maxHp, e.invuln ? Col(150, 130, 255) : Col(220, 30, 50));
+    bool gk = e.type == E_B_GHOSTKING, enr = !gk && e.phase >= 1;
+    std::string bn = enr ? fmt("%s  •  %s", gEnemies[e.type].name, tr("ENRAGED")) : std::string(gEnemies[e.type].name);
+    u.textRaw(u.W * 0.5f, by, u.fit(bn, u.W * 0.8f), 1, e.invuln ? Col(190, 170, 255) : enr ? Col(255, 150, 60) : Col(255, 120, 120), AL_CENTER);
+    bar(u, bx, by + 11, bw, 7, e.hp / e.maxHp, e.invuln ? Col(150, 130, 255) : enr ? Col(255, (u8)(70 + 40 * sinf(g.realTime * 6)), 20) : Col(220, 30, 50));
+    for (float f : gk ? std::vector<float>{0.66f, 0.33f} : std::vector<float>{0.5f}) u.rect(bx + bw * f - 0.5f, by + 10, 1, 9, Col(255, 255, 255, 200));
     break;
   }
   // compact alerts (swarm, miniboss, challenge...): a slim translucent strip under the timer / boss bar, never over the centre
@@ -1133,7 +1140,7 @@ void App::drawEnd() {
       if (meta.dailyKey != runDailyKey) { meta.dailyKey = runDailyKey; meta.dailyBest = 0; }
       meta.dailyBest = std::max(meta.dailyBest, lastDailyScore);
     }
-    if (g.cfg.mode == MODE_ENDLESS) { float& eb = meta.endlessBest[clampi(g.cfg.map, 0, 2)]; eb = std::max(eb, g.runTime); }
+    if (g.cfg.mode == MODE_ENDLESS) { float& eb = meta.endlessBest[clampi(g.cfg.map, 0, MAP_COUNT - 1)]; eb = std::max(eb, g.runTime); }
     if (g.cfg.mode == MODE_BOSSRUSH) meta.bossRushBest = std::max(meta.bossRushBest, g.bossesBeaten);
     if (g.reverse()) { meta.reverseBest = std::max(meta.reverseBest, P.kills); if (g.state == GS_VICTORY) meta.reverseWins++; }
     save();
@@ -1150,7 +1157,7 @@ void App::drawEnd() {
   if (g.cfg.mode != MODE_NORMAL) line(tr("Mode"), tr(kModes[g.cfg.mode].name), Col(255, 200, 120));
   if (g.cfg.mode == MODE_DAILY) line(tr("Score"), fmt("%d (%s %d)", lastDailyScore, tr("best"), meta.dailyBest), CYAN);
   else if (g.cfg.mode == MODE_BOSSRUSH) line(tr("Bosses"), fmt("%d/%d", g.bossesBeaten, BOSSRUSH_ROUNDS + 1), CYAN);
-  else if (g.cfg.mode == MODE_ENDLESS) line(tr("Best"), fmtTime(meta.endlessBest[clampi(g.cfg.map, 0, 2)]), CYAN);
+  else if (g.cfg.mode == MODE_ENDLESS) line(tr("Best"), fmtTime(meta.endlessBest[clampi(g.cfg.map, 0, MAP_COUNT - 1)]), CYAN);
   else line(tr("Stage"), fmt("%d/%d", g.stage + 1, g.numStages));
   if (g.cfg.mutators) line(tr("Mutators"), fmt("%d (+%d%%)", mutatorCount(g.cfg.mutators), mutatorSilverPct(g.cfg.mutators)), Col(255, 200, 120));
   line(tr("Time"), fmtTime(g.runTime));

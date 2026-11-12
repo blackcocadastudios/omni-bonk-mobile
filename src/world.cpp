@@ -29,6 +29,14 @@ static float heightFn(int map, float x, float z, float half, u32 seed) {
     h = d * d * 6.f + (fbm(x * 0.008f, z * 0.008f, seed + 3, 3) - 0.45f) * 16.f;
     float m = fbm(x * 0.018f + 9, z * 0.018f + 5, seed + 11, 3);
     h += smooth01((m - 0.66f) * 10.f) * 9.f;
+  } else if (map == MAP_FROST) {
+    h = (fbm(x * 0.012f, z * 0.012f, seed, 4) - 0.45f) * 18.f;
+    float rdg = 1.f - fabsf(fbm(x * 0.016f + 3, z * 0.016f - 7, seed + 21, 3) * 2.f - 1.f);   // icy ridges
+    h += powf(rdg, 4.f) * 9.f;
+  } else if (map == MAP_EMBER) {
+    h = (fbm(x * 0.01f, z * 0.01f, seed, 4) - 0.45f) * 20.f;
+    h -= smooth01((fbm(x * 0.03f + 11, z * 0.03f + 5, seed + 31, 2) - 0.58f) * 8.f) * 5.f;      // craters
+    h += smooth01((fbm(x * 0.022f, z * 0.022f, seed + 41, 3) - 0.64f) * 9.f) * 8.f;             // lava-rock mesas
   } else {
     h = (fbm(x * 0.015f, z * 0.015f, seed, 3) - 0.45f) * 9.f;
     h += smooth01((fbm(x * 0.02f, z * 0.02f, seed + 4, 2) - 0.6f) * 8.f) * 4.f;
@@ -196,7 +204,7 @@ void World::generate(int map_, int tier_, int stage_, u32 seed_, int extraShrine
     for (int o = 0; o < 4; o++) { float cx = rng.range(-H * 0.8f, H * 0.8f), cz = rng.range(-H * 0.8f, H * 0.8f); if (!clearSpawn(cx, cz, 20)) continue; for (int k = 0; k < 5; k++) { float a = rng.f() * TAU, d = rng.range(2, 6); add(M_PALM, cx + cosf(a) * d, cz + sinf(a) * d, rng.f() * TAU, rng.range(0.8f, 1.2f), mixc(fol1, fol2, rng.f()), trunk, 0.3f, 0); } }
     scatter(900, [&](float x, float z, Rng& r) { PropInst& p = (add(M_DESERT_GRASS, x, z, r.f() * TAU, r.range(0.6f, 1.2f), mixc(hexc(pal.ground3), fol2, 0.35f), trunk, 0, 0, 0.05f), props.back()); p.grass = true; }, 2, 0.6f);
     scatter(120, [&](float x, float z, Rng& r) { add(M_ROCK_SMALL, x, z, r.f() * TAU, r.range(0.7f, 1.4f), fol1, rock, 0, 0); }, 4, 0.4f);
-  } else {
+  } else if (map == MAP_GRAVEYARD) {
     // graveyard rows
     for (int row = 0; row < 26; row++) {
       float cz = rng.range(-H, H), cx = rng.range(-H, H), yaw = rng.chance(0.5f) ? 0 : PI / 2;
@@ -213,6 +221,30 @@ void World::generate(int map_, int tier_, int stage_, u32 seed_, int extraShrine
     { float a = rng.f() * TAU; add(M_CRYPT, cosf(a) * 22, sinf(a) * 22, a + PI, 1.0f, fol1, rock, 0, 0, 0.1f);
       PropInst c = props.back(); for (int k = -1; k <= 1; k++) { PropInst q = c; q.model = M_ROCK_SMALL; q.scale = 0.001f; q.pos.x += cosf(a + PI / 2) * k * 1.6f; q.pos.z += sinf(a + PI / 2) * k * 1.6f; q.colR = 2.2f; q.colTop = 0; props.push_back(q); } }
     scatter(1500, [&](float x, float z, Rng& r) { PropInst& p = (add(M_GRAVE_GRASS, x, z, r.f() * TAU, r.range(0.7f, 1.3f), mixc(hexc(pal.ground2), fol2, 0.4f), trunk, 0, 0, 0.05f), props.back()); p.grass = true; }, 2, 0.6f);
+  } else if (map == MAP_FROST) {
+    for (float z = -H; z < H; z += 4.6f)   // snowy pine groves
+      for (float x = -H; x < H; x += 4.6f) {
+        float d = fbm(x * 0.02f, z * 0.02f, seed + 77, 3);
+        float jx = x + rng.range(-1.8f, 1.8f), jz = z + rng.range(-1.8f, 1.8f);
+        if (!clearSpawn(jx, jz, 12) || !slopeOk(jx, jz, 0.72f)) continue;
+        if (d > 0.5f && rng.chance(0.5f)) add(rng.chance(0.5f) ? M_PINE : M_PINE2, jx, jz, rng.f() * TAU, rng.range(0.85f, 1.4f), mixc2(fol1, fol2, rng), trunk, 0.35f, 0, 0.1f);
+      }
+    scatter(40, [&](float x, float z, Rng& r) { add(M_ICE_CRYSTAL, x, z, r.f() * TAU, r.range(0.8f, 1.6f), fol1, rock, 0.6f, 0); }, 12, 0.7f);
+    scatter(30, [&](float x, float z, Rng& r) { add(M_ROCK_BIG, x, z, r.f() * TAU, r.range(0.8f, 1.5f), fol1, rock, 2.5f, 2.9f, 0.3f); }, 14, 0.6f);
+    scatter(60, [&](float x, float z, Rng& r) { add(M_ROCK_MED, x, z, r.f() * TAU, r.range(0.8f, 1.4f), fol1, rock, 1.1f, 1.25f, 0.2f); }, 8, 0.5f);
+    scatter(120, [&](float x, float z, Rng& r) { add(M_ROCK_SMALL, x, z, r.f() * TAU, r.range(0.7f, 1.4f), fol1, rock, 0, 0); }, 4, 0.4f);
+    scatter(8, [&](float x, float z, Rng& r) { add(M_SNOWMAN, x, z, r.f() * TAU, r.range(0.9f, 1.2f), fol1, rock, 0.45f, 0); }, 14, 0.8f);
+    scatter(18, [&](float x, float z, Rng& r) { add(M_LOG, x, z, r.f() * TAU, r.range(0.8f, 1.2f), fol1, trunk, 0, 0, 0.1f); }, 8, 0.8f);
+    scatter(900, [&](float x, float z, Rng& r) { PropInst& p = (add(M_DESERT_GRASS, x, z, r.f() * TAU, r.range(0.6f, 1.2f), mixc(hexc(pal.ground2), fol2, 0.6f), trunk, 0, 0, 0.05f), props.back()); p.grass = true; }, 2, 0.6f);
+  } else if (map == MAP_EMBER) {
+    scatter(55, [&](float x, float z, Rng& r) { add(M_BASALT, x, z, r.f() * TAU, r.range(0.8f, 1.5f), fol1, rock, 0.9f, 0, 0.1f); }, 12, 0.7f);
+    scatter(16, [&](float x, float z, Rng& r) { add(M_LAVA_VENT, x, z, r.f() * TAU, r.range(0.9f, 1.4f), fol1, rock, 1.2f, 0.9f, 0.1f); }, 16, 0.8f);
+    scatter(45, [&](float x, float z, Rng& r) { add(M_DEAD_TREE, x, z, r.f() * TAU, r.range(0.8f, 1.4f), fol1, trunk, 0.3f, 0); }, 10, 0.7f);
+    scatter(30, [&](float x, float z, Rng& r) { add(M_ROCK_BIG, x, z, r.f() * TAU, r.range(0.8f, 1.5f), fol1, rock, 2.5f, 2.9f, 0.3f); }, 14, 0.6f);
+    scatter(70, [&](float x, float z, Rng& r) { add(M_ROCK_MED, x, z, r.f() * TAU, r.range(0.8f, 1.4f), fol1, rock, 1.1f, 1.25f, 0.2f); }, 8, 0.5f);
+    scatter(140, [&](float x, float z, Rng& r) { add(M_ROCK_SMALL, x, z, r.f() * TAU, r.range(0.7f, 1.4f), fol1, rock, 0, 0); }, 4, 0.4f);
+    scatter(24, [&](float x, float z, Rng& r) { add(M_BONES, x, z, r.f() * TAU, r.range(0.8f, 1.5f), fol1, rock, 0, 0); }, 8, 0.7f);
+    scatter(600, [&](float x, float z, Rng& r) { PropInst& p = (add(M_DESERT_GRASS, x, z, r.f() * TAU, r.range(0.6f, 1.1f), mixc(hexc(pal.ground3), fol2, 0.5f), trunk, 0, 0, 0.05f), props.back()); p.grass = true; }, 2, 0.6f);
   }
 
   // ---------------- interactables

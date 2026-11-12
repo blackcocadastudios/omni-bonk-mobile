@@ -258,7 +258,7 @@ void Renderer::setWorld(const World* w) {
       }
   }
   Col g1 = hexc(pal.ground1), g2 = hexc(pal.ground2), g3 = hexc(pal.ground3), rk = hexc(pal.rock);
-  u8 baseLayer = w->map == MAP_DESERT ? L_SAND : (w->map == MAP_GRAVEYARD ? L_GRASS : L_GRASS);
+  u8 baseLayer = (w->map == MAP_DESERT || w->map == MAP_FROST) ? L_SAND : w->map == MAP_EMBER ? L_GRAVEL : L_GRASS;
   const int CQ = 15; chunkN = (T.N - 1) / CQ;
   chunks.resize(chunkN * chunkN);
   for (int cz = 0; cz < chunkN; cz++)
@@ -281,7 +281,7 @@ void Renderer::setWorld(const World* w) {
           c = mulc(c, (0.92f + nz2 * 0.16f) * (1.f - ao[gj * T.N + gi]));
           TV t; t.x = x; t.y = y; t.z = z; t.nx = (i8)(n.x * 127); t.ny = (i8)(n.y * 127); t.nz = (i8)(n.z * 127); t.pad = 0;
           t.r = c.r; t.g = c.g; t.b = c.b; t.e = 0; t.u = x * 0.25f; t.v = z * 0.25f;
-          t.layer = slope > 0.3f ? L_ROCK : (pathK > 0.5f && w->map != MAP_DESERT ? L_DIRT : baseLayer); t.flag = 0; t.a = t.b2 = 0;
+          t.layer = slope > 0.3f ? L_ROCK : (pathK > 0.5f && (w->map == MAP_FOREST || w->map == MAP_GRAVEYARD) ? L_DIRT : baseLayer); t.flag = 0; t.a = t.b2 = 0;
           V.push_back(t); ymin = std::min(ymin, y); ymax = std::max(ymax, y);
         }
       for (int j = 0; j < CQ; j++)

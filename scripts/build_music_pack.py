@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds an optional, local-only music pack for Omni Bonk from audio files you own.
 
-The game looks for menu/forest/desert/graveyard/boss/final.ogg in its music folder and plays them instead of the
+The game looks for menu/forest/desert/graveyard/boss/final/frostpeak/caldera.ogg in its music folder and plays them instead of the
 built-in chiptune (a missing slot keeps the chiptune). The pack is never part of the repository, the CI or the
 public releases: keep it on your own devices.
 
@@ -17,7 +17,7 @@ Where the folder goes:
 """
 import argparse, json, os, re, shutil, subprocess, sys
 
-SLOTS = ["menu", "forest", "desert", "graveyard", "boss", "final"]
+SLOTS = ["menu", "forest", "desert", "graveyard", "boss", "final", "frostpeak", "caldera"]
 
 
 def ffmpeg(args):

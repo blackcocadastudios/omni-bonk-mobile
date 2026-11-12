@@ -21,9 +21,9 @@ void App::save() {
           s.camSens, s.joySize, s.uiScale, s.ctrlAlpha, s.leftHanded, s.vibration, s.invertY, s.music, s.sfx, s.showFps);
   fprintf(f, "silver=%d\nruns=%d\nwins=%d\ntotalKills=%d\nbestKills=%d\nupReroll=%d\nupSkip=%d\nupBanish=%d\nupHp=%d\nupLuck=%d\nlastChar=%d\nlastMap=%d\nlastTier=%d\n",
           m.silver, m.runs, m.wins, m.totalKills, m.bestKills, m.upReroll, m.upSkip, m.upBanish, m.upHp, m.upLuck, m.lastChar, m.lastMap, m.lastTier);
-  for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) fprintf(f, "best_%d_%d=%.0f\n", a, b, m.bestTime[a][b]);
+  for (int a = 0; a < MAP_COUNT; a++) for (int b = 0; b < 3; b++) fprintf(f, "best_%d_%d=%.0f\n", a, b, m.bestTime[a][b]);
   fprintf(f, "lastMode=%d\nmutators=%d\ndailyKey=%d\ndailyBest=%d\nbossRushBest=%d\nreverseBest=%d\nreverseWins=%d\n", m.lastMode, m.mutators, m.dailyKey, m.dailyBest, m.bossRushBest, m.reverseBest, m.reverseWins);
-  for (int a = 0; a < 3; a++) fprintf(f, "endless_%d=%.0f\n", a, m.endlessBest[a]);
+  for (int a = 0; a < MAP_COUNT; a++) fprintf(f, "endless_%d=%.0f\n", a, m.endlessBest[a]);
   fclose(f);
 }
 
@@ -43,11 +43,11 @@ bool App::load() {
     B_(autoQuality) F_(renderScale) B_(snap) I_(maxEnemies) I_(particles) B_(shadows) I_(fpsCap) F_(fxAlpha) B_(vignette) F_(viewDist) F_(fov) F_(camDist) F_(shake)
     F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) B_(invertY) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
-    for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
+    for (int a = 0; a < MAP_COUNT; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
     M_(lastMode) M_(dailyBest) M_(bossRushBest) M_(reverseBest) M_(reverseWins)
     if (k == "mutators") m.mutators = (int)strtoul(eq + 1, nullptr, 10);
     if (k == "dailyKey") m.dailyKey = atoi(eq + 1);
-    for (int a = 0; a < 3; a++) if (k == fmt("endless_%d", a)) m.endlessBest[a] = v;
+    for (int a = 0; a < MAP_COUNT; a++) if (k == fmt("endless_%d", a)) m.endlessBest[a] = v;
   }
   fclose(f);
   set.lang = clampi(set.lang, 0, LANG_COUNT - 1); i18nSet(set.lang);
@@ -89,7 +89,7 @@ void App::startRun() {
   game.autoPilot = false;
   scr = SCR_GAME; inRun = true; paused = false; aqWarm = aqAcc = 0; aqFrames = 0;
   meta.runs++; meta.lastChar = selChar; meta.lastMap = selMap; meta.lastTier = selTier; meta.lastMode = selMode; save();
-  audioMusic(1 + game.cfg.map);
+  audioMusic(audioMapTrack(game.cfg.map));
 }
 
 void App::updateMenuGame(float dt) {
@@ -235,7 +235,7 @@ void App::frame(float dt) {
     if (!testMode) gameControls();
     if (!paused) game.update(dt);
     autoQualityTick();
-    audioMusic(game.finalArena ? 5 : game.bossesAlive > 0 ? 4 : 1 + game.cfg.map);
+    audioMusic(game.finalArena ? 5 : game.bossesAlive > 0 ? 4 : audioMapTrack(game.cfg.map));
     audioSetIntensity(game.u());
     game.render(gR);
     gR.renderScene(true);

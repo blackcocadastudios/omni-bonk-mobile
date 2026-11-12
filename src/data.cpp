@@ -226,11 +226,19 @@ static void initMaps() {
     {"Graveyard", PAL(0x0e1a30, 0x3e6478, 0x385868, 0xc0e8ff, 0x7898b8, 0x243030, 0x3a503a, 0x4a5e40, 0x3a3a2e, 0x24382c, 0x34483a, 0x3a2e24, 0x6a7078, 0x7fff9f, 0.021f, 0.6f, true, 1.4f)},
     {"Haunted Graveyard", PAL(0x0a1e18, 0x3a7a64, 0x346654, 0xd0ffe8, 0x6a9a8a, 0x1a2a24, 0x34503e, 0x405e40, 0x30382a, 0x203a2a, 0x2e4a34, 0x34261e, 0x60706c, 0x60ffb0, 0.023f, 0.55f, true, 2.4f)},
     {"Cursed Graveyard", PAL(0x160a26, 0x6a3c8a, 0x52306c, 0xe8c0ff, 0x8a6aaa, 0x20162a, 0x3a3054, 0x4a3a60, 0x302438, 0x2a1e38, 0x3a2c4a, 0x30202a, 0x6a6278, 0xd060ff, 0.023f, 0.5f, true, 3.2f)}}};
-  gMaps = {forest, desert, grave};
+  MapDef frost{"Frostpeak", "Frozen peaks with snow goblins, frost phantoms and blizzards.", {
+    {"Frostpeak", PAL(0x6aa8e0, 0xdceef8, 0xd0e4f0, 0xffffff, 0xc8dcf0, 0x8090a8, 0xe8f0f8, 0xd2e0f0, 0xb8c8d8, 0x3a6a5a, 0xdfeef5, 0x5a4a3a, 0x8a9aaa, 0x80e0ff, 0.012f, 0.70f, false, 0.9f)},
+    {"Glacier Pass", PAL(0x24306a, 0x8ab0e0, 0x7090c0, 0xd0e8ff, 0x8aa0d0, 0x404a68, 0xb8c8e0, 0xa0b4d4, 0x8898b8, 0x2a4a50, 0xa8c0d8, 0x4a3a34, 0x6a7890, 0x60c8ff, 0.016f, 0.40f, true, 2.0f)},
+    {"Blizzard Summit", PAL(0x0e1426, 0x4a5a7a, 0x506080, 0xb0d0ff, 0x6a7a9a, 0x2a3040, 0x9aa8c0, 0x8a98b0, 0x6a7890, 0x1e3436, 0x8898ae, 0x3a2e2a, 0x58647a, 0x40a0ff, 0.021f, 0.30f, true, 3.4f)}}};
+  MapDef ember{"Caldera", "A volcano with magma golems, ash scorpions and meteor showers.", {
+    {"Ashlands", PAL(0x5a4a5a, 0xc89a7a, 0xa08070, 0xffd0a0, 0xb09080, 0x4a3030, 0x4a4040, 0x5a4a44, 0x6a5040, 0x4a4a3a, 0x6a5a4a, 0x2a2020, 0x3a3236, 0xff8a30, 0.013f, 0.60f, false, 1.2f)},
+    {"Ember Caldera", PAL(0x2a0e0a, 0xc04a1a, 0x8a3a20, 0xffa060, 0xb06040, 0x3a1810, 0x3a2a28, 0x4a3028, 0x8a3a1a, 0x3a3028, 0x5a3a28, 0x1a1210, 0x2e2426, 0xff6a1a, 0.017f, 0.30f, true, 2.4f)},
+    {"Molten Core", PAL(0x160404, 0x8a1a08, 0x6a1a0a, 0xff7030, 0x9a3a20, 0x2a0a06, 0x2a1e1e, 0x3a2420, 0xa0400e, 0x2a2020, 0x4a2a20, 0x140c0a, 0x241a1c, 0xff3a10, 0.021f, 0.20f, true, 3.8f)}}};
+  gMaps = {forest, desert, grave, frost, ember};
 }
 
 static void initEnemies() {
-  const u8 F = 1, D = 2, G = 4, A = 7;
+  const u8 F = 1, D = 2, G = 4, S = 8, V = 16, A = 31;
   auto E = [](const char* n, u8 maps, float hp, float dmg, float spd, u8 beh, bool fly, int model, float r, float sc, float xp, u8 rank = RK_NORMAL, u32 tint = 0) {
     gEnemies.push_back({n, maps, hp, dmg, spd * 0.72f, beh, fly, model, r, sc, xp, rank, tint});
   };
@@ -277,6 +285,36 @@ static void initEnemies() {
   E("Big Bob", G, 9000, 45, 4.5f, EB_BOSS, false, M_B_BIGBOB, 2.4f, 1, 400, RK_BOSS);
   E("Ghost King", A, 60000, 60, 5, EB_BOSS, true, M_B_GHOSTKING, 3.0f, 1, 2000, RK_BOSS);
   E("Final Swarm Ghost", A, 30, 25, 9, EB_FLY, true, M_SWARMGHOST, .5f, 1, 2);
+  // Frostpeak: palette variants of existing models (no extra bake cost)
+  E("Frost Slime", S, 7, 9, 6.5f, EB_CHASE, false, M_SLIME, .5f, 1, 1, RK_NORMAL, 0x9fdcff);
+  E("Snow Goblin", S, 8, 15, 5, EB_CHASE, false, M_GOBLIN, .45f, 1, 1, RK_NORMAL, 0xd8ecff);
+  E("Frost Moth", S, 9, 14, 7, EB_FLY, true, M_BEE, .4f, 1, 1.5f, RK_NORMAL, 0xb8e8ff);
+  E("Ice Skeleton", S, 18, 20, 5.5f, EB_CHASE, false, M_SKELETON, .45f, 1, 3, RK_NORMAL, 0x9fd8ff);
+  E("Frost Phantom", S, 14, 24, 5.5f, EB_SHOOT, false, M_GHOST, .5f, 1, 2.5f, RK_NORMAL, 0xc8f0ff);
+  E("Snow Boomer", S, 18, 30, 6, EB_EXPLODE, false, M_BOOMER, .6f, 1, 3, RK_NORMAL, 0xe8f4ff);
+  E("Snow Golem", S, 24, 22, 5, EB_CHASE, false, M_GOLEM, .7f, 1, 3.5f, RK_NORMAL, 0xe0f0ff);
+  E("Frozen Knight", S, 32, 26, 4, EB_CHASE, false, M_SKELETON_ARMORED, .55f, 1, 4.5f, RK_NORMAL, 0x80c8ff);
+  E("Glacier Brute", S, 45, 32, 5, EB_CHASE, false, M_GOBLIN_TANK, .85f, 1, 7, RK_NORMAL, 0xa8dcff);
+  // Ember Caldera
+  E("Ember Slime", V, 8, 10, 6.5f, EB_CHASE, false, M_SLIME, .5f, 1, 1, RK_NORMAL, 0xff7a30);
+  E("Ash Goblin", V, 10, 16, 5.2f, EB_CHASE, false, M_GOBLIN_STRONG, .55f, 1, 1.5f, RK_NORMAL, 0x6a5a5a);
+  E("Cinder Wasp", V, 10, 15, 7, EB_FLY, true, M_BEE, .4f, 1, 1.5f, RK_NORMAL, 0xff8a40);
+  E("Charred Skeleton", V, 18, 22, 6, EB_CHASE, false, M_SKELETON_DUSTY, .45f, 1, 3, RK_NORMAL, 0x4a3a3a);
+  E("Fire Phantom", V, 14, 22, 5.5f, EB_SHOOT, false, M_GHOST, .5f, 1, 2.5f, RK_NORMAL, 0xff8a40); gEnemies.back().proj = M_P_FIREBALL;
+  E("Lava Boomer", V, 20, 34, 6, EB_EXPLODE, false, M_BOOMER, .6f, 1, 3, RK_NORMAL, 0xff5a20);
+  E("Magma Golem", V, 26, 24, 5, EB_CHASE, false, M_GOLEM, .7f, 1, 3.5f, RK_NORMAL, 0xff6a2a);
+  E("Ash Scorpion", V, 22, 22, 7, EB_POISON, false, M_SCORPION, .6f, 1, 3, RK_NORMAL, 0x5a4a4a);
+  E("Obsidian Brute", V, 50, 34, 5, EB_CHASE, false, M_GOBLIN_TANK, .85f, 1, 7, RK_NORMAL, 0x3a2a4a);
+  E("Glacier Golem", S, 280, 40, 6, EB_MB_SLAM, false, M_MB_STONEGOLEM, 1.6f, 1, 65, RK_MINIBOSS, 0xa8e0ff);
+  E("Crystal Scorpion", S, 270, 36, 7, EB_MB_SPIT, false, M_MB_SCORPIONUSSY, 1.7f, 1, 65, RK_MINIBOSS, 0x80e8ff);
+  E("Magma Colossus", V, 240, 36, 6, EB_MB_THROW, false, M_MB_SANDGOLEM, 1.6f, 1, 70, RK_MINIBOSS, 0xff6a2a);
+  E("Ash Charger", V, 260, 38, 6, EB_MB_CHARGE, false, M_MB_CHUNKHAM, 1.5f, 1, 70, RK_MINIBOSS, 0x5a4040);
+  E("Rimeback", S, 8500, 40, 4, EB_BOSS, false, M_B_RIMEBACK, 2.2f, 1, 300, RK_BOSS);
+  E("Rimeback Alpha", S, 8500, 45, 4.5f, EB_BOSS, false, M_B_RIMEALPHA, 2.5f, 1, 400, RK_BOSS);
+  E("Glacier Tyrant", S, 10000, 50, 4.6f, EB_BOSS, false, M_B_GLACIERTYRANT, 2.8f, 1, 500, RK_BOSS);
+  E("Cinderhorn", V, 8500, 42, 4, EB_BOSS, false, M_B_CINDERHORN, 2.2f, 1, 300, RK_BOSS);
+  E("Magmaw", V, 8500, 46, 4.5f, EB_BOSS, false, M_B_MAGMAW, 2.5f, 1, 400, RK_BOSS);
+  E("Pyre Tyrant", V, 10000, 52, 4.6f, EB_BOSS, false, M_B_PYRETYRANT, 2.8f, 1, 500, RK_BOSS);
   // the ten heroes as enemies (Reverse Mode): ranged heroes throw their own weapon's projectile
   auto Hr = [&](const char* n, float hp, float dmg, float spd, u8 beh, int model, int proj) { E(n, A, hp, dmg, spd, beh, false, model, .45f, 1, 3); gEnemies.back().proj = proj; };
   Hr("Fox", 26, 18, 6.5f, EB_SHOOT, M_FOX, M_P_FIREBALL);
@@ -293,8 +331,10 @@ static void initEnemies() {
   gSpawnTables[MAP_FOREST] = {{E_SLIME, 0, 1.0f}, {E_GOBLIN, 0, 1.0f}, {E_BEE, .06f, .7f}, {E_GHOUL, .14f, .6f}, {E_GOBLIN_STRONG, .22f, .8f}, {E_SKELETON, .30f, .7f}, {E_BOOMER, .36f, .45f}, {E_GOLEM, .44f, .5f}, {E_SKELETON_ARMORED, .55f, .5f}, {E_GOBLIN_TANK, .64f, .4f}};
   gSpawnTables[MAP_DESERT] = {{E_TUMBLEBONE, 0, .9f}, {E_MUMMY, 0, 1.0f}, {E_WISP, .06f, .7f}, {E_CACTUS, .15f, .35f}, {E_SCORPION, .22f, .7f}, {E_SKELETON_DUSTY, .30f, .7f}, {E_SKELETON_ARMORED_DUSTY, .44f, .5f}, {E_SCORPION_BIG, .55f, .45f}, {E_MUMMY_TANK, .62f, .4f}, {E_MUMMY_ANCIENT, .74f, .3f}};
   gSpawnTables[MAP_GRAVEYARD] = {{E_ZOMBIE, 0, 1.0f}, {E_GHOST, 0, .9f}, {E_HEAD, .05f, .7f}, {E_GHOUL, .14f, .6f}, {E_SKELETON, .20f, .7f}, {E_GHOST_GREATER, .33f, .6f}, {E_SKELETON_ARMORED, .45f, .5f}, {E_GHOST_PURPLE, .58f, .4f}, {E_GHOST_RED, .82f, .25f}};
-  int mb[MAP_COUNT][2] = {{E_MB_STONEGOLEM, E_MB_CHUNKHAM}, {E_MB_SANDGOLEM, E_MB_SCORPIONUSSY}, {E_MB_GHOSTHAM, E_MB_SKELETONKING}};
-  int bs[MAP_COUNT][3] = {{E_B_LILBARK, E_B_CHADBARK, E_B_BARKVADER}, {E_B_LILANUBIS, E_B_ANUBRUH, E_B_JUGEANUBIS}, {E_B_BIGBOB, E_B_BIGBOB, E_B_BIGBOB}};
+  gSpawnTables[MAP_FROST] = {{E_F_SLIME, 0, 1.0f}, {E_F_GOBLIN, 0, 1.0f}, {E_F_MOTH, .06f, .7f}, {E_F_SKELETON, .16f, .7f}, {E_F_PHANTOM, .24f, .4f}, {E_F_BOOMER, .34f, .45f}, {E_F_GOLEM, .44f, .5f}, {E_F_KNIGHT, .55f, .5f}, {E_F_BRUTE, .64f, .4f}};
+  gSpawnTables[MAP_EMBER] = {{E_V_SLIME, 0, 1.0f}, {E_V_GOBLIN, 0, .9f}, {E_V_WASP, .06f, .7f}, {E_V_SKELETON, .16f, .7f}, {E_V_PHANTOM, .30f, .35f}, {E_V_SCORPION, .32f, .6f}, {E_V_BOOMER, .40f, .45f}, {E_V_GOLEM, .48f, .5f}, {E_V_BRUTE, .64f, .4f}};
+  int mb[MAP_COUNT][2] = {{E_MB_STONEGOLEM, E_MB_CHUNKHAM}, {E_MB_SANDGOLEM, E_MB_SCORPIONUSSY}, {E_MB_GHOSTHAM, E_MB_SKELETONKING}, {E_MB_GLACIERGOLEM, E_MB_CRYSTALSCORPION}, {E_MB_MAGMACOLOSSUS, E_MB_ASHCHARGER}};
+  int bs[MAP_COUNT][3] = {{E_B_LILBARK, E_B_CHADBARK, E_B_BARKVADER}, {E_B_LILANUBIS, E_B_ANUBRUH, E_B_JUGEANUBIS}, {E_B_BIGBOB, E_B_BIGBOB, E_B_BIGBOB}, {E_B_RIMEBACK, E_B_RIMEALPHA, E_B_GLACIERTYRANT}, {E_B_CINDERHORN, E_B_MAGMAW, E_B_PYRETYRANT}};
   memcpy(gMinibosses, mb, sizeof(mb)); memcpy(gBosses, bs, sizeof(bs));
 }
 

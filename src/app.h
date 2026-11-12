@@ -22,11 +22,11 @@ struct Settings {
   float music = 0.55f, sfx = 0.8f; bool showFps = false;
 };
 struct Meta {
-  int silver = 0, runs = 0, wins = 0, totalKills = 0, bestKills = 0; float bestTime[3][3] = {{0}};
+  int silver = 0, runs = 0, wins = 0, totalKills = 0, bestKills = 0; float bestTime[MAP_COUNT][3] = {{0}};
   int upReroll = 0, upSkip = 0, upBanish = 0, upHp = 0, upLuck = 0;
   int lastChar = 0, lastMap = 0, lastTier = 0;
   int lastMode = 0, mutators = 0;                       // mode screen selection and active mutators (bit mask)
-  int dailyKey = 0, dailyBest = 0, bossRushBest = 0; float endlessBest[3] = {0, 0, 0}; int reverseBest = 0, reverseWins = 0;
+  int dailyKey = 0, dailyBest = 0, bossRushBest = 0; float endlessBest[MAP_COUNT] = {0}; int reverseBest = 0, reverseWins = 0;
 };
 enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME, SCR_CREDITS, SCR_MODES, SCR_MUTATORS };
 

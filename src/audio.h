@@ -10,7 +10,8 @@ void audioInit(int sampleRate);
 void audioPlay(int sfx, float vol = 1.f, float pitch = 1.f);
 void audioAttract(bool on);            // main thread: SFX queued while on come from the background demo run (quieter, rate-limited)
 void audioFlush();                     // drop queued commands and silence voices (call when the output stream stops)
-void audioMusic(int track);            // 0 menu, 1 forest, 2 desert, 3 graveyard, 4 boss, 5 final arena, -1 stop
+void audioMusic(int track);            // 0 menu, 1 forest, 2 desert, 3 graveyard, 4 boss, 5 final arena, 6 frostpeak, 7 caldera, -1 stop
+int audioMapTrack(int map);            // music track of a map
 int audioMusicPack(const std::string& dir); // optional OGG music pack folder (see music.h); returns tracks found
 void audioSetVolume(float music, float sfx);
 void audioSetIntensity(float x);       // 0..1 adds layers

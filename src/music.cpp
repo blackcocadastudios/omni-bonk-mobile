@@ -26,7 +26,7 @@
 #include <thread>
 #include <sys/stat.h>
 
-static const char* kSlotName[MUSIC_SLOTS] = {"menu", "forest", "desert", "graveyard", "boss", "final"};
+static const char* kSlotName[MUSIC_SLOTS] = {"menu", "forest", "desert", "graveyard", "boss", "final", "frostpeak", "caldera"};
 static std::string gPath[MUSIC_SLOTS];
 static int gOutRate = 48000;
 

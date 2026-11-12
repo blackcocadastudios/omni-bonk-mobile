@@ -91,19 +91,23 @@ void audioPlay(int sfx, float vol, float pitch) {
 void audioAttract(bool on) { gAttract = on; }
 void audioFlush() { gFlush.store(true, std::memory_order_release); }
 void audioMusic(int track) { gTrack.store(track); }
+int audioMapTrack(int map) { return map < 3 ? 1 + map : 6 + (map - 3); }
 int audioMusicPack(const std::string& dir) { return musicPackInit(dir, gRate); }
 void audioSetVolume(float music, float sfx) { gMusicVol.store(music); gSfxVol.store(sfx); }
 void audioSetIntensity(float x) { gIntensity.store(clampf(x, 0, 1)); }
 
 // ---------------------------------------------------------------- music sequencer
 struct Song { float bpm; int root; int scale[7]; int prog[4]; int wave; float swing; };
-static const Song kSongs[5] = {
+static const Song kSongs[7] = {
   {100, 57, {0, 2, 3, 5, 7, 8, 10}, {0, 5, 2, 6}, 1, 0},   // menu: A minor, chill
   {142, 57, {0, 2, 3, 5, 7, 8, 10}, {0, 5, 3, 6}, 0, 0},   // forest: A minor, upbeat
   {132, 52, {0, 1, 4, 5, 7, 8, 10}, {0, 1, 0, 6}, 0, 0},   // desert: E phrygian dominant
   {120, 50, {0, 2, 3, 5, 6, 8, 10}, {0, 4, 5, 3}, 1, 0},   // graveyard: D locrian-ish
   {156, 45, {0, 1, 3, 5, 7, 8, 10}, {0, 1, 5, 6}, 2, 0},   // boss
+  {112, 62, {0, 2, 3, 5, 7, 9, 10}, {0, 3, 4, 6}, 1, 0},   // frostpeak: D dorian, glassy triangle
+  {148, 47, {0, 1, 3, 5, 7, 8, 10}, {0, 1, 6, 5}, 2, 0},   // caldera: B phrygian, saw
 };
+static int songOf(int track) { return track <= 4 ? track : track == 5 ? 4 : std::min(6, track - 1); }
 static float midiHz(float n) { return 440.f * powf(2.f, (n - 69) / 12.f); }
 struct MusicState { double t = 0; int track = -1; bool pack = false; float phB = 0, phA = 0, phL = 0, kickPh = 0; float nz = 0; float fade = 0; };
 static MusicState gM;
@@ -124,7 +128,7 @@ static float musicStep() {
 
 static float chiptuneSample() {
   if (gM.track < 0) return 0;
-  const Song& s = kSongs[std::min(gM.track, 4)];
+  const Song& s = kSongs[songOf(gM.track)];
   float beat = (float)(gM.t * s.bpm / 60.0);
   float bar = beat / 4.f; int barI = (int)bar; int chordDeg = s.prog[barI % 4];
   float inten = gIntensity.load();

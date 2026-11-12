@@ -30,7 +30,7 @@ struct Enemy {
   bool champion = false;                   // Reverse Mode: member of the Legendary Party
   float freezeT = 0, slowT = 0, stunT = 0, poisonDps = 0, poisonT = 0, burnDps = 0, burnT = 0, curseDps = 0, curseT = 0, airT = 0; int bleed = 0; float bleedT = 0;
   float hitCd[8] = {0};
-  float aiT = 0, aiT2 = 0; int aiState = 0; v3 aiVec; float hover = 1.4f;
+  float aiT = 0, aiT2 = 0, aiT3 = 0; int aiState = 0; v3 aiVec; float hover = 1.4f;
   int bossIdx = -1; float phase = 0;
 };
 enum ProjKind { PK_STRAIGHT, PK_HOMING, PK_BOUNCE, PK_ORBIT, PK_SPIRAL, PK_BOOMERANG, PK_LOB, PK_ENEMY, PK_ENEMY_LOB, PK_WAVE, PK_SHIELD, PK_SOUL, PK_ROCK_ORBIT, PK_BOB };
@@ -100,6 +100,7 @@ struct Game {
   float swarmWarnT = 0; int lastKillMilestone = 0; float announceT = 0; float eliteT = 0; std::string lastHitBy; float lastHitDmg = 0;
   float endlessBossT = 0; int bossesBeaten = 0, endlessCycle = 0, monoType = -1; std::vector<int> gauntletSeen;
   int championsAlive = 0; bool legendSpawned = false; float partyT = 0, minionT = 0;   // Reverse Mode
+  float hazardT = 0, meteorT = 0; int meteorsLeft = 0; bool hazardOn = false;          // Frostpeak blizzards, Caldera meteor showers
   float fovDeg = 62; bool shadowsOn = true; int worldGen = 0; float playerAnimT = 0, lastRenderT = 0; float stormK = 0; int particleLevel = 2;
 
   void start(const RunConfig& c);
@@ -179,6 +180,7 @@ struct Game {
   void updateModes(float dt);     // Endless bosses, Stat Roulette, Kill Streak
   void shuffleWeapons();          // Weapon Shuffle mutator
   void surprisePot(v3 at);        // Surprise Pots mutator
+  void meteor(v3 at, float dmg, float fall);   // telegraphed rock falling from the sky
   bool weaponAllowed(int w) const;
   int maxWeapons() const { return mut(MU_SPECIALIST) ? 1 : MAX_WEAPONS; }
   // difficulty clock: Endless keeps climbing, Boss Rush uses a fixed level per round (its rounds have no timer)

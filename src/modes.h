@@ -15,7 +15,7 @@ enum Mutator {
 struct MutatorDef { const char* name; const char* desc; int icon; int silverPct; };
 extern const MutatorDef kMutators[MU_COUNT];
 
-constexpr int BOSSRUSH_ROUNDS = 9;   // three bosses per map (tiers 1-3), then the Ghost King
+constexpr int BOSSRUSH_ROUNDS = 9;   // three rounds per tier, walking through the maps, then the Ghost King
 int mutatorSilverPct(u32 mask);
 int mutatorCount(u32 mask);
 
