@@ -158,6 +158,7 @@ struct Game {
   float pickupRadius() const { return 3.6f * P.st[S_PICKUP]; }
   bool playerAirborne() const { return !P.onGround; }
   std::string interLabel(int idx) const;
+  int interCost(int idx) const;
   float stageDuration(int s) const;
 };
 

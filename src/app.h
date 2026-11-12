@@ -35,6 +35,7 @@ struct App {
   UI ui; bool glReady = false, paused = false;
   float fps = 60, fpsAcc = 0; int fpsFrames = 0; float frameDt = 0.016f;
   int selChar = 0, selMap = 0, selTier = 0;
+  float hudR = 0, hudB = 0, hudTR = 0, hudTRB = 0; // last frame's HUD extents (left column, top-right cluster) so world labels avoid them
   int pauseTab = 0; bool showMap = false; bool banishMode = false; bool confirmQuit = false; int microSel = -1;
   // touch controls
   int joyTouch = -1, camTouch = -1, jumpTouch = -1, slideTouch = -1; v2 joyBase, joyCur;

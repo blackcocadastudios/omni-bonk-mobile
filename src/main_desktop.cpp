@@ -382,6 +382,34 @@ static void gameShots(int map, int tier, int ch, const std::string& tag, float s
   shot("game_" + tag);
 }
 
+// interaction labels, HUD counters, combat banners and the chest/shrine overlays (before/after QoL shots)
+static void qolScenario() {
+  App& a = gApp; a.set.counters = true;
+  startGame(MAP_FOREST, 0, C_FOX, true, 41);
+  Game& g = a.game;
+  simGame(g, 45);
+  auto settle = [&]() { g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = false; g.in = Input(); g.P.vel = v3(); g.banners.clear(); g.texts.clear(); };
+  auto standAt = [&](int type, const char* tag) {
+    for (auto& it : g.inters) if (it.type == type && !it.used) {
+      settle(); g.P.pos = it.pos + v3(1.5f, 0, -1.2f); g.P.pos.y = g.world.T.height(g.P.pos.x, g.P.pos.z);
+      frame(1 / 30.f, 30); g.texts.clear(); frame(1 / 30.f, 1); shot(tag); return;
+    }
+    LOGI("qol: no interactable of type %d", type);
+  };
+  standAt(I_CHEST, "qol_01_label_chest");
+  standAt(I_GREED_SHRINE, "qol_02_label_greed");
+  standAt(I_MOAI, "qol_03_label_moai");
+  standAt(I_SHADY, "qol_04_label_shady");
+  settle(); g.eventsDone = 0; g.stageTime = g.stageDur * 0.30f - 0.1f;
+  frame(1 / 30.f, 12); shot("qol_05_swarm_miniboss");
+  frame(1 / 30.f, 30); shot("qol_06_swarm_miniboss_1s");
+  settle(); g.banner(tr("BOSS DEFEATED!"), tr("The portal to the next stage has opened"), Col(120, 255, 140), 3.5f);
+  frame(1 / 30.f, 12); shot("qol_07_big_banner");
+  settle(); for (auto& it : g.inters) if (it.type == I_CHEST && !it.used) { g.openChest(it, true); break; }
+  g.chestAnim = 2; frame(1 / 30.f, 2); shot("qol_08_chest");
+  settle(); g.genShrineOffers(false); g.state = GS_SHRINE; frame(1 / 30.f, 2); shot("qol_09_charge_shrine");
+}
+
 static void balance(int map, int ch, float minutes, u32 seed) {
   App& a = gApp;
   startGame(map, 0, ch, false, seed, minutes);
@@ -446,6 +474,7 @@ int main(int argc, char** argv) {
   if (!langCode.empty()) { int li = i18nFromCode(langCode.c_str()); if (li >= 0) { gApp.set.lang = li; i18nSet(li); } }
   if (scenario == "ui") uiShots();
   else if (scenario == "pad") padScenario();
+  else if (scenario == "qol") qolScenario();
   else if (scenario == "attract") attractScenario();
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();

@@ -584,13 +584,24 @@ void App::drawWorldUI() {
     u.icon(ICON_UI0 + UI_CROWN, x - 5, y - 14, 10, e.challenge ? Col(210, 140, 255) : Col(255, 255, 255));
     if (e.rank == RK_MINIBOSS || e.hp < e.maxHp) bar(u, x - 14, y - 2, 28, 4, e.hp / e.maxHp, Col(255, 70, 70));
   }
-  // interaction prompt label near player
+  // interaction prompt: compact tag above the object, kept clear of the HUD column and the minimap
   int ni = g.nearestInter(2.8f);
   if (ni >= 0) {
-    v2 sp; if (gR.worldToScreen(g.inters[ni].pos + v3(0, 2.6f, 0), sp)) {
-      std::string lb = (u.padMode ? std::string("X: ") : std::string()) + g.interLabel(ni); float w = u.textW(lb) + 10;
-      float x = clampf(sp.x / u.s - w / 2, 2, std::max(2.f, u.W - w - 2)), y = sp.y / u.s - 10;
-      u.panel(x, y, w, 14, Col(16, 12, 24, 220), GOLD); u.text(x + 5, y + 2, lb, 1, WHITE);
+    v2 sp; if (gR.worldToScreen(g.inters[ni].pos + v3(0, 2.4f, 0), sp)) {
+      std::string lb = g.interLabel(ni), cs; int cost = g.interCost(ni);
+      if (cost >= 0) cs = fmt("%d", cost);
+      float kw = u.padMode ? 11 : 0, tw = u.textWRaw(lb, 1), cw = cost >= 0 ? 12 + u.textWRaw(cs, 1) : 0;
+      float w = kw + tw + cw + 8, h = 12;
+      float x = clampf(sp.x / u.s - w / 2, 2, std::max(2.f, u.W - w - 2)), y = std::max(24.f, sp.y / u.s - 8);
+      auto hits = [&](float rx, float ry, float rw, float rh) { return x < rx + rw && x + w > rx && y < ry + rh && y + h > ry; };
+      if (hits(0, 0, hudR, hudB)) x = hudR + 3;
+      if (hits(hudTR, 0, u.W - hudTR, hudTRB)) x = hudTR - w - 3;
+      if (x < 2 || hits(0, 0, hudR, hudB)) { x = clampf(x, 2, std::max(2.f, u.W - w - 2)); y = std::max(hudB, hudTRB) + 2; }
+      u.panel(x, y, w, h, Col(16, 12, 24, 205), Col(255, 214, 80, 170));
+      float tx = x + 4;
+      if (u.padMode) { u.rect(tx - 1, y + 1, 9, 10, Col(200, 150, 40)); u.textRaw(tx + 1, y + 2, "X", 1, WHITE, AL_LEFT); tx += kw; }
+      tx += u.textRaw(tx, y + 2, lb, 1, WHITE, AL_LEFT);
+      if (cost >= 0) { u.icon(ICON_UI0 + UI_GOLD, tx + 3, y + 2, 8); u.textRaw(tx + 12, y + 2, cs, 1, g.P.gold >= cost ? GOLD : Col(255, 110, 90), AL_LEFT); }
     }
   }
   // charge shrine progress text
@@ -681,12 +692,18 @@ void App::drawHUD() {
   u.panel(L, qy, qw, 14, Col(0, 0, 0, 200), Col(255, 255, 255, 40));
   u.frame(L + 4, qy + 3, 8, 8, WHITE); if (done) u.rect(L + 6, qy + 5, 4, 4, GREEN);
   u.text(L + 16, qy + 2, quest, 1, WHITE);
-  float cy = qy + 17;
+  float cy = qy + 17, colR = std::max(L + 82, L + qw);
   if (set.counters) {
+    // one row of icons: chests left (+ next chest price), charge shrines left/total, shady guys
     int chests = 0, shrines = 0, shrTot = 0, shady = 0;
     for (auto& it : g.inters) { if (it.type == I_CHEST && !it.used) chests++; if (it.type == I_CHARGE_SHRINE) { shrTot++; if (!it.used) shrines++; } if (it.type == I_SHADY) shady++; }
-    u.text(L, cy, nar ? fmt(tr("Chests %d  •  Shrines %d/%d"), chests, shrines, shrTot) : fmt(tr("Chests %d  •  Shrines %d/%d  •  Shady %d"), chests, shrines, shrTot, shady), 1, GREY); cy += 11;
-    u.text(L, cy, fmt(tr("Next chest: %d gold"), g.chestCost()), 1, GOLD); cy += 11;
+    float x = L;
+    auto cnt = [&](int icon, const std::string& v, Col c) { u.icon(icon, x, cy - 1, 10); x += 11; x += u.textRaw(x, cy, v, 1, c, AL_LEFT) + 5; };
+    cnt(ICON_INTER0 + I_CHEST, fmt("%d", chests), WHITE);
+    cnt(ICON_UI0 + UI_GOLD, fmt("%d", g.chestCost()), GOLD);
+    cnt(ICON_INTER0 + I_CHARGE_SHRINE, fmt("%d/%d", shrines, shrTot), WHITE);
+    if (!nar) cnt(ICON_INTER0 + I_SHADY, fmt("%d", shady), WHITE);
+    colR = std::max(colR, x); cy += 12;
   }
   if (set.dpsMeter && g.runTime > 1) {
     struct E { int src; double d; }; std::vector<E> v;
@@ -698,9 +715,10 @@ void App::drawHUD() {
       else if (s >= SRC_ITEM && s < SRC_ITEM + IT_COUNT) { nm = gItems[s - SRC_ITEM].name; ic = ICON_ITEM0 + s - SRC_ITEM; }
       else nm = tr("Others");
       if (ic >= 0) u.icon(ic, L, cy, 9);
-      u.text(L + 12, cy, fmt("%s %s/s", nm.c_str(), fmtShort(v[k].d / std::max(1.f, g.runTime)).c_str()), 1, Col(255, 230, 160)); cy += 10;
+      colR = std::max(colR, L + 12 + u.text(L + 12, cy, fmt("%s %s/s", nm.c_str(), fmtShort(v[k].d / std::max(1.f, g.runTime)).c_str()), 1, Col(255, 230, 160))); cy += 10;
     }
   }
+  hudR = colR + 2; hudB = cy; hudTR = (pm ? mmx - mmR : mmx - mmR - 26) - 2; hudTRB = mmy + mmR + 12;
   // active powerups under the timer
   float px = u.W * 0.5f - (nar ? 22 : 30), puy = nar ? 30 : 26; int npu = 0;
   auto pu = [&](int icon, float t) { if (t <= 0) return; u.icon(icon, px + npu * 22, puy, 12); u.text(px + npu * 22 + 6, puy + 14, fmt("%d", (int)ceilf(t)), 1, WHITE, AL_CENTER); npu++; };

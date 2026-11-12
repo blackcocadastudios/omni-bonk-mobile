@@ -396,18 +396,20 @@ int Game::nearestInter(float maxD) const {
   return best;
 }
 
+int Game::interCost(int idx) const { return inters[idx].type == I_CHEST ? chestCost() : -1; }
+
 std::string Game::interLabel(int idx) const {
   const Inter& it = inters[idx];
   switch (it.type) {
-    case I_CHEST: return fmt(tr("Open chest (%d gold)"), chestCost());
-    case I_CHEST_GOLD: return tr("Open golden chest");
-    case I_GREED_SHRINE: return tr("Greed Shrine: +5% difficulty");
-    case I_CURSED_SHRINE: return tr("Cursed Shrine: +1 boss");
-    case I_CHALLENGE_SHRINE: return tr("Start elite challenge");
-    case I_MOAI: return tr("Moai: choose an item");
-    case I_SHADY: return tr("Trade with Shady Guy");
-    case I_MICROWAVE: return fmt(tr("Microwave (%d uses)"), it.uses);
-    case I_SUCC_SHRINE: return tr("Shrine of Succ: pull XP");
+    case I_CHEST: return tr("Chest");
+    case I_CHEST_GOLD: return tr("Golden chest");
+    case I_GREED_SHRINE: return tr("+5% Difficulty");
+    case I_CURSED_SHRINE: return tr("+1 Boss");
+    case I_CHALLENGE_SHRINE: return tr("Elite challenge");
+    case I_MOAI: return tr("Choose 1 item");
+    case I_SHADY: return tr("Trade");
+    case I_MICROWAVE: return fmt(tr("Microwave x%d"), it.uses);
+    case I_SUCC_SHRINE: return tr("Pull XP");
     case I_BOSS_PORTAL:
       if (portalOpen) return stage + 1 >= numStages ? (cfg.tier == 2 && !finalArena ? tr("Face the Final Boss") : tr("Finish the run!")) : tr("Go through the portal");
       if (cfg.map == MAP_GRAVEYARD && cryptKeys < 4) return fmt(tr("Crypt Keys: %d/4"), cryptKeys);
