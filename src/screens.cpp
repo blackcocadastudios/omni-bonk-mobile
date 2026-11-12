@@ -730,9 +730,28 @@ void App::drawHUD() {
     bar(u, bx, by + 11, bw, 7, e.hp / e.maxHp, e.invuln ? Col(150, 130, 255) : Col(220, 30, 50));
     break;
   }
-  // banners
+  // compact alerts (swarm, miniboss, challenge...): a slim translucent strip under the timer / boss bar, never over the centre
+  float ay = npu ? puy + 25 : (nar ? 31 : 29);
+  for (auto& e : g.enemies) if (e.alive && e.rank == RK_BOSS) { ay = std::max(ay, (npu ? 56.f : (nar ? 32.f : 30.f)) + 21); break; }
+  for (auto& b : g.banners) {
+    if (!b.compact) continue;
+    float a = sat(std::min(b.t / 0.15f, (b.life - b.t) / 0.4f)), slide = (1 - sat(b.t / 0.15f)) * 6;
+    Col c = b.c; c.a = (u8)(255 * a);
+    float ts = 1.5f, maxW = std::min(u.W - 16, nar ? 200.f : 260.f);
+    while (ts > 1 && u.textW(b.text, ts) > maxW) ts -= 0.5f;
+    std::vector<std::string> lines; if (!b.sub.empty()) u.wrap(b.sub, maxW, 1, lines);
+    if (lines.size() > 2) lines.resize(2);
+    float tw = u.textW(b.text, ts); for (auto& l : lines) tw = std::max(tw, u.textWRaw(l, 1));
+    float h = 11 * ts + 2 + lines.size() * 10, w = tw + 12, x = u.W * 0.5f - w * 0.5f, y = ay - slide;
+    u.rect(x, y, w, h, Col(8, 4, 16, (u8)(150 * a))); u.rect(x, y + h - 1, w, 1, Col(c.r, c.g, c.b, (u8)(170 * a)));
+    u.text(u.W * 0.5f, y + 2, b.text, ts, c, AL_CENTER);
+    for (size_t k = 0; k < lines.size(); k++) u.textRaw(u.W * 0.5f, y + 11 * ts + k * 10, lines[k], 1, Col(255, 255, 255, (u8)(215 * a)), AL_CENTER);
+    ay += h + 3;
+  }
+  // big banners: rare milestones only (stage start, boss, final swarm)
   float byy = u.H * 0.28f;
   for (auto& b : g.banners) {
+    if (b.compact) continue;
     float a = sat(std::min(b.t / 0.25f, (b.life - b.t) / 0.5f));
     Col c = b.c; c.a = (u8)(255 * a);
     float bs = 3; while (bs > 1 && u.textW(b.text, bs) > u.W - 12) bs -= 0.5f;

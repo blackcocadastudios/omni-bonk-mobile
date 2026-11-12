@@ -48,7 +48,7 @@ struct Inter {
 struct Particle { v3 pos, vel; float life = 1, maxLife = 1, size = 0.3f, size1 = 0; Col c; u8 sprite = 0; bool add = true; float grav = 0, rot = 0, rotV = 0; };
 struct FloatText { v3 pos; float t = 0, life = 0.8f; std::string s; Col c; float scale = 1; };
 struct Ally { int kind = 0; v3 pos, vel; float life = 10, t = 0, atkT = 0; int target = -1; };
-struct Banner { std::string text, sub; float t = 0, life = 3; Col c; };
+struct Banner { std::string text, sub; float t = 0, life = 3; Col c; bool compact = false; };
 
 struct Offer {
   int kind = 0; // 0 new weapon, 1 weapon upgrade, 2 new tome, 3 tome upgrade, 4 stat, 5 item
@@ -129,6 +129,7 @@ struct Game {
   void particles(v3 pos, int n, Col c, float speed, float size, float life, bool add = true, int sprite = 1, float grav = 0);
   void floatText(v3 pos, const std::string& s, Col c, float scale = 1);
   void banner(const std::string& t, const std::string& sub, Col c, float life = 3);
+  void alert(const std::string& t, const std::string& sub, Col c, float life = 1.8f); // compact top-of-screen banner for routine combat events
   void addItem(int id, int n = 1);
   void addWeapon(int def);
   void applyOffer(const Offer& o);

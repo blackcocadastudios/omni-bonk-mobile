@@ -156,6 +156,11 @@ void Game::floatText(v3 pos, const std::string& s, Col c, float scale) {
   FloatText t; t.pos = pos + v3(rng.range(-0.3f, 0.3f), 0, rng.range(-0.3f, 0.3f)); t.s = s; t.c = c; t.scale = scale; texts.push_back(t);
 }
 void Game::banner(const std::string& t, const std::string& sub, Col c, float life) { Banner b; b.text = t; b.sub = sub; b.c = c; b.life = life; banners.push_back(b); }
+void Game::alert(const std::string& t, const std::string& sub, Col c, float life) {
+  int n = 0; for (auto& b : banners) n += b.compact;
+  if (n >= 2) for (auto it = banners.begin(); it != banners.end(); ++it) if (it->compact) { banners.erase(it); break; }
+  Banner b; b.text = t; b.sub = sub; b.c = c; b.life = life; b.compact = true; banners.push_back(b);
+}
 
 v3 Game::spawnRingPos(float rmin, float rmax) {
   float H = world.playableHalf();
@@ -459,7 +464,7 @@ void Game::interact(int idx) {
         v3 p = it.pos + v3(cosf(a) * 9, 0, sinf(a) * 9); p.y = world.T.height(p.x, p.z);
         Enemy* e = spawnEnemy(t, p, true); if (e) { e->challenge = true; e->aiState = idx; }
       }
-      banner(tr("CHALLENGE!"), tr("Defeat the elites to win a chest"), Col(194, 107, 255), 2.5f); audioPlay(SFX_SHRINE); ghosts();
+      alert(tr("CHALLENGE!"), tr("Defeat the elites to win a chest"), Col(194, 107, 255), 2.2f); audioPlay(SFX_SHRINE); ghosts();
     } break;
     case I_MOAI: {
       it.used = true; offers.clear();
@@ -729,12 +734,12 @@ void Game::updateSpawning(float dt) {
       int t = tab[std::min((int)tab.size() - 1, rng.irange(std::max(1, (int)(uEff * tab.size()))))].enemy;
       Enemy* e = spawnEnemy(t, p); if (e) e->speed *= 1.25f;
     }
-    banner(tr("SWARM!"), tr("A horde approaches"), Col(255, 170, 60), 2.5f); audioPlay(SFX_SWARM);
+    alert(tr("SWARM!"), tr("A horde approaches"), Col(255, 170, 60)); audioPlay(SFX_SWARM);
   };
   auto miniboss = [&](int k) {
     int t = gMinibosses[cfg.map][k];
     spawnEnemy(t, spawnRingPos(26, 32));
-    banner(tr("MINIBOSS!"), gEnemies[t].name, Col(255, 120, 120), 2.5f); audioPlay(SFX_BOSS);
+    alert(tr("MINIBOSS!"), gEnemies[t].name, Col(255, 120, 120)); audioPlay(SFX_BOSS);
   };
   if (!infinite || true) {
     event(1, 0.30f, swarm); event(2, 0.30f, [&] { miniboss(0); }); event(4, 0.70f, swarm); event(8, 0.80f, [&] { miniboss(1); });
@@ -827,7 +832,7 @@ void Game::updateInters(float dt) {
         }
         break;
       case I_CRYPT_KEY:
-        if (!it.used && d < 1.8f) { it.used = true; cryptKeys++; banner(fmt(tr("Crypt Key %d/4"), cryptKeys), cryptKeys >= 4 ? tr("The boss portal is open!") : "", Col(127, 255, 159), 2.5f); audioPlay(SFX_POWERUP); }
+        if (!it.used && d < 1.8f) { it.used = true; cryptKeys++; alert(fmt(tr("Crypt Key %d/4"), cryptKeys), cryptKeys >= 4 ? tr("The boss portal is open!") : "", Col(127, 255, 159), 2.2f); audioPlay(SFX_POWERUP); }
         break;
       case I_CHARGE_SHRINE:
         if (!it.used) {

@@ -137,16 +137,16 @@ void App::autoQualityTick() {
   if (avg >= target * 0.72f) return;
   if (set.renderScale > 0.51f) {
     set.renderScale = std::max(0.5f, set.renderScale - 0.1f);
-    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - render scale %d%%"), avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
+    game.alert(tr("Auto quality"), fmt(tr("FPS %.0f - render scale %d%%"), avg, (int)roundf(set.renderScale * 100)), Col(255, 214, 80), 2.2f);
   } else if (set.particles > 0) {
     set.particles--; applySettingsToGame(game);
-    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - fewer particles"), avg), Col(255, 214, 80), 2.2f);
+    game.alert(tr("Auto quality"), fmt(tr("FPS %.0f - fewer particles"), avg), Col(255, 214, 80), 2.2f);
   } else if (set.viewDist > 71) {
     set.viewDist = set.viewDist > 91 ? 90.f : 70.f;
-    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - view distance %dm"), avg, (int)set.viewDist), Col(255, 214, 80), 2.2f);
+    game.alert(tr("Auto quality"), fmt(tr("FPS %.0f - view distance %dm"), avg, (int)set.viewDist), Col(255, 214, 80), 2.2f);
   } else if (set.maxEnemies > 150) {
     set.maxEnemies = set.maxEnemies > 220 ? 220 : 150; game.cfg.maxEnemies = set.maxEnemies;
-    game.banner(tr("Auto quality"), fmt(tr("FPS %.0f - max. %d enemies"), avg, set.maxEnemies), Col(255, 214, 80), 2.2f);
+    game.alert(tr("Auto quality"), fmt(tr("FPS %.0f - max. %d enemies"), avg, set.maxEnemies), Col(255, 214, 80), 2.2f);
   } else return;
   save();
 }
