@@ -580,6 +580,33 @@ static void buildSizzle() {   // gecko line cook: big side eyes, chef hat, white
   for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_TAIL].r.y = sinf(t * TAU) * 0.4f; p.p[P_PROP].r.x = -0.7f; }; }
   bakeModel(M_SIZZLE, r, clips);
 }
+static void buildDigby() {   // mole miner: hard hat with lamp, pink nose, overalls, big digging paws, pickaxe
+  MB b; HSpec s; s.leg = 0.5f; s.torso = 0.55f; s.head = 0.28f; s.shoulder = 0.56f; s.hip = 0.32f; s.arm = 0.58f; s.limbR = 0.1f; s.torsoW = 0.5f; s.torsoD = 0.38f; s.hunch = 0.12f;
+  u32 fur = 0x5a4038;
+  s.skin = fur; s.top = 0x3a5a8a; s.bottom = 0x3a5a8a; s.feet = 0x3a2a22; s.hands = 0xe0a8a0; s.skinL = L_FUR; s.topL = L_CLOTH; s.botL = L_CLOTH;
+  HJ J; Rig r = humanoid(s, J, b);
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(fur).l(L_FUR).sphere(J.headC, {0.27f, 0.25f, 0.26f}, 8, 6);
+  b.c(0x7a5a50).sphere(J.headC + v3(0, -0.06f, 0.24f), {0.1f, 0.08f, 0.14f}, 6, 4);                    // snout
+  b.c(0xff8fa8).l(L_PLAIN).sphere(J.headC + v3(0, -0.05f, 0.37f), {0.06f, 0.05f, 0.04f}, 6, 4);       // nose
+  addEyes(b, H, J.headC + v3(0, 0.05f, 0.24f), 0.1f, 0.018f, 0x101014);
+  b.to(H).c(0xffc61a).l(L_PLAIN).sphere(J.headC + v3(0, 0.1f, 0), {0.29f, 0.2f, 0.29f}, 8, 4, 0.5f); // hard hat
+  b.c(0xe0a800).cyl(J.headC + v3(0, 0.08f, 0.02f), 0.34f, 0.34f, 0.025f, 10, true);
+  b.c(0xfff6b0).e(255).box(J.headC + v3(0, 0.2f, 0.27f), v3(0.06f, 0.05f, 0.03f)); b.e(0);           // lamp
+  b.to(r.parts[P_TORSO]).c(0x7a5a50).l(L_FUR).box(J.neck + v3(0, -0.1f, 0.12f), v3(0.13f, 0.08f, 0.03f));
+  b.c(0xffc61a).l(L_PLAIN).box(J.hip + v3(0.12f, 0.36f, 0.16f), v3(0.025f, 0.025f, 0.012f)).box(J.hip + v3(-0.12f, 0.36f, 0.16f), v3(0.025f, 0.025f, 0.012f)); // buttons
+  for (int side : {-1, 1}) {
+    v3 hnd = side < 0 ? J.haR : J.haL; Part& F = r.parts[side < 0 ? P_FORE_R : P_FORE_L];
+    b.to(F).c(0xe0a8a0).l(L_SKIN).box(hnd + v3(0, -0.06f, 0.02f), v3(0.11f, 0.07f, 0.09f));             // broad paw
+    b.c(0xf4f1ea).l(L_BONE);
+    for (int k : {-1, 1}) b.limb(hnd + v3(k * 0.045f, -0.1f, 0.08f), hnd + v3(k * 0.055f, -0.2f, 0.14f), 0.026f, 0.004f, 4);
+  }
+  b.to(r.parts[P_PROP]).c(0x7a4a2a).l(L_WOOD).limb(J.haR + v3(0, -0.07f, -0.15f), J.haR + v3(0, -0.07f, 0.6f), 0.035f, 0.035f, 5);
+  b.c(0x9aa4b4).l(L_METAL).X(m4::T(J.haR + v3(0, 0.0f, 0.58f)) * m4::RX(0.15f)).boxT({0, 0, 0}, v3(0.03f, 0.04f, 0.04f), v3(0.025f, 0.28f, 0.03f)); b.noX();
+  auto clips = humanClips(0.6f, 0.9f, 2);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -0.8f; }; }
+  bakeModel(M_DIGBY, r, clips);
+}
 
 // ---------------------------------------------------------------- enemies
 static void buildGoblin(int id, float scale, int variant) {
@@ -1181,7 +1208,7 @@ static void buildFx() {
 void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
-  buildRocco(); buildBramble(); buildSizzle();
+  buildRocco(); buildBramble(); buildSizzle(); buildDigby();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);

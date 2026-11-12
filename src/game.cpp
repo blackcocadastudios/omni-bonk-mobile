@@ -120,6 +120,7 @@ void Game::recomputeStats() {
   if (P.ch == C_ROCCO) { s[S_PICKUP] += L * 0.03f; s[S_GOLDGAIN] += L * 0.01f; }
   if (P.ch == C_BRAMBLE) { s[S_REGEN] += L * 2.f; s[S_THORNS] += L * 1.f; }
   if (P.ch == C_SIZZLE) s[S_ATKSPD] += L * 1.5f;
+  if (P.ch == C_DIGBY) s[S_ARMOR] += L * 0.75f;
   s[S_MAXHP] += P.demonicBlood + P.bloodMagicHp;
   s[S_DIFFICULTY] += P.greedDiff;
   // multiplicative item effects
@@ -669,7 +670,7 @@ void Game::updatePlayer(float dt) {
   if (np.y <= g + 0.02f && p.vel.y <= 0.5f) {
     if (!wasGround) {
       float fall = p.airMaxY - g;
-      if (fall > 10 && !p.sliding && !cfg.godMode) damagePlayer((fall - 10) * 3.f * (1 - p.st[S_FALLRED] / 100.f) * (p.ch == C_FOX ? 0.5f : 1.f), nullptr, false);
+      if (fall > 10 && !p.sliding && !cfg.godMode && p.ch != C_DIGBY) damagePlayer((fall - 10) * 3.f * (1 - p.st[S_FALLRED] / 100.f) * (p.ch == C_FOX ? 0.5f : 1.f), nullptr, false);
       p.landT = 0;
       if (fall > 2) particles(v3(np.x, g, np.z), 6, Col(220, 220, 220, 140), 2.5f, 0.35f, 0.35f, false, SP_SMOKE);
     }
