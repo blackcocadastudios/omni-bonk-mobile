@@ -43,6 +43,7 @@ PLAY opens the mode screen:
 | Endless Siege | No portal and no timer: difficulty keeps climbing in 10-minute cycles and a boss joins every 5 minutes; best time per map is saved |
 | Hero Gauntlet | Three stages across the three maps; at each portal you become a different random hero, keeping items, tomes and weapons |
 | Shrine Hunt | Maps with 2.5x more chests and shrines, cheaper chests and a starting purse, but 6-minute stages |
+| Reverse Mode | You play the Overlord, an original villain: the ten heroes become the enemies (ranged ones throw their own weapon's projectile), hero parties charge every 75 s, goblin minions fight for you, and after 10 minutes the Legendary Party of five champions arrives; beat them to win |
 
 **Mutators** can be stacked on any mode except the Daily Run (which picks its own two). Many are adaptations of classic
 roguelite mutators (in the spirit of Soul Knight's), with our own names and tuning; the harder ones add a silver bonus:
