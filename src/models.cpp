@@ -526,6 +526,32 @@ static void buildRocco() {   // raccoon tinkerer: mask, goggles, tool vest, ring
   for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_TAIL].r.y = sinf(t * TAU) * 0.3f; p.p[P_TAIL].r.x = 0.15f; p.p[P_PROP].r.x = -0.9f; }; }
   bakeModel(M_ROCCO, r, clips);
 }
+static void buildBramble() {   // walking mossy stump: ring-cut top, sprout, mushroom, twig arms, poison flask
+  MB b; HSpec s; s.leg = 0.5f; s.torso = 0.62f; s.head = 0.28f; s.shoulder = 0.62f; s.hip = 0.34f; s.arm = 0.58f; s.limbR = 0.08f; s.torsoW = 0.56f; s.torsoD = 0.5f;
+  u32 bark = 0x7a5232;
+  s.skin = 0x6a4428; s.top = bark; s.bottom = 0x5e3e24; s.feet = 0x4a3020; s.hands = 0x5aa83a; s.skinL = L_BARK; s.topL = L_BARK; s.botL = L_BARK;
+  HJ J; Rig r = humanoid(s, J, b);
+  r.parts[P_TORSO].v.clear(); r.parts[P_TORSO].idx.clear();
+  b.to(r.parts[P_TORSO]).c(bark).l(L_BARK).cyl(J.hip + v3(0, -0.08f, 0), 0.33f, 0.3f, s.torso + 0.1f, 9, false);
+  for (int i = 0; i < 4; i++) { float a = i * TAU / 4 + 0.4f; b.c(0x5e3e24).limb(J.hip + v3(cosf(a) * 0.3f, 0.02f, sinf(a) * 0.3f), J.hip + v3(cosf(a) * 0.42f, -0.14f, sinf(a) * 0.42f), 0.06f, 0.02f, 4); }
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(bark).l(L_BARK).cyl(J.neck + v3(0, -0.03f, 0), 0.3f, 0.29f, 0.32f, 9, false);
+  b.c(0xd9b07a).l(L_WOOD).cyl(J.neck + v3(0, 0.29f, 0), 0.29f, 0.29f, 0.02f, 9, true);               // cut top
+  b.c(0xb08a5a).cyl(J.neck + v3(0, 0.305f, 0), 0.17f, 0.17f, 0.012f, 9, true);
+  b.c(0x5aa83a).l(L_LEAVES).sphere(J.neck + v3(-0.1f, 0.31f, -0.06f), {0.17f, 0.05f, 0.14f}, 6, 3);  // moss
+  b.c(0x4caf50).l(L_PLAIN).limb(J.neck + v3(0.08f, 0.3f, 0.02f), J.neck + v3(0.12f, 0.55f, 0), 0.015f, 0.01f, 4);
+  b.c(0x7bd23f).l(L_LEAVES).sphere(J.neck + v3(0.19f, 0.56f, 0), {0.08f, 0.03f, 0.05f}, 5, 3).sphere(J.neck + v3(0.06f, 0.53f, 0), {0.06f, 0.025f, 0.04f}, 5, 3);
+  b.c(0xd83a3a).l(L_PLAIN).sphere(J.neck + v3(0.27f, 0.1f, 0.1f), {0.09f, 0.06f, 0.09f}, 6, 3, 0.45f);   // mushroom
+  b.c(0xf4f1ea).cyl(J.neck + v3(0.25f, 0.02f, 0.09f), 0.03f, 0.03f, 0.08f, 5, false);
+  addEyes(b, H, J.neck + v3(0, 0.17f, 0.29f), 0.1f, 0.04f, 0xd8ff70, true);
+  b.to(H).c(0x2a1a0e).l(L_PLAIN).box(J.neck + v3(0, 0.05f, 0.29f), v3(0.08f, 0.02f, 0.02f));
+  for (int side : {-1, 1}) b.to(r.parts[side < 0 ? P_FORE_R : P_FORE_L]).c(0x5aa83a).l(L_LEAVES).sphere((side < 0 ? J.haR : J.haL) + v3(0, -0.06f, 0), {0.08f, 0.07f, 0.08f}, 5, 3);
+  b.to(r.parts[P_PROP]).c(0x7bd23f).l(L_CRYSTAL).e(120).sphere(J.haR + v3(0, -0.1f, 0.13f), {0.09f, 0.1f, 0.09f}, 6, 4);
+  b.e(0).c(0xd8e8f0).l(L_PLAIN).cyl(J.haR + v3(0, -0.01f, 0.13f), 0.035f, 0.03f, 0.08f, 5);
+  b.c(0x8b5a2b).l(L_WOOD).cyl(J.haR + v3(0, 0.07f, 0.13f), 0.035f, 0.035f, 0.03f, 5);
+  auto clips = humanClips(0.62f, 0.85f, 2);
+  bakeModel(M_BRAMBLE, r, clips);
+}
 
 // ---------------------------------------------------------------- enemies
 static void buildGoblin(int id, float scale, int variant) {
@@ -1127,7 +1153,7 @@ static void buildFx() {
 void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
-  buildRocco();
+  buildRocco(); buildBramble();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);

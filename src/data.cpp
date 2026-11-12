@@ -294,6 +294,7 @@ static void initChars() {
     {"Monke", W_BANANARANG, "Monke Grip", "Climbs walls and rocks; +2 Max HP per level.", {{S_JUMPH, .25f}, {S_MAXHP, 20}}, M_MONKE, IR(IS_MONKE), "An agile monkey: climbs everything and throws bananas."},
     {"Ogre", W_AXE, "Warrior", "+1.5% damage per level.", {{S_MAXHP, 60}, {S_MOVESPD, -.04f}, {S_ARMOR, 10}}, M_OGRE, IR(IS_OGRE), "Slow, but every level makes it stronger."},
     {"Rocco", W_MINES, "Junk Magnet", "+3% pickup range and +1% gold gain per level.", {{S_PICKUP, .5f}, {S_GOLDGAIN, .15f}, {S_MOVESPD, .04f}, {S_MAXHP, -10}}, M_ROCCO, IR(IS_RACCOON), "A raccoon tinkerer: turns scrap into mines and hoovers up loot."},
+    {"Bramble", W_POISONFLASK, "Deep Roots", "+2 HP regeneration per minute and +1 thorns per level.", {{S_MAXHP, 40}, {S_REGEN, 10}, {S_THORNS, 5}, {S_MOVESPD, -.05f}}, M_BRAMBLE, IR(IS_STUMP), "An old stump that walked off. Slow, tough and poisonous."},
   };
 }
 

@@ -470,6 +470,8 @@ void artDrawIcon(Canvas& c, const IconRecipe& r) {
     case IS_RACCOON: c.circle(8, 8, 4.5f, C(0x8a8f99)); c.circle(24, 8, 4.5f, C(0x8a8f99)); c.circle(8, 8, 2, dark); c.circle(24, 8, 2, dark);
       c.circle(16, 17, 11, C(0x9aa0aa)); c.ellipse(16, 15, 11, 4, C(0x2a2a33)); c.circle(11.5f, 15, 2, wht); c.circle(20.5f, 15, 2, wht); c.circle(11.5f, 15, 1, dark); c.circle(20.5f, 15, 1, dark);
       c.ellipse(16, 22.5f, 6, 4.5f, C(0xe8e4dc)); c.circle(16, 20.5f, 1.8f, dark); break;
+    case IS_STUMP: c.rect(7, 12, 25, 29, C(0x8a5e38)); c.line(11, 14, 11, 28, 1, C(0x6a4428)); c.line(21, 14, 21, 28, 1, C(0x6a4428)); c.ellipse(16, 12, 9, 4, C(0xd9b07a)); c.ring(16, 12, 2.5f, 3.6f, C(0xb08a5a));
+      c.ellipse(10, 10.5f, 5, 2.4f, C(0x5aa83a)); c.line(18, 10, 20, 3, 1.5f, C(0x4caf50)); c.ellipse(23, 4, 3.5f, 2, C(0x7bd23f)); c.circle(12, 19, 1.8f, dark); c.circle(20, 19, 1.8f, dark); c.rect(13, 23, 19, 24.5f, dark); break;
     case IS_XP: c.poly({{16, 3}, {25, 16}, {16, 29}, {7, 16}}, a); c.poly({{16, 3}, {16, 29}, {7, 16}}, mulc(a, 1.3f)); break;
     case IS_HOURGLASS: c.rect(7, 3, 25, 6, wood); c.rect(7, 26, 25, 29, wood); c.tri({9, 6}, {23, 6}, {16, 16}, Col(220, 230, 255, 200)); c.tri({9, 26}, {23, 26}, {16, 16}, Col(220, 230, 255, 200)); c.tri({12, 26}, {20, 26}, {16, 20}, a); break;
     default: c.circle(16, 16, 10, a); break;
