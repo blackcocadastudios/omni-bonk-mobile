@@ -30,7 +30,7 @@ void Game::render(Renderer& R) {
 
   // ---------------- player
   {
-    int pm = gChars[P.ch].model;
+    int pm = reverse() ? M_OVERLORD : gChars[P.ch].model;
     float hs = len(v2(P.vel.x, P.vel.z));
     int clip = !P.onGround ? CL_JUMP : P.sliding ? CL_SLIDE : (hs > 0.8f ? CL_MOVE : CL_IDLE);
     playerAnimT += rdt * (clip == CL_MOVE ? std::max(0.6f, hs / 7.4f) : 1.f);
@@ -218,6 +218,7 @@ void Game::render(Renderer& R) {
   // ---------------- allies
   for (auto& a : allies) {
     if (a.kind == 0) R.model(M_GHOST, modelFrameRef(M_GHOST, CL_MOVE, a.t, animFps), a.pos - v3(0, 0.7f, 0), q4::yaw(atan2f(a.vel.x, a.vel.z)), v3(0.55f, 0.55f, 0.55f), 0, Col(150, 230, 255, 120));
+    else if (a.kind == 2) R.model(M_GOBLIN, modelFrameRef(M_GOBLIN, CL_MOVE, a.t, animFps), a.pos, q4::yaw(atan2f(a.vel.x, a.vel.z)), v3(0.8f, 0.8f, 0.8f), 0, Col(190, 120, 255, 90));
     else R.model(M_P_BOB, modelFrameRef(M_P_BOB, CL_MOVE, a.t, animFps), a.pos, q4::yaw(atan2f(a.vel.x, a.vel.z)), v3(1.4f, 1.4f, 1.4f));
   }
   // ---------------- particles

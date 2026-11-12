@@ -149,6 +149,10 @@ void Game::killEnemy(Enemy& e, int src) {
   P.kills++;
   if (src >= 0 && src < (int)P.weapons.size()) P.weapons[src].kills++;
   if (mut(MU_STREAK)) { P.streak++; P.streakT = 2.f; }
+  if (e.champion) {
+    championsAlive = std::max(0, championsAlive - 1); bossesAlive = championsAlive;
+    if (championsAlive == 0 && legendSpawned) { state = GS_VICTORY; deathT = 0; audioPlay(SFX_VICTORY); }
+  }
   if (mut(MU_VOLATILE) && e.rank == RK_NORMAL && !finalSwarm && projs.size() < 700 && rng.chance(0.35f)) {
     float a0 = rng.f() * TAU;
     for (int k = 0; k < 4; k++) { float a = a0 + k * TAU / 4; Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = M_P_ENEMYBALL; pr.pos = e.pos + v3(0, 0.8f, 0); pr.vel = v3(sinf(a), 0, cosf(a)) * 5.f; pr.life = pr.maxLife = 2.2f; pr.dmg = e.dmg * 0.5f; pr.radius = 0.4f; }
@@ -728,7 +732,7 @@ void Game::updateEnemies(float dt) {
           break;
         case EB_SHOOT:
           if (dist < 13) { mv = mv * (dist < 9 ? -0.3f : 0.f); e.aiT -= dt; if (e.aiT <= 0) { e.aiT = 2.6f; e.clip = CL_ATTACK; e.clipT = 0;
-              Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = M_P_SPIKE; pr.pos = e.pos + v3(0, 1.2f, 0); v3 aim = P.pos + v3(0, 1, 0) + P.vel * (dist / 10.f) * 0.5f - pr.pos; pr.vel = norm(aim) * 10.f; pr.life = pr.maxLife = 3; pr.dmg = e.dmg; pr.radius = 0.35f; } }
+              Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = d.proj >= 0 ? d.proj : M_P_SPIKE; pr.pos = e.pos + v3(0, 1.2f, 0); v3 aim = P.pos + v3(0, 1, 0) + P.vel * (dist / 10.f) * 0.5f - pr.pos; pr.vel = norm(aim) * 10.f; pr.life = pr.maxLife = 3; pr.dmg = e.dmg; pr.radius = 0.35f; } }
           break;
         case EB_ROLL: {
           v3 fwd = len(e.vel) > 0.1f ? norm(e.vel) : dir;
