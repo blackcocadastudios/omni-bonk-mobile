@@ -27,6 +27,7 @@ struct Enemy {
   float animT = 0, animPhase = 0, clipT = 0; u8 clip = CL_MOVE;
   float atkCd = 0, hitFlash = 0, spawnT = 0, deathT = 0;
   bool split = false; float blinkCd = 0;   // Cell Division / Blink Foes mutators
+  bool champion = false;                   // Reverse Mode: member of the Legendary Party
   float freezeT = 0, slowT = 0, stunT = 0, poisonDps = 0, poisonT = 0, burnDps = 0, burnT = 0, curseDps = 0, curseT = 0, airT = 0; int bleed = 0; float bleedT = 0;
   float hitCd[8] = {0};
   float aiT = 0, aiT2 = 0; int aiState = 0; v3 aiVec; float hover = 1.4f;
@@ -98,6 +99,7 @@ struct Game {
   float statsDirtyT = 0; bool statsDirty = true; int animFps = 12; float shakeSetting = 1; bool dmgNumbers = true; int totalSilverEarned = 0;
   float swarmWarnT = 0; int lastKillMilestone = 0; float announceT = 0; float eliteT = 0; std::string lastHitBy; float lastHitDmg = 0;
   float endlessBossT = 0; int bossesBeaten = 0, endlessCycle = 0, monoType = -1; std::vector<int> gauntletSeen;
+  int championsAlive = 0; bool legendSpawned = false; float partyT = 0, minionT = 0;   // Reverse Mode
   float fovDeg = 62; bool shadowsOn = true; int worldGen = 0; float playerAnimT = 0, lastRenderT = 0; float stormK = 0; int particleLevel = 2;
 
   void start(const RunConfig& c);
@@ -168,6 +170,9 @@ struct Game {
   int interCost(int idx) const;
   float stageDuration(int s) const;
   bool mut(int m) const { return (cfg.mutators >> m) & 1u; }
+  bool reverse() const { return cfg.mode == MODE_REVERSE; }
+  const char* heroName() const;   // "Overlord" in Reverse Mode
+  int heroEnemy();                // Reverse Mode: next hero type to spawn
   bool rotating() const { return cfg.mode == MODE_BOSSRUSH || cfg.mode == MODE_GAUNTLET; }
   void setupStageFor(int s);      // map/tier of stage s in rotating modes
   void gauntletSwap();            // Hero Gauntlet: new random hero at the start of each stage after the first

@@ -116,7 +116,7 @@ void App::charsNext() {
 void App::modeNext() {
   meta.lastMode = selMode;
   if (selMode == MODE_DAILY) { save(); startRun(); }
-  else scr = selMode == MODE_GAUNTLET ? SCR_MAP : SCR_CHARS;
+  else scr = (selMode == MODE_GAUNTLET || selMode == MODE_REVERSE) ? SCR_MAP : SCR_CHARS;
 }
 
 // ================================================================== MODE SELECT
@@ -127,7 +127,7 @@ void App::drawModes() {
   float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
   u.text(u.W * 0.5f, nar ? 5 : 8, tr("GAME MODE"), nar ? 1.5f : 2, WHITE, AL_CENTER);
   const int cols = nar ? 2 : 3, rows = (MODE_COUNT + cols - 1) / cols;
-  float gap = 4, cw = (Wd - (cols - 1) * gap) / cols, ch = nar ? 30 : 34, y0 = nar ? 23 : 30;
+  float gap = nar ? 3 : 4, cw = (Wd - (cols - 1) * gap) / cols, ch = nar ? 27 : 34, y0 = nar ? 22 : 30;
   for (int i = 0; i < MODE_COUNT; i++) {
     const ModeDef& m = kModes[i];
     float x = L + (i % cols) * (cw + gap), y = y0 + (i / cols) * (ch + gap);
@@ -135,8 +135,8 @@ void App::drawModes() {
     Col mc = hexc(m.color);
     u.panel(x, y, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(mc.r, mc.g, mc.b, 110));
     u.icon(m.icon, x + 4, y + (ch - 20) * 0.5f, 20, sel ? WHITE : Col(230, 230, 230));
-    u.text(x + 28, y + 4, m.name, 1, sel ? GOLD : WHITE);
-    u.textRaw(x + 28, y + 16, u.fit(tr(m.tagline), cw - 32), 1, sel ? Col(230, 220, 255) : GREY, AL_LEFT);
+    u.text(x + 28, y + (nar ? 3 : 4), m.name, 1, sel ? GOLD : WHITE);
+    u.textRaw(x + 28, y + (nar ? 14 : 16), u.fit(tr(m.tagline), cw - 32), 1, sel ? Col(230, 220, 255) : GREY, AL_LEFT);
     if (sel) u.nextFlags = FOCUS_DEFAULT;
     bool ck = u.clicked(x, y, cw, ch);
     if (u.isFocus(x, y, cw, ch)) selMode = i;
@@ -155,6 +155,8 @@ void App::drawModes() {
     if (meta.dailyKey == d.key && meta.dailyBest > 0) info(fmt(tr("Best score today: %d"), meta.dailyBest), CYAN);
   } else if (selMode == MODE_ENDLESS) {
     info(fmt(tr("Best: Forest %s  Desert %s  Graveyard %s"), fmtTime(meta.endlessBest[0]).c_str(), fmtTime(meta.endlessBest[1]).c_str(), fmtTime(meta.endlessBest[2]).c_str()), CYAN);
+  } else if (selMode == MODE_REVERSE) {
+    if (meta.reverseBest > 0) info(fmt(tr("Best: %d heroes crushed  •  %d wins"), meta.reverseBest, meta.reverseWins), CYAN);
   } else if (selMode == MODE_BOSSRUSH) {
     if (meta.bossRushBest > 0) info(fmt(tr("Best: %d/%d bosses"), meta.bossRushBest, BOSSRUSH_ROUNDS + 1), CYAN);
   }
@@ -248,11 +250,12 @@ void App::drawMap() {
     u.text(x + tw * 0.5f, y + 23, tierInfo[t], 1, t == selTier ? GOLD : DIM, AL_CENTER);
   }
   y += 38;
-  if (selMode == MODE_ENDLESS || selMode == MODE_SHRINEHUNT) {   // fixed timing in these modes
+  if (selMode == MODE_ENDLESS || selMode == MODE_SHRINEHUNT || selMode == MODE_REVERSE) {   // fixed timing in these modes
     u.panel(L, y, Wd, 30);
     u.text(L + 8, y + 5, kModes[selMode].name, 1, CYAN);
-    u.textRaw(L + 8, y + 17, u.fit(selMode == MODE_ENDLESS ? tr("No timer: a boss every 5 minutes, no exit") : tr("6 minutes per stage, packed with chests and shrines"), Wd - 16), 1, GREY, AL_LEFT);
-    if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_CHARS;
+    const char* note = selMode == MODE_ENDLESS ? tr("No timer: a boss every 5 minutes, no exit") : selMode == MODE_REVERSE ? tr("10 minutes of hero waves, then the Legendary Party") : tr("6 minutes per stage, packed with chests and shrines");
+    u.textRaw(L + 8, y + 17, u.fit(note, Wd - 16), 1, GREY, AL_LEFT);
+    if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = selMode == MODE_REVERSE ? SCR_MODES : SCR_CHARS;
     if (u.button(R - 130, u.H - 28, 130, 22, tr("START!"), Col(60, 150, 70, 240), 1.5f) || padStart) { save(); startRun(); }
     return;
   }
@@ -269,7 +272,7 @@ void App::drawMap() {
   float tgw = nar ? (Wd - 12) / 2 : 96, tx0 = nar ? L + 4 : R - 100, tx1 = nar ? L + 8 + tgw : R - 100, ty0 = nar ? y + 40 : y + 3, ty1 = nar ? y + 40 : y + 23;
   if (u.button(tx0, ty0, tgw, 16, set.swarmMode == 0 ? tr("Swarm: at the end") : tr("Swarm: after boss"), Col(50, 44, 70, 235))) set.swarmMode ^= 1;
   if (u.button(tx1, ty1, tgw, 16, set.scaleStages ? tr("Scale: YES") : tr("Scale: NO"), Col(50, 44, 70, 235))) set.scaleStages = !set.scaleStages;
-  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = selMode == MODE_GAUNTLET ? SCR_MODES : SCR_CHARS;
+  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = (selMode == MODE_GAUNTLET || selMode == MODE_REVERSE) ? SCR_MODES : SCR_CHARS;
   if (u.button(R - 130, u.H - 28, 130, 22, tr("START!"), Col(60, 150, 70, 240), 1.5f) || padStart) { save(); startRun(); }
 }
 
@@ -456,7 +459,7 @@ void App::drawCatalog() {
   for (int t = 0; t < 5; t++) if (u.button(L + t * (tw + 5), 4, tw, 18, tabs[t], t == catTab ? Col(150, 110, 40, 240) : Col(50, 44, 70, 235))) { catTab = t; scrollY[1] = 0; scrollY[2] = 0; }
   float listW = Wd * 0.56f, top = 26, bottom = u.H - 30;
   static int sel[5] = {0, 0, 0, 0, 0};
-  int count = catTab == 0 ? W_COUNT : catTab == 1 ? T_COUNT : catTab == 2 ? IT_COUNT : catTab == 3 ? E_COUNT : I_COUNT + PU_COUNT;
+  int count = catTab == 0 ? W_COUNT : catTab == 1 ? T_COUNT : catTab == 2 ? IT_COUNT : catTab == 3 ? E_H_FOX : I_COUNT + PU_COUNT;
   u.group = 2;
   scrollY[1] += u.dragY(L, top, listW, bottom - top) + u.focusScroll(2, top, bottom);
   if (catTab <= 2 || catTab == 4) {
@@ -518,7 +521,7 @@ void App::drawCatalog() {
     if (s < I_COUNT) { const InterDef& d = gInters[s]; u.icon(ICON_INTER0 + s, dx + dw - 30, top + 4, 24); title(d.name, GOLD); body(d.desc); }
     else { const PowerupDef& p = gPowerups[s - I_COUNT]; u.icon(ICON_PU0 + s - I_COUNT, dx + dw - 30, top + 4, 24); title(std::string(tr("Powerup: ")) + tr(p.name), GOLD); body(p.desc); }
   }
-  u.text(L, u.H - 22, u.fit(u.padMode ? fmt(tr("L1/R1: tabs  •  %d items"), IT_COUNT) : fmt(tr("%d weapons • %d tomes • %d items • %d enemies • %d interactables"), W_COUNT, T_COUNT, IT_COUNT, E_COUNT, I_COUNT), R - 96 - L), 1, DIM);
+  u.text(L, u.H - 22, u.fit(u.padMode ? fmt(tr("L1/R1: tabs  •  %d items"), IT_COUNT) : fmt(tr("%d weapons • %d tomes • %d items • %d enemies • %d interactables"), W_COUNT, T_COUNT, IT_COUNT, E_H_FOX, I_COUNT), R - 96 - L), 1, DIM);
   if (u.button(R - 90, u.H - 27, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
 }
 
@@ -801,9 +804,10 @@ void App::drawHUD() {
   float qy = gy + 2 * (gs + 1) + 3;
   std::string quest; bool done = false;
   if (g.finalArena) quest = tr("Defeat the Ghost King");
-  else if (g.cfg.map == MAP_GRAVEYARD && g.cryptKeys < 4) quest = fmt(tr("Crypt Keys %d/4"), g.cryptKeys);
+  else if (g.reverse()) quest = g.legendSpawned ? fmt(tr("Defeat the Legendary Party (%d)"), g.championsAlive) : std::string(tr("Crush the heroes!"));
   else if (g.cfg.mode == MODE_ENDLESS) quest = meta.endlessBest[g.cfg.map] > 0 ? fmt(tr("Survive!  Best %s"), fmtTime(meta.endlessBest[g.cfg.map]).c_str()) : std::string(tr("Survive!"));
   else if (g.cfg.mode == MODE_BOSSRUSH && !g.bossDefeated) quest = fmt(tr("Boss %d/%d"), g.stage + 1, g.numStages + 1);
+  else if (g.cfg.map == MAP_GRAVEYARD && g.cryptKeys < 4 && g.cfg.mode != MODE_BOSSRUSH) quest = fmt(tr("Crypt Keys %d/4"), g.cryptKeys);
   else if (!g.bossSummoned) quest = tr("Find the Boss");
   else if (!g.bossDefeated) quest = fmt(tr("Defeat the boss (%d)"), g.bossesAlive);
   else { quest = tr("Enter the portal"); done = false; }
@@ -1077,8 +1081,8 @@ void App::drawPause() {
   u.panel(L, top, lw, bottom - top);
   float y = top + 5;
   bool nar = narrow();
-  if (nar) { u.text(L + 5, y, u.fit(fmt("%s  •  %s", gChars[P.ch].name, gMaps[g.cfg.map].tiers[std::min(2, g.cfg.tier)].name), lw - 10), 1, GOLD); y += 11; u.text(L + 5, y, fmt(tr("Stage %d/%d  •  %s"), g.stage + 1, g.numStages, fmtTime(g.runTime).c_str()), 1, GREY); y += 13; }
-  else { u.text(L + 5, y, fmt(tr("%s  •  %s  •  Stage %d/%d"), gChars[P.ch].name, gMaps[g.cfg.map].tiers[std::min(2, g.cfg.tier)].name, g.stage + 1, g.numStages), 1, GOLD); y += 13; }
+  if (nar) { u.text(L + 5, y, u.fit(fmt("%s  •  %s", g.heroName(), gMaps[g.cfg.map].tiers[std::min(2, g.cfg.tier)].name), lw - 10), 1, GOLD); y += 11; u.text(L + 5, y, fmt(tr("Stage %d/%d  •  %s"), g.stage + 1, g.numStages, fmtTime(g.runTime).c_str()), 1, GREY); y += 13; }
+  else { u.text(L + 5, y, fmt(tr("%s  •  %s  •  Stage %d/%d"), g.heroName(), gMaps[g.cfg.map].tiers[std::min(2, g.cfg.tier)].name, g.stage + 1, g.numStages), 1, GOLD); y += 13; }
   for (size_t i = 0; i < P.weapons.size(); i++) {
     const WeaponInst& w = P.weapons[i];
     u.icon(ICON_WEAPON0 + w.def, L + 5, y, 14);
@@ -1131,6 +1135,7 @@ void App::drawEnd() {
     }
     if (g.cfg.mode == MODE_ENDLESS) { float& eb = meta.endlessBest[clampi(g.cfg.map, 0, 2)]; eb = std::max(eb, g.runTime); }
     if (g.cfg.mode == MODE_BOSSRUSH) meta.bossRushBest = std::max(meta.bossRushBest, g.bossesBeaten);
+    if (g.reverse()) { meta.reverseBest = std::max(meta.reverseBest, P.kills); if (g.state == GS_VICTORY) meta.reverseWins++; }
     save();
   }
   bgDim(sat(g.deathT * 1.5f) * 0.75f);
@@ -1140,7 +1145,7 @@ void App::drawEnd() {
   u.panel(L, top, Wd * 0.45f, bottom - top);
   float y = top + 6;
   auto line = [&](const std::string& a, const std::string& b, Col c = WHITE) { u.text(L + 6, y, a, 1, GREY); u.text(L + Wd * 0.45f - 6, y, b, 1, c, AL_RIGHT); y += 12; };
-  line(tr("Character"), gChars[P.ch].name, GOLD);
+  line(tr("Character"), g.heroName(), GOLD);
   line(tr("Map"), fmt(narrow() ? "%s T%d" : tr("%s (Tier %d)"), gMaps[g.cfg.map].name, g.cfg.tier + 1));
   if (g.cfg.mode != MODE_NORMAL) line(tr("Mode"), tr(kModes[g.cfg.mode].name), Col(255, 200, 120));
   if (g.cfg.mode == MODE_DAILY) line(tr("Score"), fmt("%d (%s %d)", lastDailyScore, tr("best"), meta.dailyBest), CYAN);

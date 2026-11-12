@@ -207,6 +207,11 @@ static void artSheets() {
   std::vector<ShowItem> chars;
   for (int i = 0; i < C_COUNT; i++) chars.push_back({gChars[i].model, CL_IDLE, 0.25f, 1.6f, std::string(gChars[i].name) + " / " + gWeapons[gChars[i].weapon].name, Col(255, 255, 255, 0)});
   showcase("art_06_characters", "Playable characters", chars, MAP_FOREST, 0, 3.4f);
+  { // Reverse Mode: the Overlord, a goblin minion and the heroes it faces
+    std::vector<ShowItem> rv = {{M_OVERLORD, CL_IDLE, 0.25f, 1.6f, "Overlord", Col(255, 255, 255, 0)}, {M_GOBLIN, CL_MOVE, 0.3f, 1.6f * 0.8f, "Goblin minion", Col(190, 120, 255, 90)}};
+    for (int i = 0; i < 4; i++) rv.push_back({gEnemies[E_H_FOX + i * 2].model, CL_ATTACK, 0.3f, 1.6f, std::string("Hero ") + gEnemies[E_H_FOX + i * 2].name, Col(255, 255, 255, 0)});
+    showcase("art_13_reverse_mode", "Reverse Mode - the Overlord vs the heroes", rv, MAP_GRAVEYARD, 1, 3.6f);
+  }
   // stepped animation strip: one character run cycle, consecutive 12 fps frames
   std::vector<ShowItem> strip;
   for (int f = 0; f < 6; f++) strip.push_back({M_NINJA, CL_MOVE, f / 12.f, 1.6f, fmt("frame %d - %.0f ms", f, f * 1000 / 12.f), Col(255, 255, 255, 0)});
@@ -461,11 +466,15 @@ static void modesUi() {
     {MODE_SHRINEHUNT, 0, MAP_FOREST, C_ROCCO, 20, "modes_12_shrinehunt"},
     {MODE_NORMAL, (1u << MU_GIANT) | (1u << MU_SPLIT) | (1u << MU_MONO), MAP_GRAVEYARD, C_DIGBY, 150, "modes_13_giant_split_mono"},
     {MODE_NORMAL, (1u << MU_POCKET) | (1u << MU_STREAK) | (1u << MU_VOLATILE), MAP_FOREST, C_HOOT, 120, "modes_14_pocket_streak_volatile"},
+    {MODE_REVERSE, 0, MAP_FOREST, C_OGRE, 50, "modes_17_reverse_heroes"},
+    {MODE_REVERSE, 0, MAP_GRAVEYARD, C_OGRE, 640, "modes_18_reverse_legendary_party"},
   };
   for (auto& r : runs) {
     gModeArg = r.mode; gMutArg = r.mut;
     startGame(r.map, 1, r.ch, true, 77, 10); simGame(a.game, r.secs);
-    Game& g = a.game; g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = true; frame(1 / 30.f, 3); g.autoPilot = false; frame(1 / 30.f, 1);
+    Game& g = a.game; g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = true;
+    if (r.mode == MODE_REVERSE && !g.legendSpawned) { g.partyT = 0; simGame(g, 4); g.state = GS_PLAY; g.pendingLevels = 0; }   // a hero party closing in
+    frame(1 / 30.f, 3); g.autoPilot = false; frame(1 / 30.f, 1);
     shot(r.tag);
   }
   gModeArg = MODE_GAUNTLET; gMutArg = (1u << MU_SHUFFLE);
@@ -493,7 +502,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
     }
   }
   double el = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-  LOGI("RESULT mode=%d mut=%x bosses=%d map=%s char=%s state=%s time=%.1fmin level=%d kills=%d lastHit=%s(%.0f) maxhp=%.0f armor=%.0f (sim %.1fs)", g.cfg.mode, g.cfg.mutators, g.bossesBeaten, gMaps[g.cfg.map].name, gChars[g.P.ch].name, g.state == GS_DEAD ? "DEAD" : g.state == GS_VICTORY ? "VICTORY" : "TIMEOUT", g.runTime / 60, g.P.level, g.P.kills, g.lastHitBy.c_str(), g.lastHitDmg, g.P.st[S_MAXHP], g.P.st[S_ARMOR], el);
+  LOGI("RESULT mode=%d mut=%x bosses=%d map=%s char=%s state=%s time=%.1fmin level=%d kills=%d lastHit=%s(%.0f) maxhp=%.0f armor=%.0f (sim %.1fs)", g.cfg.mode, g.cfg.mutators, g.bossesBeaten, gMaps[g.cfg.map].name, g.heroName(), g.state == GS_DEAD ? "DEAD" : g.state == GS_VICTORY ? "VICTORY" : "TIMEOUT", g.runTime / 60, g.P.level, g.P.kills, g.lastHitBy.c_str(), g.lastHitDmg, g.P.st[S_MAXHP], g.P.st[S_ARMOR], el);
 }
 
 int main(int argc, char** argv) {

@@ -277,6 +277,18 @@ static void initEnemies() {
   E("Big Bob", G, 9000, 45, 4.5f, EB_BOSS, false, M_B_BIGBOB, 2.4f, 1, 400, RK_BOSS);
   E("Ghost King", A, 60000, 60, 5, EB_BOSS, true, M_B_GHOSTKING, 3.0f, 1, 2000, RK_BOSS);
   E("Final Swarm Ghost", A, 30, 25, 9, EB_FLY, true, M_SWARMGHOST, .5f, 1, 2);
+  // the ten heroes as enemies (Reverse Mode): ranged heroes throw their own weapon's projectile
+  auto Hr = [&](const char* n, float hp, float dmg, float spd, u8 beh, int model, int proj) { E(n, A, hp, dmg, spd, beh, false, model, .45f, 1, 3); gEnemies.back().proj = proj; };
+  Hr("Fox", 26, 18, 6.5f, EB_SHOOT, M_FOX, M_P_FIREBALL);
+  Hr("Ninja", 22, 20, 8.5f, EB_CHASE, M_NINJA, -1);
+  Hr("Calcium", 20, 16, 7.5f, EB_SHOOT, M_CALCIUM, M_P_BONE);
+  Hr("Monke", 30, 16, 6.5f, EB_SHOOT, M_MONKE, M_P_BANANA);
+  Hr("Ogre", 70, 28, 5, EB_CHASE, M_OGRE, -1);
+  Hr("Rocco", 24, 18, 6.5f, EB_SHOOT, M_ROCCO, M_P_MINE);
+  Hr("Bramble", 55, 16, 4.8f, EB_SHOOT, M_BRAMBLE, M_P_FLASK);
+  Hr("Sizzle", 28, 22, 7, EB_CHASE, M_SIZZLE, -1);
+  Hr("Digby", 60, 24, 5, EB_CHASE, M_DIGBY, -1);
+  Hr("Hoot", 20, 18, 6.5f, EB_SHOOT, M_HOOT, M_P_ORB);
 
   gSpawnTables[MAP_FOREST] = {{E_SLIME, 0, 1.0f}, {E_GOBLIN, 0, 1.0f}, {E_BEE, .06f, .7f}, {E_GHOUL, .14f, .6f}, {E_GOBLIN_STRONG, .22f, .8f}, {E_SKELETON, .30f, .7f}, {E_BOOMER, .36f, .45f}, {E_GOLEM, .44f, .5f}, {E_SKELETON_ARMORED, .55f, .5f}, {E_GOBLIN_TANK, .64f, .4f}};
   gSpawnTables[MAP_DESERT] = {{E_TUMBLEBONE, 0, .9f}, {E_MUMMY, 0, 1.0f}, {E_WISP, .06f, .7f}, {E_CACTUS, .15f, .35f}, {E_SCORPION, .22f, .7f}, {E_SKELETON_DUSTY, .30f, .7f}, {E_SKELETON_ARMORED_DUSTY, .44f, .5f}, {E_SCORPION_BIG, .55f, .45f}, {E_MUMMY_TANK, .62f, .4f}, {E_MUMMY_ANCIENT, .74f, .3f}};

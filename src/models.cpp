@@ -640,6 +640,42 @@ static void buildHoot() {   // owl scholar: facial discs, round glasses, ear tuf
   bakeModel(M_HOOT, r, clips);
 }
 
+static void buildOverlord() {   // original villain for Reverse Mode: horned dread lord in dark plate, cape, spiked mace
+  MB b; HSpec s; s.leg = 0.82f; s.torso = 0.8f; s.head = 0.32f; s.shoulder = 0.8f; s.hip = 0.42f; s.arm = 0.8f; s.limbR = 0.13f; s.torsoW = 0.66f; s.torsoD = 0.46f;
+  u32 skin = 0x6a5a8a, plate = 0x2a2433;
+  s.skin = skin; s.top = plate; s.bottom = 0x3a2a3a; s.feet = 0x1a1420; s.hands = 0x2a2433; s.skinL = L_SKIN; s.topL = L_METAL; s.botL = L_CLOTH;
+  HJ J; Rig r = humanoid(s, J, b);
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(skin).l(L_SKIN).sphere(J.headC, {0.26f, 0.27f, 0.25f}, 8, 6);
+  b.c(0x5a4a7a).boxT(J.headC + v3(0, -0.16f, 0.1f), v3(0.2f, 0.07f, 0.14f), v3(0.24f, 0.07f, 0.16f));          // heavy jaw
+  b.c(0xf0ead8).l(L_BONE).cone(J.headC + v3(0.12f, -0.12f, 0.22f), 0.03f, 0.1f, 4).cone(J.headC + v3(-0.12f, -0.12f, 0.22f), 0.03f, 0.1f, 4); // tusks
+  addEyes(b, H, J.headC + v3(0, 0.04f, 0.22f), 0.09f, 0.035f, 0xc070ff, true);
+  b.to(H).c(0x1a1420).l(L_PLAIN).box(J.headC + v3(0, 0.1f, 0.22f), v3(0.16f, 0.025f, 0.03f));                   // brow
+  for (int side : {-1, 1}) {   // horns curving out and up
+    v3 a = J.headC + v3(side * 0.18f, 0.15f, 0), m = J.headC + v3(side * 0.36f, 0.3f, -0.04f), t = J.headC + v3(side * 0.4f, 0.55f, 0.06f);
+    b.to(H).c(0xd8cfb8).l(L_BONE).limb(a, m, 0.07f, 0.05f, 5).limb(m, t, 0.05f, 0.005f, 5);
+  }
+  for (int side : {-1, 1}) {   // spiked pauldrons
+    Part& A = r.parts[side < 0 ? P_ARM_R : P_ARM_L]; v3 sh = side < 0 ? J.shR : J.shL;
+    b.to(A).c(0x3a3448).l(L_METAL).sphere(sh + v3(side * 0.06f, 0.04f, 0), {0.2f, 0.15f, 0.2f}, 7, 4, 0.45f);
+    b.c(0xb8c0cc);
+    for (int k = 0; k < 3; k++) b.cone(sh + v3(side * (0.06f + k * 0.06f), 0.14f, -0.06f + k * 0.06f), 0.035f, 0.14f, 4);
+  }
+  b.to(r.parts[P_TORSO]).c(0x8a1a2a).l(L_CLOTH).box(J.hip + v3(0, 0.05f, 0), v3(0.36f, 0.05f, 0.25f));         // belt
+  b.c(0xf0ead8).l(L_BONE).sphere(J.hip + v3(0, 0.06f, 0.25f), {0.07f, 0.07f, 0.04f}, 6, 4);                      // skull buckle
+  b.c(0x101014).l(L_PLAIN).box(J.hip + v3(0.025f, 0.07f, 0.29f), v3(0.015f, 0.015f, 0.005f)).box(J.hip + v3(-0.025f, 0.07f, 0.29f), v3(0.015f, 0.015f, 0.005f));
+  b.to(r.parts[P_EXTRA]).c(0x5a1020).l(L_CLOTH).boxT(J.neck + v3(0, -0.55f, -0.27f), v3(0.42f, 0.55f, 0.03f), v3(0.3f, 0.55f, 0.03f)); // cape
+  Part& W = r.parts[P_PROP];   // spiked mace
+  b.to(W).c(0x4a3020).l(L_WOOD).limb(J.haR + v3(0, -0.07f, -0.15f), J.haR + v3(0, -0.07f, 0.7f), 0.045f, 0.05f, 5);
+  b.c(0x3a3448).l(L_METAL).sphere(J.haR + v3(0, -0.07f, 0.8f), {0.16f, 0.16f, 0.16f}, 7, 5);
+  b.c(0xb8c0cc);
+  for (int k = 0; k < 6; k++) { float a = k * TAU / 6; v3 c = J.haR + v3(cosf(a) * 0.15f, -0.07f + sinf(a) * 0.15f, 0.8f); b.limb(c, c + v3(cosf(a), sinf(a), 0) * 0.12f, 0.035f, 0.003f, 4); }
+  b.limb(J.haR + v3(0, -0.07f, 0.95f), J.haR + v3(0, -0.07f, 1.08f), 0.035f, 0.003f, 4);
+  auto clips = humanClips(0.62f, 0.85f, 2);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -0.8f; p.p[P_EXTRA].r.x = -0.1f - 0.05f * sinf(t * TAU); }; }
+  bakeModel(M_OVERLORD, r, clips);
+}
+
 // ---------------------------------------------------------------- enemies
 static void buildGoblin(int id, float scale, int variant) {
   // variant 0 weak, 1 strong (club), 2 tank (armor + big club)
@@ -1240,7 +1276,7 @@ static void buildFx() {
 void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
-  buildRocco(); buildBramble(); buildSizzle(); buildDigby(); buildHoot();
+  buildRocco(); buildBramble(); buildSizzle(); buildDigby(); buildHoot(); buildOverlord();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);

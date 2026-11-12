@@ -17,10 +17,11 @@ void Game::start(const RunConfig& c) {
   enemies.reserve(1400); projs.reserve(4000); areas.reserve(1500); pickups.reserve(2000); inters.reserve(600); parts.reserve(2000);
   P.ch = c.character; P.rerolls = c.rerolls; P.skips = c.skips; P.banishes = c.banishes;
   memset(dmgBySrc, 0, sizeof(dmgBySrc));
-  numStages = c.mode == MODE_BOSSRUSH ? BOSSRUSH_ROUNDS : c.mode == MODE_GAUNTLET ? MAP_COUNT : c.mode == MODE_ENDLESS ? 1 : c.tier + 1;
+  numStages = c.mode == MODE_BOSSRUSH ? BOSSRUSH_ROUNDS : c.mode == MODE_GAUNTLET ? MAP_COUNT : (c.mode == MODE_ENDLESS || c.mode == MODE_REVERSE) ? 1 : c.tier + 1;
   endlessBossT = 0; bossesBeaten = 0; endlessCycle = 0; gauntletSeen = {c.character}; pendingLevels = 0;
   stage = 0; runTime = 0; chestsBought = 0; firstEliteDone = 0; pumpkinBonus = 0; beaconBonus = 0; totalSilverEarned = 0;
-  addWeapon(weaponAllowed(gChars[P.ch].weapon) ? gChars[P.ch].weapon : W_SWORD);
+  if (c.mode == MODE_REVERSE) { addWeapon(W_SWORD); addWeapon(W_AURA); }   // the Overlord: mace swings and a dread aura
+  else addWeapon(weaponAllowed(gChars[P.ch].weapon) ? gChars[P.ch].weapon : W_SWORD);
   recomputeStats();
   P.hp = P.st[S_MAXHP]; P.shield = P.st[S_SHIELD];
   if (c.mode == MODE_SHRINEHUNT) P.gold = 120;
@@ -43,13 +44,15 @@ void Game::loadStage(int s) {
     if (it.type == I_SHADY) { for (int k = 0; k < 3; k++) { it.stock.push_back(rollItem(it.rarity)); it.sold.push_back(false); } }
     inters.push_back(it);
   }
-  if (cfg.mode == MODE_ENDLESS || cfg.mode == MODE_BOSSRUSH)   // no key hunt; Endless has no exit at all
-    inters.erase(std::remove_if(inters.begin(), inters.end(), [&](const Inter& it) { return it.type == I_CRYPT_KEY || (cfg.mode == MODE_ENDLESS && it.type == I_BOSS_PORTAL); }), inters.end());
+  if (cfg.mode == MODE_ENDLESS || cfg.mode == MODE_BOSSRUSH || reverse())   // no key hunt; Endless and Reverse have no exit at all
+    inters.erase(std::remove_if(inters.begin(), inters.end(), [&](const Inter& it) { return it.type == I_CRYPT_KEY || ((cfg.mode == MODE_ENDLESS || reverse()) && it.type == I_BOSS_PORTAL); }), inters.end());
   P.pos = world.spawnPoint + v3(0, 0.5f, 0); P.vel = v3(); P.onGround = false;
   stageTime = 0; stageDur = stageDuration(s);
   bossSummoned = bossDefeated = portalOpen = finalSwarm = false; finalSwarmT = 0; bossCount = mut(MU_BOSSDUO) ? 2 : 1; bossesAlive = 0; cryptKeys = 0; eventsDone = 0; spawnAcc = 0; cursedUsed = 0;
   monoType = -1;
-  if (mut(MU_MONO)) { const auto& tab = gSpawnTables[cfg.map]; monoType = tab[rng.irange(std::min((int)tab.size(), 4 + s * 2 + cfg.tier * 2))].enemy; }   // rolled only when used: keeps classic runs identical per seed
+  championsAlive = 0; legendSpawned = false; partyT = 45; minionT = 4;
+  if (mut(MU_MONO) && reverse()) monoType = E_H_FOX + rng.irange(10);
+  else if (mut(MU_MONO)) { const auto& tab = gSpawnTables[cfg.map]; monoType = tab[rng.irange(std::min((int)tab.size(), 4 + s * 2 + cfg.tier * 2))].enemy; }   // rolled only when used: keeps classic runs identical per seed
   camYaw = 0; camEye = P.pos + v3(0, 3, -7); camTgt = P.pos;
   egN = (int)(world.T.size / egCell) + 2; egOrigin = -world.T.half() - egCell;
   egHead.assign(egN * egN, -1);
@@ -61,12 +64,15 @@ void Game::loadStage(int s) {
     banners.clear();
     int bt = gBosses[cfg.map][std::min(2, cfg.tier)];
     banner(gEnemies[bt].name, fmt(tr("Boss %d/%d  •  %s"), s + 1, numStages + 1, sname), Col(255, 80, 80), 3.5f);
+  } else if (reverse()) {
+    eventsDone = 0xff;   // hero parties replace swarms and minibosses
+    banner(tr("The heroes are coming"), sname, Col(192, 112, 255), 3.5f);
   } else {
     banner(sname, cfg.mode == MODE_ENDLESS ? std::string(tr("Endless Siege")) : fmt(tr("Stage %d/%d  •  Tier %d"), s + 1, numStages, cfg.tier + 1), Col(255, 255, 255), 3.5f);
     if (cfg.map == MAP_GRAVEYARD && cfg.mode != MODE_ENDLESS) banner(tr("Find 4 Crypt Keys"), tr("to open the boss portal"), Col(127, 255, 159), 3.5f);
   }
   // a few starting enemies
-  for (int i = 0; i < 6; i++) spawnEnemy(gSpawnTables[cfg.map][i % 2].enemy, spawnRingPos(22, 30));
+  for (int i = 0; i < 6; i++) spawnEnemy(reverse() ? heroEnemy() : gSpawnTables[cfg.map][i % 2].enemy, spawnRingPos(22, 30));
 }
 
 void Game::nextStage() {
@@ -81,6 +87,13 @@ void Game::nextStage() {
   heal(P.st[S_MAXHP] * 0.3f);
   if (cfg.mode == MODE_GAUNTLET) gauntletSwap();
   if (mut(MU_SHUFFLE)) shuffleWeapons();
+}
+
+const char* Game::heroName() const { return reverse() ? "Overlord" : gChars[P.ch].name; }
+
+int Game::heroEnemy() {
+  if (mut(MU_MONO) && monoType >= E_H_FOX) return monoType;
+  return E_H_FOX + rng.irange(std::min(10, 4 + (int)(u() * 7)));   // tougher heroes join as the run goes on
 }
 
 void Game::setupStageFor(int s) {
@@ -140,6 +153,34 @@ void Game::surprisePot(v3 at) {
 }
 
 void Game::updateModes(float dt) {
+  if (reverse()) {
+    partyT -= dt; minionT -= dt;
+    if (!legendSpawned && partyT <= 0) {   // a hero party: a small group charging from one side, led by an elite
+      partyT = 75;
+      int n = 3 + std::min(3, (int)(u() * 4)); v3 c = spawnRingPos(26, 32);
+      for (int k = 0; k < n; k++) { v3 p = c + v3(rng.range(-3.f, 3.f), 0, rng.range(-3.f, 3.f)); p.y = world.T.height(p.x, p.z); spawnEnemy(heroEnemy(), p, k == 0); }
+      alert(tr("HERO PARTY!"), fmt(tr("%d heroes storm your lair"), n), Col(120, 200, 255), 2.4f); audioPlay(SFX_SWARM);
+    }
+    if (!legendSpawned && u() >= 1.f) {   // the end: five different champions; beating them wins the run
+      int pick[10]; for (int i = 0; i < 10; i++) pick[i] = i;
+      for (int i = 9; i > 0; i--) std::swap(pick[i], pick[rng.irange(i + 1)]);
+      v3 c = spawnRingPos(20, 24); championsAlive = 0;
+      for (int k = 0; k < 5; k++) {
+        float a = k * TAU / 5; v3 p = c + v3(cosf(a) * 3, 0, sinf(a) * 3); p.y = world.T.height(p.x, p.z);
+        Enemy* e = spawnEnemy(E_H_FOX + pick[k], p, true);
+        if (e) { e->champion = true; e->maxHp *= 7; e->hp = e->maxHp; e->dmg *= 1.4f; e->scale *= 1.15f; championsAlive++; }
+      }
+      if (championsAlive > 0) {
+        legendSpawned = true; bossesAlive = championsAlive;
+        banner(tr("THE LEGENDARY PARTY"), tr("Five champions came to end your reign"), Col(255, 214, 80), 4); audioPlay(SFX_BOSS);
+      }
+    }
+    if (minionT <= 0) {   // the Overlord's goblin minions
+      minionT = 14;
+      int n = 2 + std::min(3, P.level / 12);
+      for (int k = 0; k < n; k++) { Ally a; a.kind = 2; a.pos = P.pos + v3(rng.range(-2.f, 2.f), 0, rng.range(-2.f, 2.f)); a.pos.y = world.T.height(a.pos.x, a.pos.z); a.life = 12; allies.push_back(a); }
+    }
+  }
   if (cfg.mode == MODE_ENDLESS && !finalArena) {
     endlessBossT += dt;
     if (endlessBossT >= 300) {
@@ -243,6 +284,7 @@ void Game::recomputeStats() {
   if (mut(MU_GIANT)) { s[S_MAXHP] += 50; s[S_ARMOR] += 10; s[S_MOVESPD] -= .15f; s[S_KNOCKBACK] += .3f; }
   if (mut(MU_POCKET)) { s[S_MOVESPD] += .15f; s[S_EVASION] += 15; }
   if (mut(MU_MOON)) { s[S_JUMPH] += .8f; s[S_JUMPS] += 1; }
+  if (reverse()) { s[S_MAXHP] += 140; s[S_ARMOR] += 12; s[S_MOVESPD] -= .08f; s[S_SIZE] += .25f; s[S_PICKUP] += .4f; s[S_KNOCKBACK] += .5f; }
   if (P.streakTier >= 1) s[S_MOVESPD] += .2f;
   if (P.streakTier >= 2) s[S_DAMAGE] += .3f;
   if (P.streakTier >= 3) s[S_REGEN] += 30;
@@ -721,9 +763,9 @@ void Game::updateCamera(float dt) {
     float diff = wrapAngle(target - camYaw);
     if (fabsf(diff) < 2.6f) camYaw += diff * std::min(1.f, dt * 1.1f) * sat(spd / 8.f);
   }
-  v3 tgt = P.pos + v3(0, 1.45f, 0);
+  v3 tgt = P.pos + v3(0, reverse() ? 2.1f : 1.45f, 0);   // the Overlord is a head taller: frame it from further back
   float cp = cosf(camPitch), sp = sinf(camPitch);
-  v3 eye = tgt + v3(-sinf(camYaw) * cp, sp, -cosf(camYaw) * cp) * camDist;
+  v3 eye = tgt + v3(-sinf(camYaw) * cp, sp, -cosf(camYaw) * cp) * camDist * (reverse() ? 1.35f : 1.f);
   float gy = world.T.height(eye.x, eye.z) + 0.6f;
   if (eye.y < gy) eye.y = gy;
   float k = std::min(1.f, dt * 14.f);
@@ -848,6 +890,7 @@ void Game::updateSpawning(float dt) {
   if (bossesAlive > 0) target *= 0.55f;
   if (cfg.mode == MODE_BOSSRUSH) target *= 0.45f;
   if (cfg.mode == MODE_SHRINEHUNT) target *= 0.6f;
+  if (reverse()) target *= 0.4f;
   target = std::min(target, (float)cfg.maxEnemies);
   eliteT -= dt;
   spawnAcc += dt * (2.f + target * 0.22f);
@@ -863,6 +906,7 @@ void Game::updateSpawning(float dt) {
     int type = tab[pick].enemy;
     if (rng.chance(0.003f)) type = rng.chance(0.5f) ? E_SKELETON_GOLD : E_SKELETON_XP;
     bool elite = false;
+    if (reverse()) type = heroEnemy();
     if (eliteT <= 0) { elite = true; eliteT = (30.f - 18.f * std::min(uu, 1.f)) / std::max(0.2f, P.st[S_ELITESPAWN]) / (mut(MU_ELITES) ? 3.f : 1.f) / (mut(MU_MONO) ? 1.6f : 1.f); }
     if (mut(MU_MONO) && monoType >= 0 && gEnemies[type].rank == RK_NORMAL && type != E_SKELETON_GOLD && type != E_SKELETON_XP) type = monoType;
     spawnEnemy(type, spawnRingPos(24, 38), elite);
@@ -891,8 +935,8 @@ void Game::updateSpawning(float dt) {
   if (!infinite || true) {
     event(1, 0.30f, swarm); event(2, 0.30f, [&] { miniboss(0); }); event(4, 0.70f, swarm); event(8, 0.80f, [&] { miniboss(1); });
   }
-  if (!infinite && cfg.swarmMode == 0 && uu >= 1.f && !finalSwarm) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), bossDefeated ? tr("Run to the portal!") : tr("Kill the boss and flee through the portal!"), Col(255, 80, 80), 4); audioPlay(SFX_SWARM); }
-  if (cfg.swarmMode == 1 && bossDefeated && !finalSwarm && !infinite && uu >= 1.f) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), tr("Enter the portal!"), Col(255, 80, 80), 4); }
+  if (!infinite && !reverse() && cfg.swarmMode == 0 && uu >= 1.f && !finalSwarm) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), bossDefeated ? tr("Run to the portal!") : tr("Kill the boss and flee through the portal!"), Col(255, 80, 80), 4); audioPlay(SFX_SWARM); }
+  if (cfg.swarmMode == 1 && !reverse() && bossDefeated && !finalSwarm && !infinite && uu >= 1.f) { finalSwarm = true; banner(tr("THE FINAL SWARM HAS BEGUN"), tr("Enter the portal!"), Col(255, 80, 80), 4); }
   if (finalSwarm) {
     finalSwarmT += dt;
     float rate = 3.f + finalSwarmT * 0.12f;
@@ -1059,11 +1103,12 @@ void Game::updateItems(float dt) {
       a.vel = lerp3(a.vel, dir / std::max(0.01f, d) * (a.kind == 0 ? 9.f : 7.f), std::min(1.f, dt * 4));
       if (d < 1.2f && a.atkT <= 0) {
         if (a.kind == 0) { hitEnemy(e, 10.f * (1 + stage) * (1 + u()), SRC_ITEM + IT_GHOST, 0.5f, 0, a.pos, 0.5f); a.atkT = 0.5f; }
+        else if (a.kind == 2) { hitEnemy(e, 14.f * P.st[S_DAMAGE] * (1 + 0.06f * P.level), SRC_COUNT - 1, 0.5f, 0, a.pos, 1.f); a.atkT = 0.6f; }
         else { areaDamage(a.pos, 3.f, 30.f * (1 + stage) * (1 + u()) * P.items[IT_BOBDEAD], SRC_ITEM + IT_BOBDEAD, 0.3f, 2.f); particles(a.pos, 20, Col(140, 200, 120), 6, 0.4f, 0.6f); a.life = 0; audioPlay(SFX_EXPLODE); }
       }
     } else { v3 dir = P.pos + v3(0, 1.5f, 0) - a.pos; a.vel = lerp3(a.vel, dir * 1.5f, std::min(1.f, dt * 3)); }
     a.pos += a.vel * dt;
-    if (a.kind == 1) a.pos.y = world.T.height(a.pos.x, a.pos.z);
+    if (a.kind >= 1) a.pos.y = world.T.height(a.pos.x, a.pos.z);
   }
   allies.erase(std::remove_if(allies.begin(), allies.end(), [](const Ally& a) { return a.life <= 0; }), allies.end());
 }

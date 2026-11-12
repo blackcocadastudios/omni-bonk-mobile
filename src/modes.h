@@ -2,7 +2,7 @@
 #pragma once
 #include "base.h"
 
-enum GameMode { MODE_NORMAL, MODE_DAILY, MODE_BOSSRUSH, MODE_ENDLESS, MODE_GAUNTLET, MODE_SHRINEHUNT, MODE_COUNT };
+enum GameMode { MODE_NORMAL, MODE_DAILY, MODE_BOSSRUSH, MODE_ENDLESS, MODE_GAUNTLET, MODE_SHRINEHUNT, MODE_REVERSE, MODE_COUNT };
 struct ModeDef { const char* name; const char* tagline; const char* desc; int icon; u32 color; };
 extern const ModeDef kModes[MODE_COUNT];
 
