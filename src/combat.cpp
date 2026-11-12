@@ -839,24 +839,31 @@ void Game::bossAI(Enemy& e, float dt) {
     e.pos.y = world.T.height(e.pos.x, e.pos.z) + 2.0f + sinf(e.animT) * 0.4f;
     e.vel = mv; return;
   }
+  // stage bosses: second phase at half HP - faster, shorter cooldowns and one extra attack per boss family
+  if (hpf < 0.5f && e.phase < 1) {
+    e.phase = 1; e.speed *= 1.2f; e.aiT3 = 1.5f;
+    alert(fmt(tr("%s is enraged!"), gEnemies[t].name), tr("A new attack is coming"), Col(255, 90, 60), 2.2f);
+    particles(e.pos + v3(0, 2, 0), 30, Col(255, 80, 40), 8, 0.5f, 0.8f); shake = std::max(shake, 0.4f); audioPlay(SFX_BOSS, 0.6f);
+  }
+  const float cdk = e.phase >= 1 ? 0.78f : 1.f;
   switch (t) {
     case E_B_LILBARK:
       mv = v3();
-      if (e.aiT <= 0) { e.aiT = 3.f; ring(10, 7, 0.5f, M_P_ROCK, 2.5f); e.clip = CL_ATTACK; e.clipT = 0; }
-      if (e.aiT2 <= 0) { e.aiT2 = 6.5f; for (int k = 0; k < 3; k++) tele(P.pos + rng.inDisk(3.5f), 2.4f, 1.0f, 1.0f, 0xff4030); summon(rng.chance(0.5f) ? E_SLIME : E_GOBLIN, 3); }
+      if (e.aiT <= 0) { e.aiT = 3.f * cdk; ring(10, 7, 0.5f, M_P_ROCK, 2.5f); e.clip = CL_ATTACK; e.clipT = 0; }
+      if (e.aiT2 <= 0) { e.aiT2 = 6.5f * cdk; for (int k = 0; k < 3; k++) tele(P.pos + rng.inDisk(3.5f), 2.4f, 1.0f, 1.0f, 0xff4030); summon(rng.chance(0.5f) ? E_SLIME : E_GOBLIN, 3); }
       break;
     case E_B_CHADBARK: case E_B_BARKVADER:
-      if (e.aiT <= 0 && dist < 10) { e.aiT = t == E_B_BARKVADER ? 3.2f : 4.f; tele(e.pos, 5.5f, 1.1f, 1.4f, 0xff3030); e.clip = CL_SPECIAL; e.clipT = 0; }
-      if (e.aiT2 <= 0) { e.aiT2 = 5.f; ring(t == E_B_BARKVADER ? 18 : 12, 8, 0.5f, M_P_ROCK, 2.5f); if (t == E_B_BARKVADER) { Area& a = addArea(); a.kind = AK_BOSSFIRE; a.pos = e.pos + v3(0, 1.5f, 0); a.radius = 14; a.life = a.maxLife = 3.5f; a.tick = 1.6f; a.knock = 2; a.dmg = e.dmg * 0.6f; a.target = e.id; a.color = 0xff2020; } }
+      if (e.aiT <= 0 && dist < 10) { e.aiT = (t == E_B_BARKVADER ? 3.2f : 4.f) * cdk; tele(e.pos, 5.5f, 1.1f, 1.4f, 0xff3030); e.clip = CL_SPECIAL; e.clipT = 0; }
+      if (e.aiT2 <= 0) { e.aiT2 = 5.f * cdk; ring(t == E_B_BARKVADER ? 18 : 12, 8, 0.5f, M_P_ROCK, 2.5f); if (t == E_B_BARKVADER) { Area& a = addArea(); a.kind = AK_BOSSFIRE; a.pos = e.pos + v3(0, 1.5f, 0); a.radius = 14; a.life = a.maxLife = 3.5f; a.tick = 1.6f; a.knock = 2; a.dmg = e.dmg * 0.6f; a.target = e.id; a.color = 0xff2020; } }
       break;
     case E_B_LILANUBIS: case E_B_ANUBRUH: case E_B_JUGEANUBIS: {
       if (e.aiT <= 0) {
-        e.aiT = 2.4f;
+        e.aiT = 2.4f * cdk;
         for (int k = -1; k <= 1; k++) { float a = atan2f(dir.x, dir.z) + k * 0.25f; Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = M_P_ENEMYBALL; pr.pos = e.pos + v3(0, 2.5f, 0); pr.vel = v3(sinf(a), -0.05f, cosf(a)) * 12.f; pr.life = pr.maxLife = 3; pr.dmg = e.dmg * 0.6f; pr.radius = 0.5f; }
         e.clip = CL_ATTACK; e.clipT = 0;
       }
       if (e.aiT2 <= 0) {
-        e.aiT2 = 7.f;
+        e.aiT2 = 7.f * cdk;
         if (t != E_B_LILANUBIS) { Area& a = addArea(); a.kind = AK_BOSSFIRE; a.pos = e.pos + v3(0, 1.5f, 0); a.radius = 16; a.life = a.maxLife = 4.5f; a.tick = t == E_B_JUGEANUBIS ? 1.4f : 1.0f; a.knock = t == E_B_JUGEANUBIS ? 4.f : 2.f; a.dmg = e.dmg * 0.5f; a.target = e.id; a.color = 0x3080ff; }
         if (t == E_B_JUGEANUBIS) for (int k = 0; k < 4; k++) tele(P.pos + rng.inDisk(5.f), 3.f, 1.4f, 1.3f, 0xffd040);
         summon(E_MUMMY, 3);
@@ -864,10 +871,67 @@ void Game::bossAI(Enemy& e, float dt) {
         e.clip = CL_SPECIAL; e.clipT = 0;
       }
     } break;
-    case E_B_BIGBOB:
-      if (e.aiT <= 0 && dist < 11) { e.aiT = 3.6f; tele(e.pos + dir * 4, 4.5f, 1.0f, 1.4f, 0x80ff60); e.clip = CL_ATTACK; e.clipT = 0; }
-      if (e.aiT2 <= 0) { e.aiT2 = 6.f; summon(rng.chance(0.5f) ? E_ZOMBIE : E_HEAD, 4); ring(10, 6, 0.5f); }
+    case E_B_RIMEBACK: case E_B_RIMEALPHA: case E_B_GLACIERTYRANT:
+      if (e.aiT <= 0 && dist < 24) {   // hurls ice boulders at you (landing spots telegraphed)
+        e.aiT = (t == E_B_GLACIERTYRANT ? 2.6f : 3.2f) * cdk; e.clip = CL_ATTACK; e.clipT = 0;
+        for (int k = 0; k < (t == E_B_RIMEBACK ? 2 : 3); k++) {
+          Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY_LOB; pr.model = M_P_ROCK; pr.origin = e.pos + v3(0, 3.5f, 0); pr.pos = pr.origin;
+          pr.aux3 = P.pos + v3(rng.range(-3.f, 3.f), 0, rng.range(-3.f, 3.f)) + P.vel * 0.5f; pr.aux3.y = world.T.height(pr.aux3.x, pr.aux3.z);
+          pr.life = pr.maxLife = 1.1f; pr.dmg = e.dmg; pr.explode = 2.4f; pr.color = 0xa8e8ff; pr.size = 1.8f;
+          tele(pr.aux3, 2.4f, 1.1f, 0, 0x80d8ff);
+        }
+      }
+      if (e.aiT2 <= 0) {   // frost nova around itself and a few frost slimes
+        e.aiT2 = 6.5f * cdk; e.clip = CL_SPECIAL; e.clipT = 0;
+        tele(e.pos, 6.f, 1.2f, 1.3f, 0x80d8ff); summon(E_F_SLIME, t == E_B_GLACIERTYRANT ? 5 : 3);
+        if (t != E_B_RIMEBACK) ring(t == E_B_GLACIERTYRANT ? 16 : 12, 7.5f, 0.5f, M_P_SPIKE, 2.f);
+      }
       break;
+    case E_B_CINDERHORN: case E_B_MAGMAW: case E_B_PYRETYRANT:
+      if (e.aiT <= 0) {   // a fan of fireballs
+        e.aiT = (t == E_B_PYRETYRANT ? 2.2f : 2.6f) * cdk; e.clip = CL_ATTACK; e.clipT = 0;
+        int n = t == E_B_CINDERHORN ? 3 : 5;
+        for (int k = 0; k < n; k++) { float a = atan2f(dir.x, dir.z) + (k - (n - 1) * 0.5f) * 0.2f; Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = M_P_FIREBALL; pr.pos = e.pos + v3(0, 2.4f, 0); pr.vel = v3(sinf(a), -0.05f, cosf(a)) * 11.f; pr.life = pr.maxLife = 3; pr.dmg = e.dmg * 0.6f; pr.radius = 0.5f; }
+      }
+      if (e.aiT2 <= 0) {   // eruption slam, ember slimes, and a burning aura for the tyrant
+        e.aiT2 = 6.f * cdk; e.clip = CL_SPECIAL; e.clipT = 0;
+        if (dist < 12) tele(e.pos, 5.f, 1.0f, 1.4f, 0xff6a1a);
+        summon(E_V_SLIME, 3);
+        if (t != E_B_CINDERHORN) ring(10, 7, 0.5f, M_P_FIREBALL, 1.5f);
+        if (t == E_B_PYRETYRANT) { Area& a = addArea(); a.kind = AK_BOSSFIRE; a.pos = e.pos + v3(0, 1.5f, 0); a.radius = 14; a.life = a.maxLife = 3.5f; a.tick = 1.4f; a.knock = 2; a.dmg = e.dmg * 0.5f; a.target = e.id; a.color = 0xff5a10; }
+      }
+      break;
+    case E_B_BIGBOB:
+      if (e.aiT <= 0 && dist < 11) { e.aiT = 3.6f * cdk; tele(e.pos + dir * 4, 4.5f, 1.0f, 1.4f, 0x80ff60); e.clip = CL_ATTACK; e.clipT = 0; }
+      if (e.aiT2 <= 0) { e.aiT2 = 6.f * cdk; summon(rng.chance(0.5f) ? E_ZOMBIE : E_HEAD, 4); ring(10, 6, 0.5f); }
+      break;
+  }
+  // phase-2 signature attacks
+  if (e.phase >= 1 && (e.aiT3 -= dt) <= 0) {
+    e.aiT3 = 6.f;
+    switch (t) {
+      case E_B_LILBARK:   // roots erupting in a line towards you
+        for (int k = 1; k <= 5; k++) tele(e.pos + dir * (2.6f * k), 1.8f, 0.6f + 0.12f * k, 1.0f, 0xff4030);
+        break;
+      case E_B_CHADBARK: case E_B_BARKVADER:   // a ring of aftershocks around the boss
+        for (int k = 0; k < 8; k++) { float a = k * TAU / 8 + rng.f() * 0.3f; tele(e.pos + v3(cosf(a), 0, sinf(a)) * 8.f, 2.2f, 1.2f, 1.1f, 0xff6020); }
+        break;
+      case E_B_LILANUBIS: case E_B_ANUBRUH: case E_B_JUGEANUBIS:   // a cross of sun beams centred on you
+        tele(P.pos, 2.2f, 1.2f, 1.1f, 0xffd040);
+        for (int k = 0; k < 4; k++) { float a = k * PI / 2; tele(P.pos + v3(cosf(a), 0, sinf(a)) * 3.6f, 2.2f, 1.2f, 1.1f, 0xffd040); }
+        break;
+      case E_B_BIGBOB:   // toxic rain around you
+        for (int k = 0; k < 5; k++) tele(P.pos + rng.inDisk(5.f), 2.4f, 1.1f + 0.15f * k, 1.0f, 0x80ff60);
+        break;
+      case E_B_RIMEBACK: case E_B_RIMEALPHA: case E_B_GLACIERTYRANT:   // icicles raining around you
+        for (int k = 0; k < 7; k++) tele(P.pos + rng.inDisk(6.f), 2.f, 0.9f + 0.12f * k, 1.0f, 0x80d8ff);
+        break;
+      case E_B_CINDERHORN: case E_B_MAGMAW: case E_B_PYRETYRANT:   // calls down meteors
+        for (int k = 0; k < 6; k++) meteor(P.pos + rng.inDisk(7.f), e.dmg * 1.1f, 1.1f + 0.15f * k);
+        break;
+      default: break;
+    }
+    e.clip = CL_SPECIAL; e.clipT = 0;
   }
   if (dist < e.radius + 0.8f && e.atkCd <= 0) { e.atkCd = 1.3f; damagePlayer(e.dmg, &e); }
   e.vel = mv;

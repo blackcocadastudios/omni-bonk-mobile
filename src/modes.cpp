@@ -7,7 +7,7 @@ const ModeDef kModes[MODE_COUNT] = {
   {"Daily Run", "Same run for everyone today", "One run a day with a fixed hero, map, seed and two mutators. Your best score of the day is kept.", ICON_UI0 + UI_CLOCK, 0xffd23f},
   {"Boss Rush", "Nine bosses back to back", "Each round drops you next to a boss, from the first forest guardian to the Ghost King. Level-ups and a golden chest after every kill.", ICON_UI0 + UI_CROWN, 0xff5252},
   {"Endless Siege", "No portal, no way out", "The horde never stops growing and a boss shows up every 5 minutes. How long can you hold?", ICON_UI0 + UI_SKULL, 0xb48cff},
-  {"Hero Gauntlet", "New hero every stage", "Three stages across the three maps. At each portal you become a different random hero, keeping your items, tomes and weapons.", ICON_UI0 + UI_REROLL, 0x4fc3f7},
+  {"Hero Gauntlet", "New hero every stage", "Three stages on three different maps. At each portal you become a different random hero, keeping your items, tomes and weapons.", ICON_UI0 + UI_REROLL, 0x4fc3f7},
   {"Shrine Hunt", "Short stages, packed maps", "Maps packed with chests and shrines, cheaper chests and a starting purse, but only 6 minutes per stage.", ICON_INTER0 + I_CHARGE_SHRINE, 0x7bd23f},
   {"Reverse Mode", "You are the boss now", "Play as the Overlord, a towering villain. The ten heroes storm your lair in waves and hero parties while your goblin minions fight at your side. Hold for 10 minutes, then crush the Legendary Party.", ICON_WEAPON0 + W_CORRUPTED, 0xc070ff},
 };

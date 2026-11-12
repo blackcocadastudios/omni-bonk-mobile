@@ -17,7 +17,7 @@ void Game::start(const RunConfig& c) {
   enemies.reserve(1400); projs.reserve(4000); areas.reserve(1500); pickups.reserve(2000); inters.reserve(600); parts.reserve(2000);
   P.ch = c.character; P.rerolls = c.rerolls; P.skips = c.skips; P.banishes = c.banishes;
   memset(dmgBySrc, 0, sizeof(dmgBySrc));
-  numStages = c.mode == MODE_BOSSRUSH ? BOSSRUSH_ROUNDS : c.mode == MODE_GAUNTLET ? MAP_COUNT : (c.mode == MODE_ENDLESS || c.mode == MODE_REVERSE) ? 1 : c.tier + 1;
+  numStages = c.mode == MODE_BOSSRUSH ? BOSSRUSH_ROUNDS : c.mode == MODE_GAUNTLET ? 3 : (c.mode == MODE_ENDLESS || c.mode == MODE_REVERSE) ? 1 : c.tier + 1;
   endlessBossT = 0; bossesBeaten = 0; endlessCycle = 0; gauntletSeen = {c.character}; pendingLevels = 0;
   stage = 0; runTime = 0; chestsBought = 0; firstEliteDone = 0; pumpkinBonus = 0; beaconBonus = 0; totalSilverEarned = 0;
   if (c.mode == MODE_REVERSE) { addWeapon(W_SWORD); addWeapon(W_AURA); }   // the Overlord: mace swings and a dread aura
@@ -36,7 +36,7 @@ void Game::loadStage(int s) {
   setupStageFor(s);
   world.interDensity = cfg.mode == MODE_SHRINEHUNT ? 2.5f : 1.f;
   enemies.clear(); projs.clear(); areas.clear(); pickups.clear(); inters.clear(); parts.clear(); texts.clear(); allies.clear();
-  world.generate(cfg.map, cfg.tier, cfg.mode == MODE_BOSSRUSH ? s % MAP_COUNT : s, cfg.seed * 31 + s * 977 + 1, beaconBonus, pumpkinBonus);
+  world.generate(cfg.map, cfg.tier, cfg.mode == MODE_BOSSRUSH ? s % 3 : s, cfg.seed * 31 + s * 977 + 1, beaconBonus, pumpkinBonus);
   worldGen++;
   for (auto& is : world.inters) {
     Inter it; it.type = is.type; it.pos = is.pos; it.yaw = is.yaw; it.rarity = is.rarity;
@@ -51,6 +51,7 @@ void Game::loadStage(int s) {
   bossSummoned = bossDefeated = portalOpen = finalSwarm = false; finalSwarmT = 0; bossCount = mut(MU_BOSSDUO) ? 2 : 1; bossesAlive = 0; cryptKeys = 0; eventsDone = 0; spawnAcc = 0; cursedUsed = 0;
   monoType = -1;
   championsAlive = 0; legendSpawned = false; partyT = 45; minionT = 4;
+  hazardT = 60; meteorT = 0; meteorsLeft = 0; hazardOn = false;
   if (mut(MU_MONO) && reverse()) monoType = E_H_FOX + rng.irange(10);
   else if (mut(MU_MONO)) { const auto& tab = gSpawnTables[cfg.map]; monoType = tab[rng.irange(std::min((int)tab.size(), 4 + s * 2 + cfg.tier * 2))].enemy; }   // rolled only when used: keeps classic runs identical per seed
   camYaw = 0; camEye = P.pos + v3(0, 3, -7); camTgt = P.pos;
@@ -97,7 +98,7 @@ int Game::heroEnemy() {
 }
 
 void Game::setupStageFor(int s) {
-  if (cfg.mode == MODE_BOSSRUSH) { cfg.map = s % MAP_COUNT; cfg.tier = std::min(2, s / MAP_COUNT); }
+  if (cfg.mode == MODE_BOSSRUSH) { cfg.map = s % MAP_COUNT; cfg.tier = std::min(2, s / 3); }   // three rounds per tier, walking through every map
   else if (cfg.mode == MODE_GAUNTLET) { cfg.map = (cfg.baseMap + s) % MAP_COUNT; cfg.tier = cfg.baseTier; }
 }
 
@@ -152,7 +153,25 @@ void Game::surprisePot(v3 at) {
   }
 }
 
+void Game::meteor(v3 at, float dmg, float fall) {
+  at.y = world.T.height(at.x, at.z);
+  Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY_LOB; pr.model = M_P_ROCK; pr.origin = at + v3(rng.range(-6.f, 6.f), 24, rng.range(-6.f, 6.f)); pr.pos = pr.origin;
+  pr.aux3 = at; pr.life = pr.maxLife = fall; pr.dmg = dmg; pr.explode = 2.6f; pr.color = 0xff6a1a; pr.size = 2.f;
+  Area& a = addArea(); a.kind = AK_TELEGRAPH; a.pos = at; a.radius = 2.6f; a.life = a.maxLife = fall; a.dmg = 0; a.color = 0xff6a1a;
+}
+
 void Game::updateModes(float dt) {
+  // map hazards: Frostpeak blizzards (fog + snow, see render) and Caldera meteor showers
+  if (!finalArena && cfg.map == MAP_FROST) {
+    float c = fmodf(stageTime + 40.f, 100.f); bool on = c > 62 && c < 92;
+    if (on && !hazardOn) alert(tr("BLIZZARD!"), tr("Visibility drops"), Col(220, 240, 255), 2.2f);
+    hazardOn = on;
+  }
+  if (!finalArena && cfg.map == MAP_EMBER) {
+    hazardT -= dt;
+    if (hazardT <= 0) { hazardT = 65; meteorsLeft = 6 + 2 * (stage % 3) + 2 * cfg.tier; alert(tr("METEOR SHOWER!"), tr("Watch the red circles"), Col(255, 120, 50), 2.2f); }
+    if (meteorsLeft > 0 && (meteorT -= dt) <= 0) { meteorT = 0.35f; meteorsLeft--; meteor(P.pos + rng.inDisk(9.f) + P.vel * 0.6f, 15.f * dmgMult() * (1 + 0.3f * cfg.tier), 1.3f); }
+  }
   if (reverse()) {
     partyT -= dt; minionT -= dt;
     if (!legendSpawned && partyT <= 0) {   // a hero party: a small group charging from one side, led by an elite
@@ -243,7 +262,7 @@ void Game::startFinalArena() {
 float Game::hpMult() const {
   float uu = finalArena ? 1.f : uCap(1.6f);
   float tierM = cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 2.2f : 4.5f;
-  float stageM = 1.f + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage);
+  float stageM = 1.f + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % 3 : stage);
   float d = P.st[S_DIFFICULTY] / 100.f;
   float longBonus = 1.f + 0.15f * std::max(0.f, (cfg.stageMinutes > 0 ? cfg.stageMinutes : 15.f) - 10.f) / 5.f * uu;
   return tierM * stageM * (1 + 2.2f * uu + 5.5f * uu * uu) * (1 + 0.6f * d) * longBonus;
@@ -361,7 +380,7 @@ Enemy* Game::spawnEnemy(int type, v3 pos, bool elite) {
   if (d.rank == RK_BOSS) {
     float uu = cfg.mode == MODE_BOSSRUSH ? 0.1f + 0.11f * stage : uCap(1.2f);
     float tierM = cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 2.4f : 5.f;
-    e.maxHp = d.hp * (0.8f + 2.7f * uu) * tierM * (1 + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage)) * (1 + 0.5f * P.st[S_DIFFICULTY] / 100.f);
+    e.maxHp = d.hp * (0.8f + 2.7f * uu) * tierM * (1 + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % 3 : stage)) * (1 + 0.5f * P.st[S_DIFFICULTY] / 100.f);
     if (mut(MU_BOSSDUO)) e.maxHp *= 0.75f;
     e.dmg = d.dmg * dm * 0.8f;
   }
@@ -886,7 +905,7 @@ void Game::updateSpawning(float dt) {
   bool infinite = cfg.stageMinutes <= 0;
   float d = P.st[S_DIFFICULTY] / 100.f;
   int alive = 0; for (auto& e : enemies) if (e.alive && e.rank == RK_NORMAL) alive++;
-  float target = (14 + 234 * powf(std::min(uu, cfg.mode == MODE_ENDLESS ? 2.5f : 1.3f), 1.1f)) * (1 + 0.3f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage) + 0.25f * cfg.tier) * (1 + 1.1f * d);
+  float target = (14 + 234 * powf(std::min(uu, cfg.mode == MODE_ENDLESS ? 2.5f : 1.3f), 1.1f)) * (1 + 0.3f * (cfg.mode == MODE_BOSSRUSH ? stage % 3 : stage) + 0.25f * cfg.tier) * (1 + 1.1f * d);
   if (bossesAlive > 0) target *= 0.55f;
   if (cfg.mode == MODE_BOSSRUSH) target *= 0.45f;
   if (cfg.mode == MODE_SHRINEHUNT) target *= 0.6f;
@@ -1134,7 +1153,7 @@ void Game::updateAutopilot(float dt) {
     for (size_t i = 0; i < inters.size(); i++) {
       const Inter& it = inters[i]; if (it.used) continue;
       bool want = it.type == I_CHARGE_SHRINE || it.type == I_CHEST_GOLD || (it.type == I_CHEST && P.gold >= chestCost()) || it.type == I_MOAI || it.type == I_POT || it.type == I_POT_BIG || it.type == I_CRYPT_KEY || it.type == I_PUMPKIN || it.type == I_ALTAR;
-      if (it.type == I_BOSS_PORTAL && (u() > 0.72f || portalOpen) && (cfg.map != MAP_GRAVEYARD || cryptKeys >= 4) && (!bossSummoned || portalOpen)) want = true;
+      if (it.type == I_BOSS_PORTAL && (u() > 0.72f || portalOpen) && (cfg.map != MAP_GRAVEYARD || cryptKeys >= 4 || portalOpen) && (!bossSummoned || portalOpen)) want = true;
       if (!want) continue;
       float d = dist2XZ(it.pos, P.pos) * (it.type == I_BOSS_PORTAL ? 0.004f : it.type == I_CHARGE_SHRINE ? 0.6f : it.type == I_CRYPT_KEY ? 0.2f : 1.f);
       if (d < bd) { bd = d; best = (int)i; }

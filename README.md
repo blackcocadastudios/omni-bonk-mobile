@@ -6,6 +6,8 @@ A 3D survival roguelite for Android and Linux handhelds (R36S / PortMaster), mad
 
 ![Characters](docs/art_06_characters.jpg)
 
+![Frostpeak and Caldera bosses](docs/art_14_new_bosses.jpg)
+
 | | |
 |---|---|
 | ![Forest](docs/game_02_forest_green_fox_min8.jpg) | ![Desert](docs/game_03_desert_calcium_min6.jpg) |
@@ -16,8 +18,8 @@ A 3D survival roguelite for Android and Linux handhelds (R36S / PortMaster), mad
 
 | | |
 |---|---|
-| Maps | Forest, Desert and Graveyard, each in 3 tiers with its own palette (Green/Deep/Cursed Forest, Crusty/Twilight/Blood Desert, Graveyard/Haunted/Cursed Graveyard) |
-| Enemies | 43 in total, with elites, 6 minibosses, 8 bosses (including the Ghost King of the Tier 3 final arena) and the final swarm |
+| Maps | 5 maps, each in 3 tiers with its own palette: Forest (Green/Deep/Cursed), Desert (Crusty/Twilight/Blood, sandstorms), Graveyard (Graveyard/Haunted/Cursed, crypt keys), Frostpeak (Frostpeak/Glacier Pass/Blizzard Summit, blizzards) and Caldera (Ashlands/Ember Caldera/Molten Core, meteor showers) |
+| Enemies | 71 in total, with elites, 10 minibosses, 14 bosses (including the Ghost King of the Tier 3 final arena) and the final swarm. Stage bosses enter an enraged second phase at half HP: faster, shorter cooldowns and one extra attack per boss family |
 | Characters | 10, each with a passive: Fox (Firestaff), Ninja (Katana), Calcium (Bone), Monke (Bananarang), Ogre (Axe), plus five original characters: Rocco the raccoon tinkerer (Mines), Bramble the walking stump (Poison Flask), Sizzle the gecko cook (Dragon's Breath), Digby the mole miner (Chunkers) and Hoot the owl scholar (Lightning Staff) |
 | Weapons / Tomes / Items | 30 weapons, 23 tomes, 86 items across Common, Rare, Epic and Legendary rarities |
 | Interactables | Chests (normal and free golden), Charge Shrines (upgrade towers), Greed, Cursed, Challenge, Moai, Shady Guy, Microwave, Shrine of Succ, pots, pumpkins, silver pots, tumbleweeds, crypt keys, portals |
@@ -39,7 +41,7 @@ PLAY opens the mode screen:
 |---|---|
 | Classic | The full run: hero, map, tier and time per stage of your choice |
 | Daily Run | One run per calendar day with a date-seeded hero, map, seed and two mutators; your best score of the day is saved |
-| Boss Rush | Nine bosses back to back (three per map, tiers 1-3), then the Ghost King; level-ups, a heal and a golden chest after each kill |
+| Boss Rush | Nine bosses back to back (three rounds per tier, walking through the five maps), then the Ghost King; level-ups, a heal and a golden chest after each kill |
 | Endless Siege | No portal and no timer: difficulty keeps climbing in 10-minute cycles and a boss joins every 5 minutes; best time per map is saved |
 | Hero Gauntlet | Three stages across the three maps; at each portal you become a different random hero, keeping items, tomes and weapons |
 | Shrine Hunt | Maps with 2.5x more chests and shrines, cheaper chests and a starting purse, but 6-minute stages |
@@ -101,11 +103,13 @@ and `.gitignore` blocks audio files.
 | 3 | `graveyard.ogg` | Graveyard |
 | 4 | `boss.ogg` | while a boss is alive |
 | 5 | `final.ogg` | Tier 3 final arena (falls back to `boss.ogg`) |
+| 6 | `frostpeak.ogg` | Frostpeak |
+| 7 | `caldera.ogg` | Caldera |
 
 Any missing file keeps the chiptune for that slot. Tracks loop and cross-fade like the chiptune; volume follows the Music setting.
 
 ```bash
-python3 scripts/build_music_pack.py --out music --menu calm.flac --forest a.mp3 --desert b.ogg --graveyard c.ogg --boss d.ogg --final e.ogg
+python3 scripts/build_music_pack.py --out music --menu calm.flac --forest a.mp3 --desert b.ogg --graveyard c.ogg --boss d.ogg --final e.ogg --frostpeak f.ogg --caldera g.ogg
 ```
 
 The script trims silence, normalizes loudness (EBU R128, -14 LUFS) so the music sits under the sound effects, and writes 48 kHz OGG

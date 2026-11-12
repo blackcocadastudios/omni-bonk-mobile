@@ -23,6 +23,8 @@ void Game::render(Renderer& R) {
   // desert sandstorms: periodic heavy fog
   stormK = 0;
   if (cfg.map == MAP_DESERT && !finalArena) { float c = fmodf(stageTime, 110.f); stormK = smooth01((c - 70) / 6.f) * (1 - smooth01((c - 96) / 6.f)); }
+  else if (cfg.map == MAP_FROST && !finalArena) { float c = fmodf(stageTime + 40.f, 100.f); stormK = smooth01((c - 62) / 5.f) * (1 - smooth01((c - 87) / 5.f)); }   // blizzard
+  else if (cfg.map == MAP_FROST || cfg.map == MAP_EMBER) stormK = 0;
   R.fogMul = 1.f + stormK * 2.2f;
   R.setCamera(camEye, camTgt, fovDeg * DEG);
   float viewD = std::min(R.set.viewDist, 2.2f / std::max(0.002f, world.pal.fogDensity * R.fogMul)) + 6;
@@ -78,12 +80,13 @@ void Game::render(Renderer& R) {
     v3 s(sc, sc, sc);
     if (e.spawnT < 0.35f) { float k = e.spawnT / 0.35f; s = s * (0.3f + 0.7f * k); if (!e.flying) pos.y -= (1 - k) * 0.8f * sc; }
     if (!e.alive) { float k = sat(e.deathT / 0.3f); s = v3(sc * (1 + k * 0.5f), sc * std::max(0.05f, 1 - k), sc * (1 + k * 0.5f)); }
-    Col ta(255, 255, 255, 0);
+    Col ta = d.tint ? Col((d.tint >> 16) & 255, (d.tint >> 8) & 255, d.tint & 255, 150) : Col(255, 255, 255, 0);
     if (e.freezeT > 0 || frozen) ta = Col(130, 210, 255, 200);
     else if (e.curseT > 0) ta = Col(190, 100, 255, 130);
     else if (e.poisonT > 0) ta = Col(120, 255, 90, 100);
     else if (e.burnT > 0) ta = Col(255, 140, 60, 100);
     else if (e.challenge) ta = Col(210, 140, 255, 90);
+    else if (e.rank == RK_BOSS && e.phase >= 1 && e.type != E_B_GHOSTKING) ta = Col(255, 60, 40, (u8)(70 + 40 * sinf(realTime * 5)));
     float flash = e.hitFlash > 0 ? 0.8f : 0.f;
     if (e.elite) flash = std::max(flash, 0.08f + 0.06f * sinf(realTime * 6));
     R.model(m, frame, pos, q4::yaw(e.yaw), s, flash, ta);
@@ -229,6 +232,6 @@ void Game::render(Renderer& R) {
     R.billboard(p.pos, s, p.sprite, c, p.add, p.rot);
   }
   if (stormK > 0.05f && particleLevel > 0) {
-    for (int i = 0; i < (int)(stormK * 6); i++) { Particle q; q.pos = camEye + v3(rng.range(-14, 14), rng.range(-2, 5), rng.range(-14, 14)); q.vel = v3(9, 0.5f, 3); q.life = q.maxLife = 0.8f; q.size = 1.4f; q.c = Col(230, 200, 150, 90); q.sprite = SP_SMOKE; q.add = false; parts.push_back(q); }
+    for (int i = 0; i < (int)(stormK * 6); i++) { Particle q; q.pos = camEye + v3(rng.range(-14, 14), rng.range(-2, 5), rng.range(-14, 14)); bool snow = cfg.map == MAP_FROST; q.vel = snow ? v3(4, -3.5f, 2) : v3(9, 0.5f, 3); q.life = q.maxLife = 0.8f; q.size = snow ? 0.9f : 1.4f; q.c = snow ? Col(245, 250, 255, 150) : Col(230, 200, 150, 90); q.sprite = SP_SMOKE; q.add = false; parts.push_back(q); }
   }
 }

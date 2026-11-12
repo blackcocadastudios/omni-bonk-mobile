@@ -13,7 +13,7 @@ A 3D low-poly roguelite survivor. You are dropped into a map, your attacks fire 
 while you run, jump and slide. Level up, pick weapons, tomes and items, open chests, fight bosses and escape through the portal
 before the Final Swarm gets you.
 
-- 10 characters, 3 maps (Forest, Desert, Graveyard) with 3 tiers each
+- 10 characters, 5 maps (Forest, Desert, Graveyard, Frostpeak, Caldera) with 3 tiers each; bosses get an enraged second phase
 - 43 enemies and bosses, 30 weapons, 23 tomes, 86 items, shrines, shops and upgrade towers
 - Adjustable time per stage (default **15 minutes**; the original uses 10), optional Final Swarm, DPS meter, chest counter, auto bunny hop
 - 7 game modes (Classic, Daily Run, Boss Rush, Endless Siege, Hero Gauntlet, Shrine Hunt, Reverse Mode) and 24 stackable mutators
@@ -89,7 +89,7 @@ To go back to the full-quality settings, turn Auto quality off and set the value
 ## Optional music folder
 
 The package only contains the procedural chiptune. If you put your own OGG Vorbis files in `omnibonk/music/`
-(`menu.ogg`, `forest.ogg`, `desert.ogg`, `graveyard.ogg`, `boss.ogg`, `final.ogg`), the game streams them instead; any missing
+(`menu.ogg`, `forest.ogg`, `desert.ogg`, `graveyard.ogg`, `boss.ogg`, `final.ogg`, `frostpeak.ogg`, `caldera.ogg`), the game streams them instead; any missing
 file keeps the chiptune. `scripts/build_music_pack.py` in the source repository prepares them (48 kHz, normalized loudness).
 
 ## Troubleshooting

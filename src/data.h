@@ -69,7 +69,7 @@ struct PowerupDef { const char* name; const char* desc; IconRecipe icon; float d
 extern std::vector<PowerupDef> gPowerups;
 
 // ---------------- maps ----------------
-enum MapId { MAP_FOREST, MAP_DESERT, MAP_GRAVEYARD, MAP_COUNT };
+enum MapId { MAP_FOREST, MAP_DESERT, MAP_GRAVEYARD, MAP_FROST, MAP_EMBER, MAP_COUNT };
 struct Palette {
   u32 skyTop, skyHorizon, fog, sun, ambientSky, ambientGround, ground1, ground2, ground3, foliage1, foliage2, trunk, rock, accent;
   float fogDensity; float sunElev; bool stars; float sunAngle;
@@ -86,6 +86,10 @@ enum EnemyId {
   E_MB_STONEGOLEM, E_MB_CHUNKHAM, E_MB_SANDGOLEM, E_MB_SCORPIONUSSY, E_MB_GHOSTHAM, E_MB_SKELETONKING,
   E_B_LILBARK, E_B_CHADBARK, E_B_BARKVADER, E_B_LILANUBIS, E_B_ANUBRUH, E_B_JUGEANUBIS, E_B_BIGBOB, E_B_GHOSTKING,
   E_SWARMGHOST,
+  E_F_SLIME, E_F_GOBLIN, E_F_MOTH, E_F_SKELETON, E_F_PHANTOM, E_F_BOOMER, E_F_GOLEM, E_F_KNIGHT, E_F_BRUTE,          // Frostpeak
+  E_V_SLIME, E_V_GOBLIN, E_V_WASP, E_V_SKELETON, E_V_PHANTOM, E_V_BOOMER, E_V_GOLEM, E_V_SCORPION, E_V_BRUTE,        // Ember Caldera
+  E_MB_GLACIERGOLEM, E_MB_CRYSTALSCORPION, E_MB_MAGMACOLOSSUS, E_MB_ASHCHARGER,
+  E_B_RIMEBACK, E_B_RIMEALPHA, E_B_GLACIERTYRANT, E_B_CINDERHORN, E_B_MAGMAW, E_B_PYRETYRANT,
   E_H_FOX, E_H_NINJA, E_H_CALCIUM, E_H_MONKE, E_H_OGRE, E_H_ROCCO, E_H_BRAMBLE, E_H_SIZZLE, E_H_DIGBY, E_H_HOOT,   // heroes as enemies (Reverse Mode)
   E_COUNT
 };

@@ -1034,6 +1034,113 @@ static void buildBigBob() {
 }
 
 // ---------------------------------------------------------------- props
+// ---------------------------------------------------------------- Frostpeak / Ember Caldera bosses (original designs)
+static void buildFrostBoss(int id, float k, int variant) {   // ice yeti family: 0 Rimeback, 1 Rimeback Alpha, 2 Glacier Tyrant
+  u32 fur = variant == 0 ? 0xe8f0f8 : variant == 1 ? 0xb4c4da : 0x4a5a86, skin = variant == 2 ? 0x24345a : 0x6a8ab0, ice = 0xa8e8ff;
+  MB b; HSpec s; s.leg = 0.62f * k; s.torso = 0.72f * k; s.head = 0.3f * k; s.shoulder = 0.86f * k; s.hip = 0.46f * k; s.arm = 0.95f * k; s.limbR = 0.15f * k; s.torsoW = 0.74f * k; s.torsoD = 0.55f * k; s.hunch = 0.3f;
+  s.skin = fur; s.top = fur; s.bottom = fur; s.feet = skin; s.hands = skin; s.skinL = L_FUR; s.topL = L_FUR; s.botL = L_FUR;
+  HJ J; Rig r = humanoid(s, J, b);
+  b.to(r.parts[P_TORSO]).c(fur).l(L_FUR).sphere(J.hip + v3(0, 0.44f, 0.04f) * k, v3(0.44f, 0.46f, 0.38f) * k, 8, 6);   // shaggy bulk
+  b.c(skin).l(L_SKIN).sphere(J.hip + v3(0, 0.4f, 0.3f) * k, v3(0.26f, 0.28f, 0.1f) * k, 7, 4);                        // bare chest
+  b.c(ice).l(L_CRYSTAL).e(80);
+  for (int i = 0; i < (variant == 0 ? 3 : 5); i++) {   // ice spikes along the back
+    float y = 0.25f + i * 0.13f, xo = (i % 2 ? 0.12f : -0.12f) * (variant == 0 ? 0 : 1);
+    b.X(m4::T(J.hip + v3(xo, y, -0.3f) * k) * m4::RX(-0.7f)).cone({0, 0, 0}, 0.09f * k, (0.32f + 0.05f * (i % 3)) * k, 4);
+  }
+  b.noX().e(0);
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(fur).l(L_FUR).sphere(J.headC, v3(0.31f, 0.29f, 0.29f) * k, 8, 6);
+  b.c(skin).l(L_SKIN).sphere(J.headC + v3(0, -0.04f, 0.2f) * k, v3(0.21f, 0.18f, 0.1f) * k, 7, 4);                    // face
+  addEyes(b, H, J.headC + v3(0, 0.03f, 0.29f) * k, 0.08f * k, 0.035f * k, 0x80e8ff, true);
+  b.to(H).c(0x101422).l(L_PLAIN).box(J.headC + v3(0, -0.11f, 0.29f) * k, v3(0.1f, 0.025f, 0.02f) * k);                // mouth
+  b.c(0xf0f4f8).l(L_BONE).cone(J.headC + v3(0.07f, -0.1f, 0.3f) * k, 0.025f * k, 0.08f * k, 4).cone(J.headC + v3(-0.07f, -0.1f, 0.3f) * k, 0.025f * k, 0.08f * k, 4);
+  for (int side : {-1, 1}) {   // ice horns
+    v3 a = J.headC + v3(side * 0.2f, 0.16f, 0) * k, m = J.headC + v3(side * 0.34f, 0.32f, 0.04f) * k, t = J.headC + v3(side * 0.3f, 0.52f, 0.12f) * k;
+    b.to(H).c(ice).l(L_CRYSTAL).e(60).limb(a, m, 0.07f * k, 0.05f * k, 5).limb(m, t, 0.05f * k, 0.005f * k, 5).e(0);
+  }
+  for (int side : {-1, 1}) {   // big fists
+    Part& F = r.parts[side < 0 ? P_FORE_R : P_FORE_L]; v3 hnd = side < 0 ? J.haR : J.haL;
+    b.to(F).c(skin).l(L_SKIN).sphere(hnd + v3(0, -0.08f, 0.02f) * k, v3(0.15f, 0.14f, 0.16f) * k, 7, 4);
+  }
+  if (variant >= 1) for (int side : {-1, 1}) {   // ice pauldrons
+    Part& A = r.parts[side < 0 ? P_ARM_R : P_ARM_L]; v3 sh = side < 0 ? J.shR : J.shL;
+    b.to(A).c(ice).l(L_CRYSTAL).e(50).X(m4::T(sh + v3(side * 0.08f, 0.06f, 0) * k) * m4::RZ(side * 0.4f)).boxT({0, 0, 0}, v3(0.2f, 0.06f, 0.18f) * k, v3(0.1f, 0.06f, 0.1f) * k); b.noX().e(0);
+  }
+  if (variant == 2) {   // crystal crown and an ice club
+    b.to(H).c(ice).l(L_CRYSTAL).e(120);
+    for (int i = 0; i < 5; i++) { float a = i * TAU / 5; b.cone(J.headC + v3(cosf(a) * 0.2f, 0.24f, sinf(a) * 0.2f) * k, 0.05f * k, 0.22f * k, 4); }
+    b.e(0).to(r.parts[P_PROP]).c(0x3a4a6a).l(L_WOOD).limb(J.haR + v3(0, -0.1f, -0.2f) * k, J.haR + v3(0, -0.1f, 0.6f) * k, 0.05f * k, 0.06f * k, 5);
+    b.c(ice).l(L_CRYSTAL).e(90).boxT(J.haR + v3(0, -0.1f, 0.8f) * k, v3(0.16f, 0.14f, 0.2f) * k, v3(0.05f, 0.04f, 0.06f) * k); b.e(0);
+  }
+  auto clips = humanClips(0.85f, 0.8f, 1);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -0.9f; }; }
+  bakeModel(id, r, clips);
+}
+
+static void buildEmberBoss(int id, float k, int variant) {   // magma brute family: 0 Cinderhorn, 1 Magmaw, 2 Pyre Tyrant
+  u32 rock = variant == 2 ? 0x3a2c30 : 0x54443e, lava = variant == 1 ? 0xffa030 : 0xff6a1a;
+  MB b; HSpec s; s.leg = 0.7f * k; s.torso = 0.74f * k; s.head = 0.28f * k; s.shoulder = 0.9f * k; s.hip = 0.5f * k; s.arm = 0.9f * k; s.limbR = 0.16f * k; s.torsoW = 0.8f * k; s.torsoD = 0.55f * k; s.hunch = 0.15f;
+  s.skin = rock; s.top = rock; s.bottom = rock; s.feet = 0x141012; s.hands = rock; s.skinL = L_ROCK; s.topL = L_ROCK; s.botL = L_ROCK;
+  HJ J; Rig r = humanoid(s, J, b);
+  b.to(r.parts[P_TORSO]).c(rock).l(L_ROCK).boxT(J.hip + v3(0, 0.42f, 0.02f) * k, v3(0.38f, 0.3f, 0.3f) * k, v3(0.5f, 0.3f, 0.34f) * k);   // slab chest
+  b.c(lava).l(L_LAVA).e(255);   // glowing cracks
+  b.X(m4::T(J.hip + v3(-0.08f, 0.5f, 0.35f) * k) * m4::RZ(0.6f)).box({0, 0, 0}, v3(0.2f, 0.025f, 0.02f) * k);
+  b.X(m4::T(J.hip + v3(0.1f, 0.34f, 0.35f) * k) * m4::RZ(-0.5f)).box({0, 0, 0}, v3(0.18f, 0.025f, 0.02f) * k);
+  b.X(m4::T(J.hip + v3(0.02f, 0.62f, 0.34f) * k) * m4::RZ(0.1f)).box({0, 0, 0}, v3(0.14f, 0.02f, 0.02f) * k);
+  b.noX();
+  for (int side : {-1, 1}) b.to(r.parts[side < 0 ? P_THIGH_R : P_THIGH_L]).box((side < 0 ? J.knR : J.knL) + v3(0, 0.15f, 0.12f) * k, v3(0.03f, 0.12f, 0.02f) * k);
+  for (int side : {-1, 1}) { v3 el = side < 0 ? J.elR : J.elL; b.to(r.parts[side < 0 ? P_ARM_R : P_ARM_L]).box(el + v3(0, 0.18f, 0.1f) * k, v3(0.025f, 0.14f, 0.02f) * k); }   // arm veins
+  b.to(r.parts[P_TORSO]).sphere(J.hip + v3(0, 0.3f, 0.3f) * k, v3(0.09f, 0.09f, 0.04f) * k, 6, 4);   // molten core
+  b.e(0);
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(rock).l(L_ROCK).boxT(J.headC, v3(0.24f, 0.22f, 0.22f) * k, v3(0.2f, 0.22f, 0.2f) * k);
+  addEyes(b, H, J.headC + v3(0, 0.04f, 0.22f) * k, 0.09f * k, 0.04f * k, lava, true);
+  for (int side : {-1, 1}) b.to(H).c(0x141012).l(L_ROCK).limb(J.headC + v3(side * 0.18f, 0.12f, 0) * k, J.headC + v3(side * 0.42f, 0.42f, -0.05f) * k, 0.08f * k, 0.01f * k, 5);   // horns
+  if (variant == 1) {   // Magmaw: huge jaw with a molten mouth
+    b.to(H).c(rock).l(L_ROCK).boxT(J.headC + v3(0, -0.24f, 0.08f) * k, v3(0.3f, 0.09f, 0.24f) * k, v3(0.26f, 0.09f, 0.22f) * k);
+    b.c(lava).l(L_LAVA).e(255).box(J.headC + v3(0, -0.17f, 0.24f) * k, v3(0.2f, 0.04f, 0.04f) * k); b.e(0);
+  }
+  for (int side : {-1, 1}) {   // molten fists
+    Part& F = r.parts[side < 0 ? P_FORE_R : P_FORE_L]; v3 hnd = side < 0 ? J.haR : J.haL;
+    b.to(F).c(lava).l(L_LAVA).e(200).sphere(hnd + v3(0, -0.08f, 0.02f) * k, v3(0.15f, 0.14f, 0.15f) * k, 6, 4).e(0);
+  }
+  if (variant == 2) {   // crown of flames, shoulder spikes and an obsidian greatsword
+    b.to(H).c(0xffd060).l(L_LAVA).e(255);
+    for (int i = 0; i < 6; i++) { float a = i * TAU / 6; b.cone(J.headC + v3(cosf(a) * 0.18f, 0.22f, sinf(a) * 0.18f) * k, 0.05f * k, (0.18f + 0.08f * (i % 2)) * k, 4); }
+    b.e(0);
+    for (int side : {-1, 1}) { Part& A = r.parts[side < 0 ? P_ARM_R : P_ARM_L]; v3 sh = side < 0 ? J.shR : J.shL; b.to(A).c(0x141012).l(L_ROCK).cone(sh + v3(side * 0.1f, 0.08f, 0) * k, 0.1f * k, 0.3f * k, 5); }
+    b.to(r.parts[P_PROP]).c(0x1a1222).l(L_METAL).box(J.haR + v3(0, -0.08f, 0.75f) * k, v3(0.04f, 0.1f, 0.62f) * k);
+    b.c(lava).l(L_LAVA).e(255).box(J.haR + v3(0, 0.03f, 0.75f) * k, v3(0.045f, 0.015f, 0.6f) * k); b.e(0);
+    b.c(0x5a3a2a).l(L_WOOD).box(J.haR + v3(0, -0.08f, 0.02f) * k, v3(0.05f, 0.05f, 0.14f) * k);
+  }
+  auto clips = humanClips(0.8f, 0.8f, 1);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -0.9f; }; }
+  bakeModel(id, r, clips);
+}
+
+static void buildBiomeProps() {
+  MB b;
+  { Rig r(1); b.to(r.parts[0]).c(0xbfefff).l(L_CRYSTAL).e(70);   // ice crystal cluster
+    for (int k = 0; k < 5; k++) {
+      float a = k * 1.3f, d = k ? 0.35f + 0.1f * k : 0.f, h = k ? 0.9f + 0.25f * (k % 3) : 1.8f;
+      b.X(m4::T(v3(cosf(a) * d, 0, sinf(a) * d)) * m4::RZ((k ? 0.25f : 0.05f) * (k % 2 ? 1 : -1)) * m4::RX(k ? 0.2f : 0.f)).boxT({0, h * 0.5f, 0}, v3(0.16f, h * 0.5f, 0.16f), v3(0.02f, h * 0.5f, 0.02f));
+    }
+    b.noX().e(0); bakeStatic(M_ICE_CRYSTAL, r); }
+  { Rig r(1); b.to(r.parts[0]).c(0xf4f8ff).l(L_PLAIN).sphere({0, 0.45f, 0}, {0.5f, 0.45f, 0.5f}, 8, 6).sphere({0, 1.12f, 0}, {0.36f, 0.33f, 0.36f}, 8, 5).sphere({0, 1.62f, 0}, {0.25f, 0.24f, 0.25f}, 8, 5);   // snowman
+    b.c(0x1a1416).box({0.08f, 1.68f, 0.22f}, v3(0.035f, 0.035f, 0.02f)).box({-0.08f, 1.68f, 0.22f}, v3(0.035f, 0.035f, 0.02f));
+    for (int k = 0; k < 3; k++) b.box({0, 1.0f + k * 0.15f, 0.34f}, v3(0.035f, 0.035f, 0.02f));
+    b.c(0xff8a1a).X(m4::T({0, 1.6f, 0.22f}) * m4::RX(PI / 2)).cone({0, 0, 0}, 0.045f, 0.22f, 5); b.noX();
+    b.c(0x6a4a2a).l(L_WOOD).limb({0.3f, 1.15f, 0}, {0.75f, 1.45f, 0}, 0.025f, 0.015f, 4).limb({-0.3f, 1.15f, 0}, {-0.75f, 1.4f, 0.05f}, 0.025f, 0.015f, 4);
+    b.c(0xd83a3a).l(L_CLOTH).cyl({0, 1.36f, 0}, 0.3f, 0.28f, 0.08f, 8, true);
+    bakeStatic(M_SNOWMAN, r); }
+  { Rig r(1); b.to(r.parts[0]).c(0x808080).l(L_ROCK).f(2);   // basalt columns (tinted with the palette's rock colour)
+    for (int k = 0; k < 7; k++) { float a = k * 0.9f, d = k ? 0.55f : 0.f, h = k ? 1.2f + 0.5f * ((k * 7) % 3) : 2.6f; b.cyl({cosf(a) * d, -0.1f, sinf(a) * d}, 0.32f, 0.3f, h, 6, true); }
+    b.f(0); bakeStatic(M_BASALT, r); }
+  { Rig r(1); b.to(r.parts[0]).c(0x808080).l(L_ROCK).f(2).lathe({0, -0.1f, 0}, {{1.4f, 0}, {1.0f, 0.5f}, {0.55f, 0.95f}, {0.45f, 1.0f}}, 9);   // lava vent
+    b.f(0).c(0xff7a1a).l(L_LAVA).e(255).cyl({0, 0.84f, 0}, 0.46f, 0.46f, 0.1f, 9, true); b.e(0);
+    bakeStatic(M_LAVA_VENT, r); }
+}
+
 static void buildProps() {
   MB b;
   // flags: 1 = tint A (foliage), 2 = tint B (trunk/rock/wood); base gray 128 => 1.0
@@ -1277,6 +1384,9 @@ void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
   buildRocco(); buildBramble(); buildSizzle(); buildDigby(); buildHoot(); buildOverlord();
+  buildFrostBoss(M_B_RIMEBACK, 1.25f, 0); buildFrostBoss(M_B_RIMEALPHA, 1.45f, 1); buildFrostBoss(M_B_GLACIERTYRANT, 1.7f, 2);
+  buildEmberBoss(M_B_CINDERHORN, 1.25f, 0); buildEmberBoss(M_B_MAGMAW, 1.45f, 1); buildEmberBoss(M_B_PYRETYRANT, 1.7f, 2);
+  buildBiomeProps();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);
