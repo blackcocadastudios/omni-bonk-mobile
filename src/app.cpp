@@ -22,7 +22,7 @@ void App::save() {
   fprintf(f, "silver=%d\nruns=%d\nwins=%d\ntotalKills=%d\nbestKills=%d\nupReroll=%d\nupSkip=%d\nupBanish=%d\nupHp=%d\nupLuck=%d\nlastChar=%d\nlastMap=%d\nlastTier=%d\n",
           m.silver, m.runs, m.wins, m.totalKills, m.bestKills, m.upReroll, m.upSkip, m.upBanish, m.upHp, m.upLuck, m.lastChar, m.lastMap, m.lastTier);
   for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) fprintf(f, "best_%d_%d=%.0f\n", a, b, m.bestTime[a][b]);
-  fprintf(f, "lastMode=%d\nmutators=%d\ndailyKey=%d\ndailyBest=%d\nbossRushBest=%d\n", m.lastMode, m.mutators, m.dailyKey, m.dailyBest, m.bossRushBest);
+  fprintf(f, "lastMode=%d\nmutators=%d\ndailyKey=%d\ndailyBest=%d\nbossRushBest=%d\nreverseBest=%d\nreverseWins=%d\n", m.lastMode, m.mutators, m.dailyKey, m.dailyBest, m.bossRushBest, m.reverseBest, m.reverseWins);
   for (int a = 0; a < 3; a++) fprintf(f, "endless_%d=%.0f\n", a, m.endlessBest[a]);
   fclose(f);
 }
@@ -44,7 +44,7 @@ bool App::load() {
     F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) B_(invertY) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
     for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
-    M_(lastMode) M_(dailyBest) M_(bossRushBest)
+    M_(lastMode) M_(dailyBest) M_(bossRushBest) M_(reverseBest) M_(reverseWins)
     if (k == "mutators") m.mutators = (int)strtoul(eq + 1, nullptr, 10);
     if (k == "dailyKey") m.dailyKey = atoi(eq + 1);
     for (int a = 0; a < 3; a++) if (k == fmt("endless_%d", a)) m.endlessBest[a] = v;
@@ -79,6 +79,7 @@ void App::startRun() {
     case MODE_ENDLESS: c.stageMinutes = 0; break;
     case MODE_GAUNTLET: c.character = (int)(hash32(c.seed) % C_COUNT); break;
     case MODE_SHRINEHUNT: c.stageMinutes = 6; c.scaleStages = false; break;
+    case MODE_REVERSE: c.character = C_OGRE; c.stageMinutes = 10; c.scaleStages = false; c.swarmMode = 0; break;
     default: break;
   }
   game.start(c);
@@ -127,7 +128,7 @@ void App::back() {
   }
   if (scr == SCR_SETTINGS) { scr = settingsBack; save(); return; }
   if (scr == SCR_TITLE) { confirmQuit = !confirmQuit; return; }
-  if (scr == SCR_MAP) { scr = selMode == MODE_GAUNTLET ? SCR_MODES : SCR_CHARS; return; }
+  if (scr == SCR_MAP) { scr = (selMode == MODE_GAUNTLET || selMode == MODE_REVERSE) ? SCR_MODES : SCR_CHARS; return; }
   if (scr == SCR_CHARS || scr == SCR_MUTATORS) { scr = SCR_MODES; save(); return; }
   if (scr == SCR_CREDITS) { scr = SCR_ABOUT; return; }
   scr = SCR_TITLE;
