@@ -158,8 +158,8 @@ static void coverShot() {
     addEnemy(horde[(int)(rnd() * 13) % 13], sinf(a) * r * 1.15f, 3.5f + cosf(a) * r * 0.95f);
   }
   addEnemy(E_B_BIGBOB, 4.2f, 15.f, 1.f);
-  // the five heroes, center one in front
-  for (int i = 0; i < C_COUNT; i++) {
+  // the first five heroes, center one in front
+  for (int i = 0; i < 5; i++) {
     int off = i - 2; const CharDef& cd = gChars[i == 2 ? 0 : (i < 2 ? i + 1 : i)];
     sp.push_back({cd.model, 1.75f, off * 2.35f, fabsf((float)off) * 0.9f - 1.4f, PI - off * 0.12f, 0.25f, CL_IDLE});
   }
@@ -305,6 +305,8 @@ static void padScenario() {
   press(PB_A); padFrames(6); padLog("quit dialog: no");
   press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_characters");
   press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_characters_calcium");
+  press(PB_DOWN); padFrames(8); padLog("chars: down (2nd row)"); shot("pad_15b_characters_row2"); press(PB_RIGHT); press(PB_RIGHT); padFrames(4); padLog("chars: 2x right (2nd row)");
+  press(PB_RIGHT); padFrames(4); padLog("chars: right at the edge"); press(PB_UP); press(PB_LEFT); press(PB_LEFT); padFrames(8); padLog("chars: up, 2x left");
   press(PB_A); padFrames(8); padLog("map"); shot("pad_16_map");
   press(PB_DOWN); press(PB_RIGHT); press(PB_A); press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT); padLog("map: tier2, time +2"); 
   press(PB_DOWN); shot("pad_17_map_time");
@@ -508,6 +510,11 @@ int main(int argc, char** argv) {
   else if (scenario == "pad") padScenario();
   else if (scenario == "qol") qolScenario();
   else if (scenario == "audio") audioScenario();
+  else if (scenario == "models") {   // per-character mesh cost (vertices x baked frames), to keep the bake time in check
+    long tot = 0; for (int m = 0; m < M_COUNT; m++) tot += (long)gModels.info[m].vtx * gModels.info[m].frames;
+    for (int i = 0; i < C_COUNT; i++) { const ModelInfo& mi = gModels.info[gChars[i].model]; LOGI("model %-8s %5d verts x %3d frames = %7d anim verts", gChars[i].name, mi.vtx, mi.frames, mi.vtx * mi.frames); }
+    LOGI("all models: %ld anim verts", tot);
+  }
   else if (scenario == "attract") attractScenario();
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();

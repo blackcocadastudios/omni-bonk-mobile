@@ -75,33 +75,35 @@ void App::drawTitle() {
 void App::drawChars() {
   UI& u = ui;
   bgDim(0.35f);
+  bool nar = narrow();
   float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
-  u.text(u.W * 0.5f, 8, tr("CHOOSE YOUR CHARACTER"), 2, WHITE, AL_CENTER);
-  int n = C_COUNT;
-  float cw = std::min(92.f, (Wd - (n - 1) * 5) / n), ch = 86;
-  float x0 = u.W * 0.5f - (n * cw + (n - 1) * 5) * 0.5f, y0 = 34;
+  u.text(u.W * 0.5f, nar ? 5 : 8, tr("CHOOSE YOUR CHARACTER"), nar ? 1.5f : 2, WHITE, AL_CENTER);
+  // grid of compact cards (icon, name, weapon badge); the D-pad moves across rows and columns
+  const int cols = 5, n = C_COUNT, rows = (n + cols - 1) / cols;
+  float gap = 4, cw = std::min(92.f, (Wd - (cols - 1) * gap) / cols), ch = nar ? 40 : 46, is = nar ? 22 : 26;
+  float x0 = u.W * 0.5f - (cols * cw + (cols - 1) * gap) * 0.5f, y0 = nar ? 23 : 30;
   for (int i = 0; i < n; i++) {
     const CharDef& c = gChars[i];
-    float x = x0 + i * (cw + 5);
+    float x = x0 + (i % cols) * (cw + gap), y = y0 + (i / cols) * (ch + gap);
     bool sel = i == selChar;
-    u.panel(x, y0, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(255, 255, 255, 60));
-    u.icon(ICON_UI0 + UI_CHAR0 + i, x + cw * 0.5f - 16, y0 + 6, 32);
-    u.text(x + cw * 0.5f, y0 + 42, c.name, 1, sel ? GOLD : WHITE, AL_CENTER);
-    u.icon(ICON_WEAPON0 + c.weapon, x + cw * 0.5f - 9, y0 + 56, 18);
-    u.text(x + cw * 0.5f, y0 + 75, gWeapons[c.weapon].name, 1, GREY, AL_CENTER);
+    u.panel(x, y, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(255, 255, 255, 60));
+    u.icon(ICON_UI0 + UI_CHAR0 + i, x + cw * 0.5f - is * 0.5f, y + 3, is);
+    u.icon(ICON_WEAPON0 + c.weapon, x + cw - 13, y + 2, 11);
+    u.textRaw(x + cw * 0.5f, y + ch - 12, u.fit(c.name, cw - 4), 1, sel ? GOLD : WHITE, AL_CENTER);
     if (sel) u.nextFlags = FOCUS_DEFAULT;
-    bool ck = u.clicked(x, y0, cw, ch);
-    if (u.isFocus(x, y0, cw, ch)) selChar = i;                       // gamepad: moving the focus selects
+    bool ck = u.clicked(x, y, cw, ch);
+    if (u.isFocus(x, y, cw, ch)) selChar = i;                       // gamepad: moving the focus selects
     if (ck) { selChar = i; audioPlay(SFX_CLICK); if (u.padMode) scr = SCR_MAP; }
   }
-  // details
+  // details: passive, starting weapon, blurb | base stats
   const CharDef& c = gChars[selChar];
-  float dy = y0 + ch + 6, dh = u.H - dy - 34;
+  float dy = y0 + rows * (ch + gap) + 1, dh = u.H - dy - 32, lw = Wd * 0.58f;
   u.panel(L, dy, Wd, dh);
-  u.text(L + 8, dy + 6, std::string(tr("Passive: ")) + c.passive, 1, GOLD);
-  float yy = dy + 18 + u.textBox(L + 8, dy + 18, Wd * 0.55f, c.passiveDesc, 1, WHITE, AL_LEFT, 11);
-  { std::vector<std::string> bl; int n = u.wrap(c.blurb, Wd * 0.55f, 1, bl); if (yy + 3 + n * 11 <= dy + dh - 3) u.textBox(L + 8, yy + 3, Wd * 0.55f, c.blurb, 1, GREY, AL_LEFT, 11); }
-  float sx = L + Wd * 0.6f, sy = dy + 6;
+  u.text(L + 8, dy + 5, std::string(tr("Passive: ")) + c.passive, 1, GOLD);
+  float yy = dy + 17 + u.textBox(L + 8, dy + 17, lw, c.passiveDesc, 1, WHITE, AL_LEFT, 11);
+  u.icon(ICON_WEAPON0 + c.weapon, L + 8, yy, 11); u.text(L + 22, yy + 1, gWeapons[c.weapon].name, 1, Col(255, 230, 160)); yy += 13;
+  { std::vector<std::string> bl; int nl = u.wrap(c.blurb, lw, 1, bl); if (yy + 2 + nl * 11 <= dy + dh - 3) u.textBox(L + 8, yy + 2, lw, c.blurb, 1, GREY, AL_LEFT, 11); }
+  float sx = L + Wd * 0.62f, sy = dy + 5;
   u.text(sx, sy, tr("Stats"), 1, CYAN); sy += 12;
   for (auto& m : c.stats) { u.text(sx, sy, u.fit(statValueStr(m.stat, m.v) + " " + tr(kStats[m.stat].name), R - sx - 4), 1, m.v >= 0 ? GREEN : RED); sy += 11; if (sy > dy + dh - 8) break; }
   if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
