@@ -297,6 +297,7 @@ static void initChars() {
     {"Bramble", W_POISONFLASK, "Deep Roots", "+2 HP regeneration per minute and +1 thorns per level.", {{S_MAXHP, 40}, {S_REGEN, 10}, {S_THORNS, 5}, {S_MOVESPD, -.05f}}, M_BRAMBLE, IR(IS_STUMP), "An old stump that walked off. Slow, tough and poisonous."},
     {"Sizzle", W_DRAGONBREATH, "Hot Kitchen", "+1.5% attack speed per level.", {{S_ATKSPD, 10}, {S_DURATION, .1f}, {S_MAXHP, -10}}, M_SIZZLE, IR(IS_GECKO), "A gecko line cook. Everything gets flambéed."},
     {"Digby", W_CHUNKERS, "Hard Hat", "+0.75% armor per level; no fall damage.", {{S_ARMOR, 8}, {S_MAXHP, 25}, {S_KNOCKBACK, .2f}, {S_MOVESPD, -.03f}}, M_DIGBY, IR(IS_MOLE), "A mole miner who brought the mountain along."},
+    {"Hoot", W_LIGHTNING, "Night Study", "+1.5% XP gain per level.", {{S_XPGAIN, .15f}, {S_DAMAGE, .1f}, {S_JUMPS, 1}, {S_FALLRED, 50}}, M_HOOT, IR(IS_OWL), "A bookish owl: learns fast and glides down from anywhere."},
   };
 }
 

@@ -121,6 +121,7 @@ void Game::recomputeStats() {
   if (P.ch == C_BRAMBLE) { s[S_REGEN] += L * 2.f; s[S_THORNS] += L * 1.f; }
   if (P.ch == C_SIZZLE) s[S_ATKSPD] += L * 1.5f;
   if (P.ch == C_DIGBY) s[S_ARMOR] += L * 0.75f;
+  if (P.ch == C_HOOT) s[S_XPGAIN] += L * 0.015f;
   s[S_MAXHP] += P.demonicBlood + P.bloodMagicHp;
   s[S_DIFFICULTY] += P.greedDiff;
   // multiplicative item effects

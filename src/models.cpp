@@ -607,6 +607,38 @@ static void buildDigby() {   // mole miner: hard hat with lamp, pink nose, overa
   for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -0.8f; }; }
   bakeModel(M_DIGBY, r, clips);
 }
+static void buildHoot() {   // owl scholar: facial discs, round glasses, ear tufts, mortarboard, wing arms, lightning staff
+  MB b; HSpec s; s.leg = 0.42f; s.torso = 0.55f; s.head = 0.3f; s.shoulder = 0.5f; s.hip = 0.28f; s.arm = 0.5f; s.limbR = 0.07f; s.torsoW = 0.5f; s.torsoD = 0.44f;
+  u32 feather = 0x8a6a48;
+  s.skin = feather; s.top = feather; s.bottom = 0xe0a030; s.feet = 0xe0a030; s.hands = 0x6a5038; s.skinL = L_FEATHER; s.topL = L_FEATHER; s.botL = L_PLAIN;
+  HJ J; Rig r = humanoid(s, J, b);
+  b.to(r.parts[P_TORSO]).c(feather).l(L_FEATHER).sphere(J.hip + v3(0, 0.3f, 0), {0.3f, 0.34f, 0.27f}, 8, 6);
+  b.c(0xf0e2c4).sphere(J.hip + v3(0, 0.26f, 0.12f), {0.2f, 0.25f, 0.16f}, 7, 5);                      // belly
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(feather).l(L_FEATHER).sphere(J.headC, {0.3f, 0.27f, 0.27f}, 8, 6);
+  for (int side : {-1, 1}) {
+    v3 e = J.headC + v3(side * 0.12f, 0.02f, 0.2f);
+    b.to(H).c(0xf0e2c4).l(L_PLAIN).sphere(e, {0.12f, 0.12f, 0.06f}, 6, 4);                             // facial disc
+    b.c(0x3a3a44).l(L_METAL).sphere(e + v3(0, 0, 0.035f), {0.085f, 0.085f, 0.035f}, 7, 3);           // glasses rim
+    b.c(0xffd23f).l(L_PLAIN).sphere(e + v3(0, 0, 0.05f), {0.065f, 0.065f, 0.04f}, 6, 3);
+    b.c(0x101014).box(e + v3(0, 0, 0.09f), v3(0.03f, 0.03f, 0.01f));
+    b.c(feather).l(L_FEATHER).limb(J.headC + v3(side * 0.18f, 0.18f, 0.02f), J.headC + v3(side * 0.27f, 0.36f, -0.02f), 0.06f, 0.01f, 4); // ear tuft
+  }
+  b.to(H).c(0xffa726).l(L_PLAIN).X(m4::T(J.headC + v3(0, -0.08f, 0.27f)) * m4::RX(2.3f)).cone({0, 0, 0}, 0.045f, 0.12f, 4); b.noX();
+  b.c(0x26222e).l(L_CLOTH).cyl(J.headC + v3(0, 0.2f, -0.02f), 0.16f, 0.16f, 0.07f, 8, false);             // mortarboard
+  b.box(J.headC + v3(0, 0.29f, -0.02f), v3(0.27f, 0.02f, 0.27f));
+  b.c(0xf5c542).l(L_GOLD).limb(J.headC + v3(0, 0.31f, -0.02f), J.headC + v3(0.24f, 0.3f, 0.18f), 0.01f, 0.01f, 3).limb(J.headC + v3(0.24f, 0.3f, 0.18f), J.headC + v3(0.25f, 0.18f, 0.19f), 0.012f, 0.02f, 4);
+  for (int side : {-1, 1}) {
+    Part& A = r.parts[side < 0 ? P_ARM_R : P_ARM_L]; v3 sh = side < 0 ? J.shR : J.shL;
+    b.to(A).c(0x7a5a3c).l(L_FEATHER).X(m4::T(sh + v3(side * 0.05f, -0.22f, -0.04f)) * m4::RZ(side * 0.12f)).boxT({0, 0, 0}, v3(0.03f, 0.22f, 0.12f), v3(0.04f, 0.22f, 0.14f)); b.noX();
+  }
+  Part& W = r.parts[P_PROP];
+  b.to(W).c(0x7a4a2a).l(L_WOOD).limb(J.haR + v3(0, -0.4f, 0.05f), J.haR + v3(0, 0.55f, 0.05f), 0.03f, 0.03f, 5);
+  b.c(0x80e8ff).l(L_CRYSTAL).e(255).X(m4::T(J.haR + v3(0, 0.66f, 0.05f)) * m4::RZ(0.6f)).box({0, 0, 0}, v3(0.06f, 0.1f, 0.06f)); b.noX(); b.e(0);
+  auto clips = humanClips(0.44f, 0.9f, 2);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_PROP].r.x = -(p.p[P_TORSO].r.x + p.p[P_ARM_R].r.x + p.p[P_FORE_R].r.x) * 0.9f; }; }
+  bakeModel(M_HOOT, r, clips);
+}
 
 // ---------------------------------------------------------------- enemies
 static void buildGoblin(int id, float scale, int variant) {
@@ -1208,7 +1240,7 @@ static void buildFx() {
 void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
-  buildRocco(); buildBramble(); buildSizzle(); buildDigby();
+  buildRocco(); buildBramble(); buildSizzle(); buildDigby(); buildHoot();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);
