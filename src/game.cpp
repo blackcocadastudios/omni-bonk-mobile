@@ -119,6 +119,7 @@ void Game::recomputeStats() {
   if (P.ch == C_MONKE) s[S_MAXHP] += L * 2.f;
   if (P.ch == C_ROCCO) { s[S_PICKUP] += L * 0.03f; s[S_GOLDGAIN] += L * 0.01f; }
   if (P.ch == C_BRAMBLE) { s[S_REGEN] += L * 2.f; s[S_THORNS] += L * 1.f; }
+  if (P.ch == C_SIZZLE) s[S_ATKSPD] += L * 1.5f;
   s[S_MAXHP] += P.demonicBlood + P.bloodMagicHp;
   s[S_DIFFICULTY] += P.greedDiff;
   // multiplicative item effects

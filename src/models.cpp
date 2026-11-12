@@ -552,6 +552,34 @@ static void buildBramble() {   // walking mossy stump: ring-cut top, sprout, mus
   auto clips = humanClips(0.62f, 0.85f, 2);
   bakeModel(M_BRAMBLE, r, clips);
 }
+static void buildSizzle() {   // gecko line cook: big side eyes, chef hat, white jacket, long tail, frying pan
+  MB b; HSpec s; s.leg = 0.62f; s.torso = 0.47f; s.head = 0.26f; s.shoulder = 0.4f; s.hip = 0.24f; s.arm = 0.55f; s.limbR = 0.065f;
+  u32 skin = 0x6cc04a;
+  s.skin = skin; s.top = 0xf4f1ea; s.bottom = 0x3a3a44; s.feet = skin; s.hands = skin; s.skinL = L_SKIN; s.topL = L_CLOTH; s.botL = L_CLOTH;
+  HJ J; Rig r = humanoid(s, J, b);
+  Part& H = r.parts[P_HEAD];
+  b.to(H).c(skin).l(L_SKIN).sphere(J.headC + v3(0, -0.02f, 0.06f), {0.22f, 0.17f, 0.3f}, 8, 6);
+  b.c(0x5aa83a).sphere(J.headC + v3(0, -0.09f, 0.14f), {0.17f, 0.07f, 0.22f}, 7, 4);                  // jaw
+  b.c(0x2e6a22).box(J.headC + v3(0, -0.07f, 0.33f), v3(0.11f, 0.008f, 0.02f));                        // smile
+  for (int side : {-1, 1}) {
+    v3 e = J.headC + v3(side * 0.16f, 0.08f, 0.12f);
+    b.c(skin).l(L_SKIN).sphere(e, {0.08f, 0.08f, 0.08f}, 5, 3);
+    b.c(0xffd23f).l(L_PLAIN).sphere(e + v3(side * 0.03f, 0.01f, 0.03f), {0.06f, 0.06f, 0.06f}, 5, 3);
+    b.c(0x101014).box(e + v3(side * 0.07f, 0.01f, 0.06f), v3(0.012f, 0.04f, 0.012f));
+  }
+  b.c(0xf4f1ea).l(L_CLOTH).cyl(J.headC + v3(0, 0.1f, -0.01f), 0.17f, 0.19f, 0.18f, 8, false);         // chef hat
+  b.sphere(J.headC + v3(0, 0.33f, -0.01f), {0.22f, 0.12f, 0.22f}, 8, 4);
+  b.to(r.parts[P_TORSO]).c(0xd83a3a).l(L_CLOTH).boxT(J.neck + v3(0, -0.04f, 0.01f), v3(0.14f, 0.04f, 0.12f), v3(0.11f, 0.04f, 0.1f)); // neckerchief
+  b.c(0x2a2a33).l(L_PLAIN);
+  for (int i = 0; i < 3; i++) b.box(v3(0, J.hip.y + 0.12f + i * 0.11f, 0.11f), v3(0.016f, 0.016f, 0.01f));
+  Part& T = r.parts[P_TAIL]; T.pivot = J.hip + v3(0, -0.05f, -0.08f);
+  b.to(T).c(skin).l(L_SKIN).limb(J.hip + v3(0, -0.05f, -0.08f), J.hip + v3(0, -0.3f, -0.45f), 0.07f, 0.045f, 6).limb(J.hip + v3(0, -0.3f, -0.45f), J.hip + v3(0.1f, -0.42f, -0.78f), 0.045f, 0.01f, 5);
+  b.to(r.parts[P_PROP]).c(0x2b2533).l(L_METAL).cyl(J.haR + v3(0, -0.09f, 0.42f), 0.15f, 0.15f, 0.03f, 10, true); // frying pan
+  b.c(0x4a3020).l(L_WOOD).box(J.haR + v3(0, -0.075f, 0.13f), v3(0.022f, 0.02f, 0.15f));
+  auto clips = humanClips(0.48f, 1.0f, 2);
+  for (auto& c : clips) { auto f0 = c.fn; c.fn = [f0](float t, Pose& p) { f0(t, p); p.p[P_TAIL].r.y = sinf(t * TAU) * 0.4f; p.p[P_PROP].r.x = -0.7f; }; }
+  bakeModel(M_SIZZLE, r, clips);
+}
 
 // ---------------------------------------------------------------- enemies
 static void buildGoblin(int id, float scale, int variant) {
@@ -1153,7 +1181,7 @@ static void buildFx() {
 void ModelLibrary::build() {
   anim.clear(); stat.clear(); idx.clear();
   buildFox(); buildNinja(); buildSkeletonBase(M_CALCIUM, 0xf2ead4, 0x2f7de1, 0); buildMonke(); buildOgre();
-  buildRocco(); buildBramble();
+  buildRocco(); buildBramble(); buildSizzle();
   buildSlime(); buildGoblin(M_GOBLIN, 1.0f, 0); buildBee(); buildGoblin(M_GOBLIN_STRONG, 1.25f, 1); buildBoomer(); buildGolem(M_GOLEM, 1.15f, 0x8a8478, 0x4a7a3a, 0);
   buildGoblin(M_GOBLIN_TANK, 1.6f, 2); buildGhoul(); buildSkeletonBase(M_SKELETON, 0xe8e0c8, 0, 1); buildSkeletonBase(M_SKELETON_ARMORED, 0xe0d8c0, 0, 2);
   buildTumblebone(); buildMummy(M_MUMMY, 1.0f, 0); buildWisp(); buildCactusShooter(); buildScorpion(M_SCORPION, 1.0f, 0x2a2a34, 0x3a3a48, false);
