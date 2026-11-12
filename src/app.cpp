@@ -2,6 +2,7 @@
 #include "app.h"
 #include "render.h"
 #include "audio.h"
+#include "music.h"
 #include <ctime>
 
 App gApp;
@@ -212,7 +213,7 @@ void App::frame(float dt) {
     if (!testMode) gameControls();
     if (!paused) game.update(dt);
     autoQualityTick();
-    audioMusic(game.bossesAlive > 0 || game.finalArena ? 4 : 1 + game.cfg.map);
+    audioMusic(game.finalArena ? 5 : game.bossesAlive > 0 ? 4 : 1 + game.cfg.map);
     audioSetIntensity(game.u());
     game.render(gR);
     gR.renderScene(true);
@@ -242,6 +243,7 @@ void App::frame(float dt) {
 
 // ------------------------------------------------------------------ platform hooks
 static bool gInit = false;
+static int gPackTracks = 0;
 void app_init(const PlatformInfo& info) {
   gApp.plat = info;
   if (!gInit) {
@@ -249,6 +251,7 @@ void app_init(const PlatformInfo& info) {
     gModels.build();
     artBuildAtlas(gR.atlas, buildIconList());
     audioInit(48000);
+    gPackTracks = audioMusicPack(info.musicDir);
     gApp.hadSave = gApp.load();
     if (info.handheld && !gApp.hadSave) { // first run on a handheld (RK3326 class): lighter defaults
       Settings& s = gApp.set; s.maxEnemies = 220; s.viewDist = 90; s.particles = 1; s.renderScale = 0.75f; s.vibration = false;
@@ -276,8 +279,10 @@ void app_audio(float* stereo, int frames, int rate) { (void)rate; audioRender(st
 int app_fps_cap() { return gApp.set.fpsCap; }
 std::string app_status() {
   const App& a = gApp; const Renderer::Stats& st = gR.lastStats;
-  return fmt("screen %d state %d | %dx%d scale %.2f | enemies %d | draws %d inst %d tris %d | t %.0fs", (int)a.scr, (int)a.game.state, a.plat.width, a.plat.height,
-             a.set.renderScale, (int)a.game.enemies.size(), st.draws, st.insts, st.tris, a.game.runTime);
+  std::string s = fmt("screen %d state %d | %dx%d scale %.2f | enemies %d | draws %d inst %d tris %d | t %.0fs", (int)a.scr, (int)a.game.state, a.plat.width, a.plat.height,
+                      a.set.renderScale, (int)a.game.enemies.size(), st.draws, st.insts, st.tris, a.game.runTime);
+  if (gPackTracks) s += fmt(" | music pack underruns %d", musicPackUnderruns());
+  return s;
 }
 void app_set_insets(float l, float r, float t, float b) { gApp.plat.safeLeft = l; gApp.plat.safeRight = r; gApp.plat.safeTop = t; gApp.plat.safeBottom = b; }
 void plat_vibrate_safe(int ms) { if (gApp.set.vibration && !gApp.testMode) plat_vibrate(ms); }

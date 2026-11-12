@@ -6,6 +6,8 @@
 #include <png.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <thread>
+#include "music.h"
 
 typedef void* EGLDisplay; typedef void* EGLConfig; typedef void* EGLContext; typedef int EGLint; typedef unsigned int EGLBoolean; typedef unsigned int EGLenum;
 extern "C" {
@@ -410,6 +412,34 @@ static void qolScenario() {
   settle(); g.genShrineOffers(false); g.state = GS_SHRINE; frame(1 / 30.f, 2); shot("qol_09_charge_shrine");
 }
 
+// offline mix of the music through every slot (pack or chiptune), paced at ~4x real time like the audio thread would pull it;
+// logs the RMS level of each segment and the pack underruns, writes music_mix.wav
+static void audioScenario() {
+  struct Seg { int track; float secs; const char* name; };
+  const Seg segs[] = {{0, 10, "menu"}, {1, 12, "forest"}, {4, 10, "boss"}, {5, 10, "final"}, {2, 10, "desert"}, {3, 10, "graveyard"}, {0, 6, "menu"}};
+  audioSetVolume(0.55f, 0.8f);
+  std::vector<int16_t> pcm; float buf[512 * 2];
+  for (auto& s : segs) {
+    audioMusic(s.track);
+    int chunks = (int)(s.secs * 48000 / 512); double acc = 0; long n = 0; float peak = 0;
+    for (int c = 0; c < chunks; c++) {
+      audioRender(buf, 512);
+      for (int i = 0; i < 1024; i++) {
+        pcm.push_back((int16_t)clampf(buf[i] * 32767.f, -32768.f, 32767.f));
+        if (c * 512 > 48000 * 2) { acc += (double)buf[i] * buf[i]; n++; peak = std::max(peak, fabsf(buf[i])); }
+      }
+      std::this_thread::sleep_for(std::chrono::microseconds(2500));
+    }
+    LOGI("audio: %-9s rms %.1f dBFS peak %.2f", s.name, 10 * log10(acc / std::max(1L, n) + 1e-12), peak);
+  }
+  LOGI("audio: %.0fs mixed, pack underruns %d", pcm.size() / 2 / 48000.0, musicPackUnderruns());
+  FILE* f = fopen((outDir + "/music_mix.wav").c_str(), "wb"); if (!f) return;
+  auto u32w = [&](uint32_t v) { fwrite(&v, 4, 1, f); }; auto u16w = [&](uint16_t v) { fwrite(&v, 2, 1, f); };
+  uint32_t bytes = (uint32_t)(pcm.size() * 2);
+  fwrite("RIFF", 1, 4, f); u32w(36 + bytes); fwrite("WAVEfmt ", 1, 8, f); u32w(16); u16w(1); u16w(2); u32w(48000); u32w(48000 * 4); u16w(4); u16w(16);
+  fwrite("data", 1, 4, f); u32w(bytes); fwrite(pcm.data(), 2, pcm.size(), f); fclose(f);
+}
+
 static void balance(int map, int ch, float minutes, u32 seed) {
   App& a = gApp;
   startGame(map, 0, ch, false, seed, minutes);
@@ -432,7 +462,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
 
 int main(int argc, char** argv) {
   std::string scenario = "ui";
-  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false; std::string langCode;
+  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false; std::string langCode, musicDir;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     auto next = [&]() { return i + 1 < argc ? std::string(argv[++i]) : std::string(); };
@@ -445,6 +475,7 @@ int main(int argc, char** argv) {
     else if (a == "--seed") seed = (u32)atoi(next().c_str());
     else if (a == "--handheld") handheld = true;
     else if (a == "--lang") langCode = next();
+    else if (a == "--music") musicDir = next();
   }
   mkdir(outDir.c_str(), 0755);
   auto getPlat = (EGLDisplay(*)(EGLenum, void*, const EGLint*))eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -463,6 +494,7 @@ int main(int argc, char** argv) {
   PlatformInfo pi; pi.width = W; pi.height = H; pi.dataDir = "/tmp/omnibonk_harness"; pi.density = 3;
   mkdir(pi.dataDir.c_str(), 0755); remove((pi.dataDir + "/omnibonk_save.txt").c_str());
   if (handheld) { pi.handheld = true; pi.deviceName = "R36S"; }
+  pi.musicDir = musicDir;
   auto t0 = std::chrono::steady_clock::now();
   app_init(pi);
   LOGI("init %.2fs", std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count());
@@ -475,6 +507,7 @@ int main(int argc, char** argv) {
   if (scenario == "ui") uiShots();
   else if (scenario == "pad") padScenario();
   else if (scenario == "qol") qolScenario();
+  else if (scenario == "audio") audioScenario();
   else if (scenario == "attract") attractScenario();
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();
