@@ -85,12 +85,15 @@ enum EnemyId {
   E_GHOST, E_HEAD, E_ZOMBIE, E_GHOST_GREATER, E_GHOST_PURPLE, E_GHOST_RED, E_SKELETON_GOLD, E_SKELETON_XP,
   E_MB_STONEGOLEM, E_MB_CHUNKHAM, E_MB_SANDGOLEM, E_MB_SCORPIONUSSY, E_MB_GHOSTHAM, E_MB_SKELETONKING,
   E_B_LILBARK, E_B_CHADBARK, E_B_BARKVADER, E_B_LILANUBIS, E_B_ANUBRUH, E_B_JUGEANUBIS, E_B_BIGBOB, E_B_GHOSTKING,
-  E_SWARMGHOST, E_COUNT
+  E_SWARMGHOST,
+  E_H_FOX, E_H_NINJA, E_H_CALCIUM, E_H_MONKE, E_H_OGRE, E_H_ROCCO, E_H_BRAMBLE, E_H_SIZZLE, E_H_DIGBY, E_H_HOOT,   // heroes as enemies (Reverse Mode)
+  E_COUNT
 };
 enum EnemyBeh { EB_CHASE, EB_FLY, EB_EXPLODE, EB_SHOOT, EB_ROLL, EB_POISON, EB_MB_SLAM, EB_MB_CHARGE, EB_MB_THROW, EB_MB_SPIT, EB_MB_RING, EB_MB_SUMMON, EB_BOSS };
 enum EnemyRank { RK_NORMAL, RK_MINIBOSS, RK_BOSS };
 struct EnemyDef {
   const char* name; u8 maps; float hp, dmg, spd; u8 beh; bool flying; int model; float radius; float scale; float xp; u8 rank; u32 tint;
+  int proj = -1;   // EB_SHOOT projectile model (-1: spike)
 };
 extern std::vector<EnemyDef> gEnemies;
 struct SpawnEntry { int enemy; float uStart; float weight; };
