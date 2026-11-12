@@ -293,6 +293,7 @@ static void initChars() {
     {"Calcium", W_BONE, "Speed Demon", "Builds speed while running (halves when hit); damage scales with speed. +0.75% damage per level.", {{S_MOVESPD, .20f}, {S_MAXHP, -30}}, M_CALCIUM, IR(IS_SKELETON), "A fast skeleton: never stop running."},
     {"Monke", W_BANANARANG, "Monke Grip", "Climbs walls and rocks; +2 Max HP per level.", {{S_JUMPH, .25f}, {S_MAXHP, 20}}, M_MONKE, IR(IS_MONKE), "An agile monkey: climbs everything and throws bananas."},
     {"Ogre", W_AXE, "Warrior", "+1.5% damage per level.", {{S_MAXHP, 60}, {S_MOVESPD, -.04f}, {S_ARMOR, 10}}, M_OGRE, IR(IS_OGRE), "Slow, but every level makes it stronger."},
+    {"Rocco", W_MINES, "Junk Magnet", "+3% pickup range and +1% gold gain per level.", {{S_PICKUP, .5f}, {S_GOLDGAIN, .15f}, {S_MOVESPD, .04f}, {S_MAXHP, -10}}, M_ROCCO, IR(IS_RACCOON), "A raccoon tinkerer: turns scrap into mines and hoovers up loot."},
   };
 }
 

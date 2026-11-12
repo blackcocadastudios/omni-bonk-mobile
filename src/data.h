@@ -99,7 +99,7 @@ extern int gMinibosses[MAP_COUNT][2];
 extern int gBosses[MAP_COUNT][3];
 
 // ---------------- characters ----------------
-enum CharId { C_FOX, C_NINJA, C_CALCIUM, C_MONKE, C_OGRE, C_COUNT };
+enum CharId { C_FOX, C_NINJA, C_CALCIUM, C_MONKE, C_OGRE, C_ROCCO, C_COUNT };
 struct CharDef { const char* name; int weapon; const char* passive; const char* passiveDesc; std::vector<StatMod> stats; int model; IconRecipe icon; const char* blurb; };
 extern std::vector<CharDef> gChars;
 

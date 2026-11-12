@@ -467,6 +467,9 @@ void artDrawIcon(Canvas& c, const IconRecipe& r) {
     case IS_SKELETON: artDrawIcon(c, IconRecipe{IS_SKULL, 0, 0, 0}); c.rect(4, 3, 28, 6, C(0x4fc3f7)); return;
     case IS_MONKE: c.circle(6, 15, 4.5f, C(0x8b5a2b)); c.circle(26, 15, 4.5f, C(0x8b5a2b)); c.circle(16, 15, 11, C(0x8b5a2b)); c.ellipse(16, 18, 8, 7, C(0xe6c08f)); c.circle(12, 13, 1.8f, dark); c.circle(20, 13, 1.8f, dark); c.rect(12, 21, 20, 22.5f, dark); break;
     case IS_OGRE: c.circle(16, 17, 12, C(0x7aa34a)); c.tri({9, 26}, {12, 26}, {10.5f, 21}, wht); c.tri({20, 26}, {23, 26}, {21.5f, 21}, wht); c.circle(11, 14, 2, dark); c.circle(21, 14, 2, dark); c.rect(8, 10, 24, 12, C(0x4a6b2a)); break;
+    case IS_RACCOON: c.circle(8, 8, 4.5f, C(0x8a8f99)); c.circle(24, 8, 4.5f, C(0x8a8f99)); c.circle(8, 8, 2, dark); c.circle(24, 8, 2, dark);
+      c.circle(16, 17, 11, C(0x9aa0aa)); c.ellipse(16, 15, 11, 4, C(0x2a2a33)); c.circle(11.5f, 15, 2, wht); c.circle(20.5f, 15, 2, wht); c.circle(11.5f, 15, 1, dark); c.circle(20.5f, 15, 1, dark);
+      c.ellipse(16, 22.5f, 6, 4.5f, C(0xe8e4dc)); c.circle(16, 20.5f, 1.8f, dark); break;
     case IS_XP: c.poly({{16, 3}, {25, 16}, {16, 29}, {7, 16}}, a); c.poly({{16, 3}, {16, 29}, {7, 16}}, mulc(a, 1.3f)); break;
     case IS_HOURGLASS: c.rect(7, 3, 25, 6, wood); c.rect(7, 26, 25, 29, wood); c.tri({9, 6}, {23, 6}, {16, 16}, Col(220, 230, 255, 200)); c.tri({9, 26}, {23, 26}, {16, 16}, Col(220, 230, 255, 200)); c.tri({12, 26}, {20, 26}, {16, 20}, a); break;
     default: c.circle(16, 16, 10, a); break;
