@@ -58,8 +58,10 @@ static void simGame(Game& g, float seconds, float dt = 1 / 30.f) {
   }
 }
 
+static int gModeArg = 0; static u32 gMutArg = 0;
 static void startGame(int map, int tier, int ch, bool god, u32 seed, float stageMin = 15) {
   App& a = gApp;
+  a.selMode = gModeArg; a.meta.mutators = (int)gMutArg;
   a.selMap = map; a.selTier = tier; a.selChar = ch; a.set.stageMin = (int)stageMin;
   a.startRun();
   a.game.cfg.seed = seed; a.game.cfg.godMode = god; a.game.autoPilot = true;
@@ -303,6 +305,7 @@ static void padScenario() {
   press(PB_B); padFrames(6);
   press(PB_DOWN); press(PB_DOWN); press(PB_DOWN); press(PB_RIGHT); press(PB_A); padFrames(6); padLog("quit dialog"); shot("pad_13_quit");
   press(PB_A); padFrames(6); padLog("quit dialog: no");
+  press(PB_A); padFrames(8); padLog("modes"); shot("pad_13b_modes");
   press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_characters");
   press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_characters_calcium");
   press(PB_DOWN); padFrames(8); padLog("chars: down (2nd row)"); shot("pad_15b_characters_row2"); press(PB_RIGHT); press(PB_RIGHT); padFrames(4); padLog("chars: 2x right (2nd row)");
@@ -442,6 +445,37 @@ static void audioScenario() {
   fwrite("data", 1, 4, f); u32w(bytes); fwrite(pcm.data(), 2, pcm.size(), f); fclose(f);
 }
 
+// game modes: mode and mutator screens, then a moment of each mode in play
+static void modesUi() {
+  App& a = gApp; a.testMode = true;
+  a.selMap = MAP_FOREST; a.selChar = C_FOX; for (int i = 0; i < 120; i++) a.updateMenuGame(1 / 30.f);
+  a.scr = SCR_MODES; a.selMode = MODE_DAILY; a.meta.mutators = 0; a.ui.resetFocus(); frame(1 / 30.f, 3); shot("modes_01_daily");
+  a.selMode = MODE_BOSSRUSH; a.meta.bossRushBest = 4; a.ui.resetFocus(); frame(1 / 30.f, 2); shot("modes_02_bossrush");
+  a.meta.mutators = (1 << MU_GLASS) | (1 << MU_SPLIT) | (1 << MU_TIMEWARP); a.selMode = MODE_ENDLESS; a.meta.endlessBest[0] = 754; a.ui.resetFocus(); frame(1 / 30.f, 2); shot("modes_03_endless_mutators");
+  a.scr = SCR_MUTATORS; a.mutFocus = MU_SPLIT;
+  for (int p = 0; p < 3; p++) { a.mutPage = p; frame(1 / 30.f, 2); shot(fmt("modes_0%d_mutators_p%d", 4 + p, p + 1)); }
+  struct M { int mode; u32 mut; int map, ch; float secs; const char* tag; };
+  const M runs[] = {
+    {MODE_BOSSRUSH, 0, MAP_FOREST, C_OGRE, 6, "modes_10_bossrush_round1"},
+    {MODE_ENDLESS, 0, MAP_DESERT, C_FOX, 305, "modes_11_endless_5min"},
+    {MODE_SHRINEHUNT, 0, MAP_FOREST, C_ROCCO, 20, "modes_12_shrinehunt"},
+    {MODE_NORMAL, (1u << MU_GIANT) | (1u << MU_SPLIT) | (1u << MU_MONO), MAP_GRAVEYARD, C_DIGBY, 150, "modes_13_giant_split_mono"},
+    {MODE_NORMAL, (1u << MU_POCKET) | (1u << MU_STREAK) | (1u << MU_VOLATILE), MAP_FOREST, C_HOOT, 120, "modes_14_pocket_streak_volatile"},
+  };
+  for (auto& r : runs) {
+    gModeArg = r.mode; gMutArg = r.mut;
+    startGame(r.map, 1, r.ch, true, 77, 10); simGame(a.game, r.secs);
+    Game& g = a.game; g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = true; frame(1 / 30.f, 3); g.autoPilot = false; frame(1 / 30.f, 1);
+    shot(r.tag);
+  }
+  gModeArg = MODE_GAUNTLET; gMutArg = (1u << MU_SHUFFLE);
+  startGame(MAP_FOREST, 0, C_FOX, true, 78, 10); simGame(a.game, 60);
+  a.game.state = GS_PLAY; a.game.pendingLevels = 0; a.game.nextStage(); frame(1 / 30.f, 20); shot("modes_15_gauntlet_stage2");
+  gModeArg = MODE_DAILY; gMutArg = 0; startGame(MAP_FOREST, 0, C_FOX, true, 79, 10); simGame(a.game, 90);
+  a.game.state = GS_DEAD; a.game.deathT = 0; frame(1 / 30.f, 40); shot("modes_16_daily_end");
+  gModeArg = 0; gMutArg = 0;
+}
+
 static void balance(int map, int ch, float minutes, u32 seed) {
   App& a = gApp;
   startGame(map, 0, ch, false, seed, minutes);
@@ -459,7 +493,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
     }
   }
   double el = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-  LOGI("RESULT map=%s char=%s state=%s time=%.1fmin level=%d kills=%d lastHit=%s(%.0f) maxhp=%.0f armor=%.0f (sim %.1fs)", gMaps[map].name, gChars[ch].name, g.state == GS_DEAD ? "DEAD" : g.state == GS_VICTORY ? "VICTORY" : "TIMEOUT", g.runTime / 60, g.P.level, g.P.kills, g.lastHitBy.c_str(), g.lastHitDmg, g.P.st[S_MAXHP], g.P.st[S_ARMOR], el);
+  LOGI("RESULT mode=%d mut=%x bosses=%d map=%s char=%s state=%s time=%.1fmin level=%d kills=%d lastHit=%s(%.0f) maxhp=%.0f armor=%.0f (sim %.1fs)", g.cfg.mode, g.cfg.mutators, g.bossesBeaten, gMaps[g.cfg.map].name, gChars[g.P.ch].name, g.state == GS_DEAD ? "DEAD" : g.state == GS_VICTORY ? "VICTORY" : "TIMEOUT", g.runTime / 60, g.P.level, g.P.kills, g.lastHitBy.c_str(), g.lastHitDmg, g.P.st[S_MAXHP], g.P.st[S_ARMOR], el);
 }
 
 int main(int argc, char** argv) {
@@ -478,6 +512,8 @@ int main(int argc, char** argv) {
     else if (a == "--handheld") handheld = true;
     else if (a == "--lang") langCode = next();
     else if (a == "--music") musicDir = next();
+    else if (a == "--mode") gModeArg = atoi(next().c_str());
+    else if (a == "--mutators") gMutArg = (u32)strtoul(next().c_str(), nullptr, 0);
   }
   mkdir(outDir.c_str(), 0755);
   auto getPlat = (EGLDisplay(*)(EGLenum, void*, const EGLint*))eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -510,6 +546,7 @@ int main(int argc, char** argv) {
   else if (scenario == "pad") padScenario();
   else if (scenario == "qol") qolScenario();
   else if (scenario == "audio") audioScenario();
+  else if (scenario == "modesui") modesUi();
   else if (scenario == "models") {   // per-character mesh cost (vertices x baked frames), to keep the bake time in check
     long tot = 0; for (int m = 0; m < M_COUNT; m++) tot += (long)gModels.info[m].vtx * gModels.info[m].frames;
     for (int i = 0; i < C_COUNT; i++) { const ModelInfo& mi = gModels.info[gChars[i].model]; LOGI("model %-8s %5d verts x %3d frames = %7d anim verts", gChars[i].name, mi.vtx, mi.frames, mi.vtx * mi.frames); }
