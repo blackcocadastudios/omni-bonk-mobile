@@ -218,6 +218,7 @@ void World::generate(int map_, int tier_, int stage_, u32 seed_, int extraShrine
   // ---------------- interactables
   std::vector<v3> taken = {spawnPoint};
   auto place = [&](int type, int count, float minSpawn, float minSep, int rarity = 0) {
+    if (interDensity != 1 && type != I_BOSS_PORTAL && type != I_CRYPT_KEY && type != I_CURSED_SHRINE && type != I_SUCC_SHRINE) { count = (int)roundf(count * interDensity); minSep *= 0.7f; }
     for (int i = 0, tries = 0; i < count && tries < 400 * count; tries++) {
       float x = rng.range(-H * 0.95f, H * 0.95f), z = rng.range(-H * 0.95f, H * 0.95f);
       if (!clearSpawn(x, z, minSpawn) || !slopeOk(x, z, 0.85f)) continue;

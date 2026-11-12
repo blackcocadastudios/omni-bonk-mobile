@@ -4,24 +4,27 @@
 
 // ====================================================================== run flow
 float Game::stageDuration(int s) const {
-  float m = cfg.stageMinutes <= 0 ? 15.f : cfg.stageMinutes;
+  float m = cfg.mode == MODE_ENDLESS ? 10.f : cfg.stageMinutes <= 0 ? 15.f : cfg.stageMinutes;
   float base = m * 60.f;
   if (cfg.scaleStages) base *= (s == 0 ? 1.0f : s == 1 ? 0.9f : 0.8f);
   return base;
 }
 
 void Game::start(const RunConfig& c) {
-  cfg = c;
+  cfg = c; cfg.baseMap = c.map; cfg.baseTier = c.tier;
   rng = Rng(c.seed * 2654435761u + 7);
   P = Player();
   enemies.reserve(1400); projs.reserve(4000); areas.reserve(1500); pickups.reserve(2000); inters.reserve(600); parts.reserve(2000);
   P.ch = c.character; P.rerolls = c.rerolls; P.skips = c.skips; P.banishes = c.banishes;
   memset(dmgBySrc, 0, sizeof(dmgBySrc));
-  numStages = c.tier + 1;
+  numStages = c.mode == MODE_BOSSRUSH ? BOSSRUSH_ROUNDS : c.mode == MODE_GAUNTLET ? MAP_COUNT : c.mode == MODE_ENDLESS ? 1 : c.tier + 1;
+  endlessBossT = 0; bossesBeaten = 0; endlessCycle = 0; gauntletSeen = {c.character}; pendingLevels = 0;
   stage = 0; runTime = 0; chestsBought = 0; firstEliteDone = 0; pumpkinBonus = 0; beaconBonus = 0; totalSilverEarned = 0;
-  addWeapon(gChars[P.ch].weapon);
+  addWeapon(weaponAllowed(gChars[P.ch].weapon) ? gChars[P.ch].weapon : W_SWORD);
   recomputeStats();
   P.hp = P.st[S_MAXHP]; P.shield = P.st[S_SHIELD];
+  if (c.mode == MODE_SHRINEHUNT) P.gold = 120;
+  if (c.mode == MODE_BOSSRUSH) pendingLevels = 6;   // a head start: the first boss arrives right away
   P.xpNext = 8;
   state = GS_PLAY; running = true;
   loadStage(0);
@@ -29,8 +32,10 @@ void Game::start(const RunConfig& c) {
 
 void Game::loadStage(int s) {
   stage = s; finalArena = false;
+  setupStageFor(s);
+  world.interDensity = cfg.mode == MODE_SHRINEHUNT ? 2.5f : 1.f;
   enemies.clear(); projs.clear(); areas.clear(); pickups.clear(); inters.clear(); parts.clear(); texts.clear(); allies.clear();
-  world.generate(cfg.map, cfg.tier, s, cfg.seed * 31 + s * 977 + 1, beaconBonus, pumpkinBonus);
+  world.generate(cfg.map, cfg.tier, cfg.mode == MODE_BOSSRUSH ? s % MAP_COUNT : s, cfg.seed * 31 + s * 977 + 1, beaconBonus, pumpkinBonus);
   worldGen++;
   for (auto& is : world.inters) {
     Inter it; it.type = is.type; it.pos = is.pos; it.yaw = is.yaw; it.rarity = is.rarity;
@@ -38,15 +43,28 @@ void Game::loadStage(int s) {
     if (it.type == I_SHADY) { for (int k = 0; k < 3; k++) { it.stock.push_back(rollItem(it.rarity)); it.sold.push_back(false); } }
     inters.push_back(it);
   }
+  if (cfg.mode == MODE_ENDLESS || cfg.mode == MODE_BOSSRUSH)   // no key hunt; Endless has no exit at all
+    inters.erase(std::remove_if(inters.begin(), inters.end(), [&](const Inter& it) { return it.type == I_CRYPT_KEY || (cfg.mode == MODE_ENDLESS && it.type == I_BOSS_PORTAL); }), inters.end());
   P.pos = world.spawnPoint + v3(0, 0.5f, 0); P.vel = v3(); P.onGround = false;
   stageTime = 0; stageDur = stageDuration(s);
-  bossSummoned = bossDefeated = portalOpen = finalSwarm = false; finalSwarmT = 0; bossCount = 1; bossesAlive = 0; cryptKeys = 0; eventsDone = 0; spawnAcc = 0; cursedUsed = 0;
+  bossSummoned = bossDefeated = portalOpen = finalSwarm = false; finalSwarmT = 0; bossCount = mut(MU_BOSSDUO) ? 2 : 1; bossesAlive = 0; cryptKeys = 0; eventsDone = 0; spawnAcc = 0; cursedUsed = 0;
+  monoType = -1;
+  if (mut(MU_MONO)) { const auto& tab = gSpawnTables[cfg.map]; monoType = tab[rng.irange(std::min((int)tab.size(), 4 + s * 2 + cfg.tier * 2))].enemy; }   // rolled only when used: keeps classic runs identical per seed
   camYaw = 0; camEye = P.pos + v3(0, 3, -7); camTgt = P.pos;
   egN = (int)(world.T.size / egCell) + 2; egOrigin = -world.T.half() - egCell;
   egHead.assign(egN * egN, -1);
   const char* sname = gMaps[cfg.map].tiers[std::min(2, cfg.tier)].name;
-  banner(sname, fmt(tr("Stage %d/%d  •  Tier %d"), s + 1, numStages, cfg.tier + 1), Col(255, 255, 255), 3.5f);
-  if (cfg.map == MAP_GRAVEYARD) banner(tr("Find 4 Crypt Keys"), tr("to open the boss portal"), Col(127, 255, 159), 3.5f);
+  if (cfg.mode == MODE_BOSSRUSH) {
+    eventsDone = 0xff;   // no swarms or minibosses: the boss is the round
+    for (auto& it : inters) if (it.type == I_BOSS_PORTAL) { summonBoss(it); break; }
+    for (auto& e : enemies) if (e.rank == RK_BOSS) { e.pos = spawnRingPos(15, 19); if (e.flying) e.pos.y += e.hover; }
+    banners.clear();
+    int bt = gBosses[cfg.map][std::min(2, cfg.tier)];
+    banner(gEnemies[bt].name, fmt(tr("Boss %d/%d  •  %s"), s + 1, numStages + 1, sname), Col(255, 80, 80), 3.5f);
+  } else {
+    banner(sname, cfg.mode == MODE_ENDLESS ? std::string(tr("Endless Siege")) : fmt(tr("Stage %d/%d  •  Tier %d"), s + 1, numStages, cfg.tier + 1), Col(255, 255, 255), 3.5f);
+    if (cfg.map == MAP_GRAVEYARD && cfg.mode != MODE_ENDLESS) banner(tr("Find 4 Crypt Keys"), tr("to open the boss portal"), Col(127, 255, 159), 3.5f);
+  }
   // a few starting enemies
   for (int i = 0; i < 6; i++) spawnEnemy(gSpawnTables[cfg.map][i % 2].enemy, spawnRingPos(22, 30));
 }
@@ -61,6 +79,98 @@ void Game::nextStage() {
   pumpkinBonus = P.items[IT_PUMPKIN] * 10; beaconBonus = P.items[IT_BEACON] * 2;
   loadStage(stage + 1);
   heal(P.st[S_MAXHP] * 0.3f);
+  if (cfg.mode == MODE_GAUNTLET) gauntletSwap();
+  if (mut(MU_SHUFFLE)) shuffleWeapons();
+}
+
+void Game::setupStageFor(int s) {
+  if (cfg.mode == MODE_BOSSRUSH) { cfg.map = s % MAP_COUNT; cfg.tier = std::min(2, s / MAP_COUNT); }
+  else if (cfg.mode == MODE_GAUNTLET) { cfg.map = (cfg.baseMap + s) % MAP_COUNT; cfg.tier = cfg.baseTier; }
+}
+
+bool Game::weaponAllowed(int w) const {
+  if (!mut(MU_MELEE)) return true;
+  int b = gWeapons[w].beh;
+  return b == WB_MELEE || b == WB_AURA || b == WB_SPIN || b == WB_ORBIT || b == WB_CONE || b == WB_TRAIL || b == WB_AEGIS;
+}
+
+void Game::gauntletSwap() {
+  int old = P.ch, nc = old;
+  for (int k = 0; k < 40; k++) {
+    nc = rng.irange(C_COUNT);
+    if (std::find(gauntletSeen.begin(), gauntletSeen.end(), nc) == gauntletSeen.end()) break;
+  }
+  if (nc == old) nc = (old + 1 + rng.irange(C_COUNT - 1)) % C_COUNT;
+  gauntletSeen.push_back(nc); P.ch = nc;
+  int w = gChars[nc].weapon; if (!weaponAllowed(w)) w = W_SWORD;
+  bool own = false; for (auto& x : P.weapons) if (x.def == w) own = true;
+  if (!own) {
+    if ((int)P.weapons.size() < maxWeapons()) addWeapon(w);
+    else {   // full: the old hero's signature weapon (or the first slot) becomes the new one, upgrades kept
+      int slot = 0; for (size_t i = 0; i < P.weapons.size(); i++) if (P.weapons[i].def == gChars[old].weapon) slot = (int)i;
+      P.weapons[slot].def = w; P.weapons[slot].cd = 0.3f;
+    }
+  }
+  statsDirty = true; recomputeStats(); P.hp = std::min(P.hp, P.st[S_MAXHP]);
+  banner(fmt(tr("You are now %s"), gChars[nc].name), gChars[nc].passive, Col(79, 195, 247), 3.5f);
+}
+
+void Game::shuffleWeapons() {
+  for (auto& wi : P.weapons) {
+    for (int k = 0; k < 40; k++) {
+      int w = rng.irange(W_COUNT); bool own = false;
+      for (auto& x : P.weapons) if (x.def == w) own = true;
+      if (own || !weaponAllowed(w)) continue;
+      wi.def = w; wi.cd = 0.3f; wi.t = 0; wi.target = -1; wi.active = false; wi.charge = 0; break;
+    }
+  }
+  alert(tr("WEAPON SHUFFLE"), tr("Your weapons changed"), Col(255, 214, 80), 2.5f);
+}
+
+void Game::surprisePot(v3 at) {
+  switch (rng.irange(7)) {
+    case 0: for (int k = 0; k < 6; k++) dropPickup(PI_GOLD, 0, at, 3 + 3 * u() + 3 * stage); floatText(at + v3(0, 2, 0), tr("Jackpot!"), Col(255, 214, 80)); break;
+    case 1: dropXp(at, 25 * (1 + stage)); break;
+    case 2: { areaDamage(at, 5.f, 40.f * (1 + stage) * (1 + u()), SRC_COUNT - 1, 0, 3); Area& a = addArea(); a.kind = AK_EXPLOSION; a.pos = at; a.radius = 5; a.life = a.maxLife = 0.35f; a.color = 0xff8a1a; audioPlay(SFX_EXPLODE); } break;
+    case 3: forEnemiesNear(at, 9.f, [&](Enemy& e) { e.freezeT = std::max(e.freezeT, 2.5f); }); particles(at + v3(0, 1, 0), 20, Col(150, 230, 255), 6, 0.3f, 0.7f); floatText(at + v3(0, 2, 0), tr("Freeze!"), Col(150, 230, 255)); break;
+    case 4: P.rageT = std::max(P.rageT, 6.f); floatText(at + v3(0, 2, 0), tr("Rage!"), Col(255, 90, 90)); break;
+    case 5: P.shieldT = std::max(P.shieldT, 4.f); floatText(at + v3(0, 2, 0), tr("Shield!"), Col(120, 220, 255)); break;
+    default: { Ally a; a.kind = 0; a.pos = at + v3(0, 1.5f, 0); a.life = 15; allies.push_back(a); floatText(at + v3(0, 2, 0), tr("A ghost friend!"), Col(200, 220, 255)); } break;
+  }
+}
+
+void Game::updateModes(float dt) {
+  if (cfg.mode == MODE_ENDLESS && !finalArena) {
+    endlessBossT += dt;
+    if (endlessBossT >= 300) {
+      endlessBossT = 0;
+      int wave = std::max(1, (int)(stageTime / 300));
+      int bt = gBosses[cfg.map][std::min(2, (wave - 1) / 2)];
+      Enemy* e = spawnEnemy(bt, spawnRingPos(16, 22)); if (e) bossesAlive++;
+      alert(gEnemies[bt].name, tr("A boss joins the siege"), Col(255, 80, 80), 2.6f); audioPlay(SFX_BOSS);
+    }
+  }
+  if (mut(MU_ROULETTE)) {
+    P.rouletteT -= dt;
+    if (P.rouletteT <= 0) {
+      static const struct { int st; float good, bad; } kR[] = {{S_DAMAGE, .4f, -.25f}, {S_ATKSPD, 30, -20}, {S_MOVESPD, .25f, -.15f}, {S_CRIT, 25, -5}, {S_SIZE, .4f, -.2f}, {S_ARMOR, 25, -15}, {S_PICKUP, 1.f, -.4f}, {S_LUCK, 30, -10}};
+      const int n = (int)(sizeof(kR) / sizeof(kR[0]));
+      int g = rng.irange(n), b = rng.irange(n - 1); if (b >= g) b++;
+      for (auto& v : P.roulette) v = 0;
+      P.roulette[kR[g].st] = kR[g].good; P.roulette[kR[b].st] = kR[b].bad; P.rouletteT = 60; statsDirty = true;
+      alert(tr("STAT ROULETTE"), statValueStr(kR[g].st, kR[g].good) + " " + tr(kStats[kR[g].st].name) + "   " + statValueStr(kR[b].st, kR[b].bad) + " " + tr(kStats[kR[b].st].name), Col(255, 214, 80), 2.6f);
+    }
+  }
+  if (mut(MU_STREAK)) {
+    P.streakT -= dt;
+    if (P.streakT <= 0 && P.streak > 0) { P.streak = 0; if (P.streakTier) { P.streakTier = 0; statsDirty = true; } }
+    int tier = P.streak >= 80 ? 3 : P.streak >= 40 ? 2 : P.streak >= 15 ? 1 : 0;
+    if (tier > P.streakTier) {
+      static const char* kT[4] = {"", "+20% Move Speed", "+30% Damage", "+30 Regeneration"};
+      P.streakTier = tier; statsDirty = true;
+      alert(fmt(tr("KILL STREAK x%d"), P.streak), tr(kT[tier]), Col(255, 140, 60), 1.6f);
+    }
+  }
 }
 
 void Game::startFinalArena() {
@@ -90,15 +200,15 @@ void Game::startFinalArena() {
 }
 
 float Game::hpMult() const {
-  float uu = finalArena ? 1.f : std::min(u(), 1.6f);
+  float uu = finalArena ? 1.f : uCap(1.6f);
   float tierM = cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 2.2f : 4.5f;
-  float stageM = 1.f + 0.9f * stage;
+  float stageM = 1.f + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage);
   float d = P.st[S_DIFFICULTY] / 100.f;
   float longBonus = 1.f + 0.15f * std::max(0.f, (cfg.stageMinutes > 0 ? cfg.stageMinutes : 15.f) - 10.f) / 5.f * uu;
   return tierM * stageM * (1 + 2.2f * uu + 5.5f * uu * uu) * (1 + 0.6f * d) * longBonus;
 }
 float Game::dmgMult() const {
-  float uu = std::min(u(), 1.6f);
+  float uu = uCap(1.6f);
   float tierM = cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 1.5f : 2.1f;
   float early = stage == 0 && cfg.tier == 0 ? lerpf(0.6f, 1.f, sat(uu * 4.f)) : 1.f;
   return 0.85f * early * tierM * (1 + 0.35f * stage) * (1 + 0.7f * uu + 0.5f * uu * uu) * (1 + 0.3f * P.st[S_DIFFICULTY] / 100.f);
@@ -122,12 +232,33 @@ void Game::recomputeStats() {
   if (P.ch == C_SIZZLE) s[S_ATKSPD] += L * 1.5f;
   if (P.ch == C_DIGBY) s[S_ARMOR] += L * 0.75f;
   if (P.ch == C_HOOT) s[S_XPGAIN] += L * 0.015f;
+  // run mutators (additive part)
+  for (int i = 0; i < S_COUNT; i++) s[i] += P.roulette[i];
+  if (mut(MU_GLASS)) s[S_DAMAGE] += 1.f;
+  if (mut(MU_BRUTE)) { s[S_DAMAGE] += 1.f; s[S_ATKSPD] -= 50; }
+  if (mut(MU_TRIGGER)) s[S_ATKSPD] += 100;
+  if (mut(MU_SPECIALIST)) s[S_DAMAGE] += .75f;
+  if (mut(MU_MADNESS)) s[S_CRITDMG] += 1.f;
+  if (mut(MU_SURESHOT)) s[S_CRIT] += 100;
+  if (mut(MU_GIANT)) { s[S_MAXHP] += 50; s[S_ARMOR] += 10; s[S_MOVESPD] -= .15f; s[S_KNOCKBACK] += .3f; }
+  if (mut(MU_POCKET)) { s[S_MOVESPD] += .15f; s[S_EVASION] += 15; }
+  if (mut(MU_MOON)) { s[S_JUMPH] += .8f; s[S_JUMPS] += 1; }
+  if (P.streakTier >= 1) s[S_MOVESPD] += .2f;
+  if (P.streakTier >= 2) s[S_DAMAGE] += .3f;
+  if (P.streakTier >= 3) s[S_REGEN] += 30;
   s[S_MAXHP] += P.demonicBlood + P.bloodMagicHp;
   s[S_DIFFICULTY] += P.greedDiff;
   // multiplicative item effects
   s[S_MAXHP] *= powf(0.95f, (float)P.items[IT_BEER]) * powf(1.5f, (float)P.items[IT_LEECHINGCRYSTAL]) * powf(0.8f, (float)P.items[IT_CURSEDGRABBIES]);
   s[S_REGEN] *= powf(0.5f, (float)P.items[IT_LEECHINGCRYSTAL]);
   if (P.items[IT_SPIKYSHIELD]) s[S_THORNS] += 2.f * s[S_ARMOR] * P.items[IT_SPIKYSHIELD];
+  if (mut(MU_GLASS)) s[S_MAXHP] *= .5f;
+  if (mut(MU_POCKET)) s[S_MAXHP] *= .75f;
+  if (mut(MU_TRIGGER)) s[S_DAMAGE] *= .5f;
+  if (mut(MU_SURESHOT)) s[S_CRITDMG] = 1 + (s[S_CRITDMG] - 1) * .5f;
+  if (mut(MU_MOON)) s[S_FALLRED] = 100;
+  if (int sp = mutatorSilverPct(cfg.mutators)) s[S_SILVERGAIN] *= 1 + sp / 100.f;
+  s[S_ATKSPD] = std::max(-80.f, s[S_ATKSPD]);
   s[S_MAXHP] = std::max(1.f, s[S_MAXHP]);
   s[S_MOVESPD] = std::max(0.3f, s[S_MOVESPD]);
   s[S_SIZE] = std::max(0.3f, s[S_SIZE]);
@@ -186,9 +317,10 @@ Enemy* Game::spawnEnemy(int type, v3 pos, bool elite) {
   e.maxHp = d.hp * hm; e.dmg = d.dmg * dm; e.speed = d.spd * std::min(1.45f, 1.f + 0.12f * std::min(u(), 1.5f) + 0.1f * P.st[S_DIFFICULTY] / 100.f);
   if (d.rank == RK_MINIBOSS) { e.maxHp = d.hp * hm * 3.0f; e.dmg = d.dmg * dm; }
   if (d.rank == RK_BOSS) {
-    float uu = std::min(u(), 1.2f);
+    float uu = cfg.mode == MODE_BOSSRUSH ? 0.1f + 0.11f * stage : uCap(1.2f);
     float tierM = cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 2.4f : 5.f;
-    e.maxHp = d.hp * (0.8f + 2.7f * uu) * tierM * (1 + 0.9f * stage) * (1 + 0.5f * P.st[S_DIFFICULTY] / 100.f);
+    e.maxHp = d.hp * (0.8f + 2.7f * uu) * tierM * (1 + 0.9f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage)) * (1 + 0.5f * P.st[S_DIFFICULTY] / 100.f);
+    if (mut(MU_BOSSDUO)) e.maxHp *= 0.75f;
     e.dmg = d.dmg * dm * 0.8f;
   }
   if (elite) { e.elite = true; e.maxHp *= 6; e.dmg *= 1.4f; e.scale *= 1.35f; e.radius *= 1.35f; }
@@ -228,7 +360,7 @@ void Game::addXp(float v) {
 }
 
 void Game::heal(float amt, bool fromRegen) {
-  if (amt <= 0 || P.hp <= 0) return;
+  if (amt <= 0 || P.hp <= 0 || mut(MU_SHELL)) return;
   float cap = P.st[S_MAXHP] * (1 + P.st[S_OVERHEAL] / 100.f);
   float before = P.hp;
   P.hp = std::min(cap, P.hp + amt);
@@ -277,7 +409,7 @@ int Game::rollItem(int rarity) {
 }
 
 int Game::chestCost() const {
-  return (int)roundf(30.f * powf(1.22f, (float)chestsBought) * (1 + 0.5f * stage) * (cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 1.3f : 1.7f));
+  return (int)roundf(30.f * powf(1.22f, (float)chestsBought) * (1 + 0.5f * stage) * (cfg.tier == 0 ? 1.f : cfg.tier == 1 ? 1.3f : 1.7f) * (mut(MU_BARGAIN) ? 0.5f : 1.f) * (cfg.mode == MODE_SHRINEHUNT ? 0.6f : 1.f));
 }
 
 // ====================================================================== offers
@@ -289,10 +421,10 @@ void Game::genLevelOffers() {
   std::vector<Cand> c;
   int wmax = weaponMaxLevel(), tmax = tomeMaxLevel();
   for (size_t i = 0; i < P.weapons.size(); i++) if (P.weapons[i].level < wmax) c.push_back({1, P.weapons[i].def, (int)i, 2.6f});
-  if ((int)P.weapons.size() < MAX_WEAPONS)
+  if ((int)P.weapons.size() < maxWeapons())
     for (int w = 0; w < W_COUNT; w++) {
       bool own = false; for (auto& x : P.weapons) if (x.def == w) own = true;
-      if (own || std::find(P.banishedW.begin(), P.banishedW.end(), w) != P.banishedW.end()) continue;
+      if (own || !weaponAllowed(w) || std::find(P.banishedW.begin(), P.banishedW.end(), w) != P.banishedW.end()) continue;
       c.push_back({0, w, -1, 0.55f});
     }
   for (int i = 0; i < P.ntomes; i++) if (P.tomes[i].level < tmax) c.push_back({3, P.tomes[i].def, i, 2.0f});
@@ -302,7 +434,7 @@ void Game::genLevelOffers() {
       if (own || std::find(P.banishedT.begin(), P.banishedT.end(), t) != P.banishedT.end()) continue;
       c.push_back({2, t, -1, 0.5f});
     }
-  for (int k = 0; k < 3 && !c.empty(); k++) {
+  for (int k = 0; k < (mut(MU_BUFFET) ? 4 : 3) && !c.empty(); k++) {
     float tot = 0; for (auto& x : c) tot += x.w;
     float r = rng.f() * tot; size_t pick = 0;
     for (size_t i = 0; i < c.size(); i++) { if (r < c[i].w) { pick = i; break; } r -= c[i].w; }
@@ -506,7 +638,10 @@ void Game::bossDied(Enemy& e) {
   int silver = (int)((20 + 15 * stage + 10 * cfg.tier) * P.st[S_SILVERGAIN] * (1 + 0.5f * cursedUsed));
   P.silver += silver; totalSilverEarned += silver;
   floatText(e.pos + v3(0, 3, 0), fmt(tr("+%d silver"), silver), Col(220, 225, 235), 1.3f);
+  bossesBeaten++;
   if (finalArena) { state = GS_VICTORY; deathT = 0; audioPlay(SFX_VICTORY); return; }
+  if (cfg.mode == MODE_ENDLESS) { alert(tr("BOSS DEFEATED!"), tr("A golden chest appeared"), Col(120, 255, 140), 2.5f); audioPlay(SFX_LEVELUP); return; }
+  if (bossesAlive == 0 && cfg.mode == MODE_BOSSRUSH) { pendingLevels += 3; heal(P.st[S_MAXHP] * 0.4f); }
   if (bossesAlive == 0) {
     bossDefeated = true; portalOpen = true;
     for (auto& p : pickups) if (p.kind == PI_XP) p.magnet = true;
@@ -550,7 +685,8 @@ void Game::update(float dt) {
   }
   if (statsDirty) { float oldMax = P.st[S_MAXHP]; recomputeStats(); if (P.st[S_MAXHP] > oldMax) P.hp += P.st[S_MAXHP] - oldMax; }
   if (hitStop > 0) { hitStop -= dt; return; }
-  float sdt = dt * timeScale;
+  float warp = mut(MU_TIMEWARP) ? 1.f + 0.32f * sinf(realTime * 0.7f) + 0.12f * sinf(realTime * 2.3f) : 1.f;
+  float sdt = dt * timeScale * warp;
   float edt = sdt * (P.speedBoiT > 0 ? 0.45f : 1.f) * (P.zaT > 0 || freezeEnemiesT > 0 ? 0.f : 1.f);
   if (autoPilot) updateAutopilot(dt);
   stageTime += sdt; runTime += sdt;
@@ -558,6 +694,7 @@ void Game::update(float dt) {
   updateCamera(dt);
   buildEnemyGrid();
   updateSpawning(sdt);
+  updateModes(sdt);
   updateEnemies(edt);
   updateWeapons(sdt);
   updateProjectiles(sdt);
@@ -697,7 +834,7 @@ void Game::updatePlayer(float dt) {
 
 // ====================================================================== spawning & events
 void Game::updateSpawning(float dt) {
-  float uu = u();
+  float uu = cfg.mode == MODE_BOSSRUSH ? uCap(1.f) : u();
   if (finalArena) {
     spawnAcc += dt * (1.5f + stageTime * 0.01f);
     while (spawnAcc > 1 && (int)enemies.size() < cfg.maxEnemies / 2) { spawnAcc -= 1; spawnEnemy(E_SWARMGHOST, spawnRingPos(20, 30)); }
@@ -707,8 +844,10 @@ void Game::updateSpawning(float dt) {
   bool infinite = cfg.stageMinutes <= 0;
   float d = P.st[S_DIFFICULTY] / 100.f;
   int alive = 0; for (auto& e : enemies) if (e.alive && e.rank == RK_NORMAL) alive++;
-  float target = (14 + 234 * powf(std::min(uu, 1.3f), 1.1f)) * (1 + 0.3f * stage + 0.25f * cfg.tier) * (1 + 1.1f * d);
+  float target = (14 + 234 * powf(std::min(uu, cfg.mode == MODE_ENDLESS ? 2.5f : 1.3f), 1.1f)) * (1 + 0.3f * (cfg.mode == MODE_BOSSRUSH ? stage % MAP_COUNT : stage) + 0.25f * cfg.tier) * (1 + 1.1f * d);
   if (bossesAlive > 0) target *= 0.55f;
+  if (cfg.mode == MODE_BOSSRUSH) target *= 0.45f;
+  if (cfg.mode == MODE_SHRINEHUNT) target *= 0.6f;
   target = std::min(target, (float)cfg.maxEnemies);
   eliteT -= dt;
   spawnAcc += dt * (2.f + target * 0.22f);
@@ -724,13 +863,16 @@ void Game::updateSpawning(float dt) {
     int type = tab[pick].enemy;
     if (rng.chance(0.003f)) type = rng.chance(0.5f) ? E_SKELETON_GOLD : E_SKELETON_XP;
     bool elite = false;
-    if (eliteT <= 0) { elite = true; eliteT = (30.f - 18.f * std::min(uu, 1.f)) / std::max(0.2f, P.st[S_ELITESPAWN]); }
+    if (eliteT <= 0) { elite = true; eliteT = (30.f - 18.f * std::min(uu, 1.f)) / std::max(0.2f, P.st[S_ELITESPAWN]) / (mut(MU_ELITES) ? 3.f : 1.f) / (mut(MU_MONO) ? 1.6f : 1.f); }
+    if (mut(MU_MONO) && monoType >= 0 && gEnemies[type].rank == RK_NORMAL && type != E_SKELETON_GOLD && type != E_SKELETON_XP) type = monoType;
     spawnEnemy(type, spawnRingPos(24, 38), elite);
     alive++;
   }
   if (spawnAcc > 6) spawnAcc = 6;
   // events as fractions of the stage timer (10-min original: swarms at 7:00 and 3:00, minibosses at 7:00 and 2:00)
-  auto event = [&](int bit, float at, std::function<void()> f) { if (!(eventsDone & bit) && uu >= at) { eventsDone |= bit; f(); } };
+  float ev = uu;
+  if (cfg.mode == MODE_ENDLESS) { int cyc = (int)uu; if (cyc != endlessCycle) { endlessCycle = cyc; eventsDone = 0; } ev = uu - cyc; }
+  auto event = [&](int bit, float at, std::function<void()> f) { if (!(eventsDone & bit) && ev >= at) { eventsDone |= bit; f(); } };
   auto swarm = [&]() {
     int n = 45 + 15 * stage + 10 * cfg.tier;
     for (int k = 0; k < n; k++) {
@@ -825,6 +967,7 @@ void Game::updateInters(float dt) {
           particles(it.pos + v3(0, 0.5f, 0), 14, c, 5, 0.3f, 0.6f, false, SP_WHITE, -12);
           audioPlay(SFX_BREAK);
           float mul = 1 + 0.1f * P.items[IT_PUMPKIN] * 0;
+          if (mut(MU_POTS) && it.type != I_TUMBLEWEED && rng.chance(0.45f)) surprisePot(it.pos);
           if (it.type == I_POT_SILVER) { for (int k = 0; k < 3; k++) dropPickup(PI_SILVER, 0, it.pos, 1 + stage); }
           else {
             int n = it.type == I_POT_BIG ? 4 : 2;

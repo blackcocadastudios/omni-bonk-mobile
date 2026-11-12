@@ -25,8 +25,10 @@ struct Meta {
   int silver = 0, runs = 0, wins = 0, totalKills = 0, bestKills = 0; float bestTime[3][3] = {{0}};
   int upReroll = 0, upSkip = 0, upBanish = 0, upHp = 0, upLuck = 0;
   int lastChar = 0, lastMap = 0, lastTier = 0;
+  int lastMode = 0, mutators = 0;                       // mode screen selection and active mutators (bit mask)
+  int dailyKey = 0, dailyBest = 0, bossRushBest = 0; float endlessBest[3] = {0, 0, 0};
 };
-enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME, SCR_CREDITS };
+enum Screen { SCR_TITLE, SCR_CHARS, SCR_MAP, SCR_SETTINGS, SCR_SHOP, SCR_ABOUT, SCR_CATALOG, SCR_GAME, SCR_CREDITS, SCR_MODES, SCR_MUTATORS };
 
 struct App {
   PlatformInfo plat; Settings set; Meta meta;
@@ -34,7 +36,7 @@ struct App {
   Game game, menuGame; bool menuInit = false, inRun = false;
   UI ui; bool glReady = false, paused = false;
   float fps = 60, fpsAcc = 0; int fpsFrames = 0; float frameDt = 0.016f;
-  int selChar = 0, selMap = 0, selTier = 0;
+  int selChar = 0, selMap = 0, selTier = 0, selMode = 0, mutFocus = 0, mutPage = 0, runDailyKey = 0, lastDailyScore = 0;
   float hudR = 0, hudB = 0, hudTR = 0, hudTRB = 0; // last frame's HUD extents (left column, top-right cluster) so world labels avoid them
   int pauseTab = 0; bool showMap = false; bool banishMode = false; bool confirmQuit = false; int microSel = -1;
   // touch controls
@@ -57,6 +59,7 @@ struct App {
   void applySettingsToGame(Game& g);
   void frame(float dt);
   void updateMenuGame(float dt);
+  void drawModes(); void drawMutators(); void modeNext(); void charsNext();
   void drawTitle(); void drawChars(); void drawMap(); void drawSettings(); void drawShop(); void drawAbout(); void drawCredits(); void drawCatalog();
   void drawGame(); void gameControls(); void drawHUD(); void drawWorldUI(); void drawMinimap(float cx, float cy, float r); void drawFullMap();
   void drawLevelUp(); void drawChest(); void drawShrine(); void drawShopOverlay(); void drawMicrowave(); void drawMoai(); void drawPause(); void drawEnd();

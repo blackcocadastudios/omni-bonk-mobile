@@ -24,7 +24,7 @@ struct PropInst {
 struct InterSpawn { int type; v3 pos; float yaw; int rarity; };
 
 struct World {
-  int map = 0, tier = 0, stage = 0; u32 seed = 1;
+  int map = 0, tier = 0, stage = 0; u32 seed = 1; float interDensity = 1;
   Palette pal;
   Terrain T;
   std::vector<PropInst> props;

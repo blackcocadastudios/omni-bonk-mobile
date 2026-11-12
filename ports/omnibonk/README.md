@@ -16,6 +16,7 @@ before the Final Swarm gets you.
 - 10 characters, 3 maps (Forest, Desert, Graveyard) with 3 tiers each
 - 43 enemies and bosses, 30 weapons, 23 tomes, 86 items, shrines, shops and upgrade towers
 - Adjustable time per stage (default **15 minutes**; the original uses 10), optional Final Swarm, DPS meter, chest counter, auto bunny hop
+- 6 game modes (Classic, Daily Run, Boss Rush, Endless Siege, Hero Gauntlet, Shrine Hunt) and 24 stackable mutators
 - 6 languages: English (default), Portuguese (BR), Spanish, French, Russian, German (Settings > Game > Language)
 - Procedural art, music and sound effects: tiny download, no external assets
 

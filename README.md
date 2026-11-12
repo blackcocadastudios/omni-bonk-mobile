@@ -31,6 +31,25 @@ A 3D survival roguelite for Android and Linux handhelds (R36S / PortMaster), mad
 - Stages 2 and 3 use 90% and 80% of the time, as in the original (can be turned off).
 - Final swarm mode: when the timer ends (original) or only after the boss is killed.
 
+## Game modes and mutators
+
+PLAY opens the mode screen:
+
+| Mode | What changes |
+|---|---|
+| Classic | The full run: hero, map, tier and time per stage of your choice |
+| Daily Run | One run per calendar day with a date-seeded hero, map, seed and two mutators; your best score of the day is saved |
+| Boss Rush | Nine bosses back to back (three per map, tiers 1-3), then the Ghost King; level-ups, a heal and a golden chest after each kill |
+| Endless Siege | No portal and no timer: difficulty keeps climbing in 10-minute cycles and a boss joins every 5 minutes; best time per map is saved |
+| Hero Gauntlet | Three stages across the three maps; at each portal you become a different random hero, keeping items, tomes and weapons |
+| Shrine Hunt | Maps with 2.5x more chests and shrines, cheaper chests and a starting purse, but 6-minute stages |
+
+**Mutators** can be stacked on any mode except the Daily Run (which picks its own two). Many are adaptations of classic
+roguelite mutators (in the spirit of Soul Knight's), with our own names and tuning; the harder ones add a silver bonus:
+Glass Cannon · Brute Force · Trigger Happy · Close Quarters · Specialist · Madness Edge · Sure Shot · Giant Form · Pocket Size ·
+Hard Shell · Kill Streak · Bargain Day · Buffet · Boss Duo · Cell Division · Blink Foes · Time Warp · Monoculture ·
+Weapon Shuffle · Surprise Pots · Moon Gravity · Volatile Foes · Elite Parade · Stat Roulette.
+
 ## Quality of life, inspired by community mods
 
 Adjustable stage time · DPS meter and damage table at the end of the run (StatHUD) · one-row chest/shrine/Shady counters with the next chest cost (SpawnTracker) · compact interaction tags over chests and shrines (price shown as a coin, red when you cannot afford it) · slim top-of-screen alerts for swarms, minibosses and other combat events, keeping the centre of the screen clear (big banners only for stage, boss and final-swarm milestones) · instant chest opening · auto-bhop · stepped animation at 6/8/12 fps or smooth · effects opacity · render scale · enemy cap · full map · FOV and camera distance · left-handed mode · UI scale · vibration · FPS cap · banish/reroll/skip upgrades · Auto quality mode (adapts render scale, particles, view distance and enemy cap to hold the target frame rate).
@@ -139,6 +158,8 @@ cmake -S . -B build-desktop -G Ninja && ninja -C build-desktop
 ./build-desktop/omnibonk_desktop --scenario game --out shots --size 2400x1080
 ./build-desktop/omnibonk_desktop --scenario balance --map 0 --char 1 --minutes 15
 ./build-desktop/omnibonk_desktop --scenario qol --out shots --size 640x480 --handheld   # labels, counters, alerts, overlays
+./build-desktop/omnibonk_desktop --scenario modesui --out shots --size 640x480 --handheld  # mode/mutator screens, each mode in play
+./build-desktop/omnibonk_desktop --scenario balance --mode 2 --char 3 --minutes 60          # bot run in a mode (0-5), --mutators MASK
 ./build-desktop/omnibonk_desktop --scenario audio --out shots --music music              # offline mix of every music slot
 ```
 
