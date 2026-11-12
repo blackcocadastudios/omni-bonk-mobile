@@ -6,6 +6,8 @@
 #include <png.h>
 #include <sys/stat.h>
 #include <chrono>
+#include <thread>
+#include "music.h"
 
 typedef void* EGLDisplay; typedef void* EGLConfig; typedef void* EGLContext; typedef int EGLint; typedef unsigned int EGLBoolean; typedef unsigned int EGLenum;
 extern "C" {
@@ -156,8 +158,8 @@ static void coverShot() {
     addEnemy(horde[(int)(rnd() * 13) % 13], sinf(a) * r * 1.15f, 3.5f + cosf(a) * r * 0.95f);
   }
   addEnemy(E_B_BIGBOB, 4.2f, 15.f, 1.f);
-  // the five heroes, center one in front
-  for (int i = 0; i < C_COUNT; i++) {
+  // the first five heroes, center one in front
+  for (int i = 0; i < 5; i++) {
     int off = i - 2; const CharDef& cd = gChars[i == 2 ? 0 : (i < 2 ? i + 1 : i)];
     sp.push_back({cd.model, 1.75f, off * 2.35f, fabsf((float)off) * 0.9f - 1.4f, PI - off * 0.12f, 0.25f, CL_IDLE});
   }
@@ -303,6 +305,8 @@ static void padScenario() {
   press(PB_A); padFrames(6); padLog("quit dialog: no");
   press(PB_A); padFrames(8); padLog("chars"); shot("pad_14_characters");
   press(PB_RIGHT); press(PB_RIGHT); padFrames(30); padLog("chars: 2x right"); shot("pad_15_characters_calcium");
+  press(PB_DOWN); padFrames(8); padLog("chars: down (2nd row)"); shot("pad_15b_characters_row2"); press(PB_RIGHT); press(PB_RIGHT); padFrames(4); padLog("chars: 2x right (2nd row)");
+  press(PB_RIGHT); padFrames(4); padLog("chars: right at the edge"); press(PB_UP); press(PB_LEFT); press(PB_LEFT); padFrames(8); padLog("chars: up, 2x left");
   press(PB_A); padFrames(8); padLog("map"); shot("pad_16_map");
   press(PB_DOWN); press(PB_RIGHT); press(PB_A); press(PB_DOWN); press(PB_RIGHT); press(PB_RIGHT); padLog("map: tier2, time +2"); 
   press(PB_DOWN); shot("pad_17_map_time");
@@ -382,6 +386,62 @@ static void gameShots(int map, int tier, int ch, const std::string& tag, float s
   shot("game_" + tag);
 }
 
+// interaction labels, HUD counters, combat banners and the chest/shrine overlays (before/after QoL shots)
+static void qolScenario() {
+  App& a = gApp; a.set.counters = true;
+  startGame(MAP_FOREST, 0, C_FOX, true, 41);
+  Game& g = a.game;
+  simGame(g, 45);
+  auto settle = [&]() { g.state = GS_PLAY; g.pendingLevels = 0; g.autoPilot = false; g.in = Input(); g.P.vel = v3(); g.banners.clear(); g.texts.clear(); };
+  auto standAt = [&](int type, const char* tag) {
+    for (auto& it : g.inters) if (it.type == type && !it.used) {
+      settle(); g.P.pos = it.pos + v3(1.5f, 0, -1.2f); g.P.pos.y = g.world.T.height(g.P.pos.x, g.P.pos.z);
+      frame(1 / 30.f, 30); g.texts.clear(); frame(1 / 30.f, 1); shot(tag); return;
+    }
+    LOGI("qol: no interactable of type %d", type);
+  };
+  standAt(I_CHEST, "qol_01_label_chest");
+  standAt(I_GREED_SHRINE, "qol_02_label_greed");
+  standAt(I_MOAI, "qol_03_label_moai");
+  standAt(I_SHADY, "qol_04_label_shady");
+  settle(); g.eventsDone = 0; g.stageTime = g.stageDur * 0.30f - 0.1f;
+  frame(1 / 30.f, 12); shot("qol_05_swarm_miniboss");
+  frame(1 / 30.f, 30); shot("qol_06_swarm_miniboss_1s");
+  settle(); g.banner(tr("BOSS DEFEATED!"), tr("The portal to the next stage has opened"), Col(120, 255, 140), 3.5f);
+  frame(1 / 30.f, 12); shot("qol_07_big_banner");
+  settle(); for (auto& it : g.inters) if (it.type == I_CHEST && !it.used) { g.openChest(it, true); break; }
+  g.chestAnim = 2; frame(1 / 30.f, 2); shot("qol_08_chest");
+  settle(); g.genShrineOffers(false); g.state = GS_SHRINE; frame(1 / 30.f, 2); shot("qol_09_charge_shrine");
+}
+
+// offline mix of the music through every slot (pack or chiptune), paced at ~4x real time like the audio thread would pull it;
+// logs the RMS level of each segment and the pack underruns, writes music_mix.wav
+static void audioScenario() {
+  struct Seg { int track; float secs; const char* name; };
+  const Seg segs[] = {{0, 10, "menu"}, {1, 12, "forest"}, {4, 10, "boss"}, {5, 10, "final"}, {2, 10, "desert"}, {3, 10, "graveyard"}, {0, 6, "menu"}};
+  audioSetVolume(0.55f, 0.8f);
+  std::vector<int16_t> pcm; float buf[512 * 2];
+  for (auto& s : segs) {
+    audioMusic(s.track);
+    int chunks = (int)(s.secs * 48000 / 512); double acc = 0; long n = 0; float peak = 0;
+    for (int c = 0; c < chunks; c++) {
+      audioRender(buf, 512);
+      for (int i = 0; i < 1024; i++) {
+        pcm.push_back((int16_t)clampf(buf[i] * 32767.f, -32768.f, 32767.f));
+        if (c * 512 > 48000 * 2) { acc += (double)buf[i] * buf[i]; n++; peak = std::max(peak, fabsf(buf[i])); }
+      }
+      std::this_thread::sleep_for(std::chrono::microseconds(2500));
+    }
+    LOGI("audio: %-9s rms %.1f dBFS peak %.2f", s.name, 10 * log10(acc / std::max(1L, n) + 1e-12), peak);
+  }
+  LOGI("audio: %.0fs mixed, pack underruns %d", pcm.size() / 2 / 48000.0, musicPackUnderruns());
+  FILE* f = fopen((outDir + "/music_mix.wav").c_str(), "wb"); if (!f) return;
+  auto u32w = [&](uint32_t v) { fwrite(&v, 4, 1, f); }; auto u16w = [&](uint16_t v) { fwrite(&v, 2, 1, f); };
+  uint32_t bytes = (uint32_t)(pcm.size() * 2);
+  fwrite("RIFF", 1, 4, f); u32w(36 + bytes); fwrite("WAVEfmt ", 1, 8, f); u32w(16); u16w(1); u16w(2); u32w(48000); u32w(48000 * 4); u16w(4); u16w(16);
+  fwrite("data", 1, 4, f); u32w(bytes); fwrite(pcm.data(), 2, pcm.size(), f); fclose(f);
+}
+
 static void balance(int map, int ch, float minutes, u32 seed) {
   App& a = gApp;
   startGame(map, 0, ch, false, seed, minutes);
@@ -404,7 +464,7 @@ static void balance(int map, int ch, float minutes, u32 seed) {
 
 int main(int argc, char** argv) {
   std::string scenario = "ui";
-  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false; std::string langCode;
+  int bmap = 0, bchar = 0; float bmin = 15; u32 seed = 7; bool handheld = false; std::string langCode, musicDir;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
     auto next = [&]() { return i + 1 < argc ? std::string(argv[++i]) : std::string(); };
@@ -417,6 +477,7 @@ int main(int argc, char** argv) {
     else if (a == "--seed") seed = (u32)atoi(next().c_str());
     else if (a == "--handheld") handheld = true;
     else if (a == "--lang") langCode = next();
+    else if (a == "--music") musicDir = next();
   }
   mkdir(outDir.c_str(), 0755);
   auto getPlat = (EGLDisplay(*)(EGLenum, void*, const EGLint*))eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -435,6 +496,7 @@ int main(int argc, char** argv) {
   PlatformInfo pi; pi.width = W; pi.height = H; pi.dataDir = "/tmp/omnibonk_harness"; pi.density = 3;
   mkdir(pi.dataDir.c_str(), 0755); remove((pi.dataDir + "/omnibonk_save.txt").c_str());
   if (handheld) { pi.handheld = true; pi.deviceName = "R36S"; }
+  pi.musicDir = musicDir;
   auto t0 = std::chrono::steady_clock::now();
   app_init(pi);
   LOGI("init %.2fs", std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count());
@@ -446,6 +508,13 @@ int main(int argc, char** argv) {
   if (!langCode.empty()) { int li = i18nFromCode(langCode.c_str()); if (li >= 0) { gApp.set.lang = li; i18nSet(li); } }
   if (scenario == "ui") uiShots();
   else if (scenario == "pad") padScenario();
+  else if (scenario == "qol") qolScenario();
+  else if (scenario == "audio") audioScenario();
+  else if (scenario == "models") {   // per-character mesh cost (vertices x baked frames), to keep the bake time in check
+    long tot = 0; for (int m = 0; m < M_COUNT; m++) tot += (long)gModels.info[m].vtx * gModels.info[m].frames;
+    for (int i = 0; i < C_COUNT; i++) { const ModelInfo& mi = gModels.info[gChars[i].model]; LOGI("model %-8s %5d verts x %3d frames = %7d anim verts", gChars[i].name, mi.vtx, mi.frames, mi.vtx * mi.frames); }
+    LOGI("all models: %ld anim verts", tot);
+  }
   else if (scenario == "attract") attractScenario();
   else if (scenario == "perf") perfScenario(bmap, bchar, bmin);
   else if (scenario == "art") artSheets();

@@ -74,3 +74,14 @@ __pycache__/
 *.pyc
 core
 core.*
+
+# --- Optional local music pack (scripts/build_music_pack.py): audio files never go into the repo, CI or releases ---
+music/
+music_pack/
+*.ogg
+*.opus
+*.m4a
+*.mp3
+*.webm
+*.wav
+*.flac

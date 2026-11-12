@@ -188,7 +188,7 @@ static bool saveBmp(const std::string& path, int w, int h) {
 // ---------------------------------------------------------------- main
 int main(int argc, char** argv) {
   setvbuf(stdout, nullptr, _IOLBF, 0);
-  PlatformInfo pi; pi.density = 1; pi.dataDir = ".";
+  PlatformInfo pi; pi.density = 1; pi.dataDir = "."; pi.musicDir = "music";
   int winW = 0, winH = 0, maxFrames = -1; float fixedDt = 0; std::string shotPath; bool noAudio = false;
   for (int i = 1; i < argc; i++) {
     std::string a = argv[i];
@@ -196,6 +196,7 @@ int main(int argc, char** argv) {
     if (a == "--handheld") pi.handheld = true;
     else if (a == "--device") pi.deviceName = next();
     else if (a == "--data") pi.dataDir = next();
+    else if (a == "--music") pi.musicDir = next();             // optional OGG pack: menu/forest/desert/graveyard/boss/final.ogg
     else if (a == "--window") { std::string s = next(); sscanf(s.c_str(), "%dx%d", &winW, &winH); }
     else if (a == "--demo") pi.args += " demo=" + next();        // bot-played run: "char,map"
     else if (a == "--lang") pi.args += " lang=" + next();         // en, pt-BR, es, fr, ru, de
@@ -203,7 +204,7 @@ int main(int argc, char** argv) {
     else if (a == "--dt") fixedDt = (float)atof(next().c_str());
     else if (a == "--shot") shotPath = next();                  // BMP written when --frames is reached
     else if (a == "--no-audio") noAudio = true;
-    else if (a == "--help") { printf("omnibonk [--handheld] [--device NAME] [--data DIR] [--window WxH] [--lang CODE] [--demo C,M] [--frames N] [--dt S] [--shot F.bmp] [--no-audio]\n"); return 0; }
+    else if (a == "--help") { printf("omnibonk [--handheld] [--device NAME] [--data DIR] [--music DIR] [--window WxH] [--lang CODE] [--demo C,M] [--frames N] [--dt S] [--shot F.bmp] [--no-audio]\n"); return 0; }
   }
   if (const char* e = getenv("OMNIBONK_HANDHELD")) if (*e && *e != '0') pi.handheld = true;
   gHandheld = pi.handheld;

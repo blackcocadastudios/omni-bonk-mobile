@@ -155,7 +155,7 @@ void Game::killEnemy(Enemy& e, int src) {
   }
   if (e.challenge) {
     int left = 0; for (auto& o : enemies) if (o.alive && o.challenge && o.aiState == e.aiState) left++;
-    if (left == 0) { Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c); banner(tr("CHALLENGE COMPLETE!"), tr("A golden chest appeared"), Col(194, 107, 255), 2.5f); }
+    if (left == 0) { Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c); alert(tr("CHALLENGE COMPLETE!"), tr("A golden chest appeared"), Col(194, 107, 255), 2.2f); }
   }
   if (e.rank == RK_MINIBOSS) {
     Inter c; c.type = I_CHEST_GOLD; c.pos = e.pos; c.pos.y = world.T.height(e.pos.x, e.pos.z); inters.push_back(c);
@@ -188,7 +188,7 @@ void Game::damagePlayer(float dmg, Enemy* src, bool canDodge, bool kevin) {
   if (p.shield > 0) { float a = std::min(p.shield, dmg); p.shield -= a; dmg -= a; }
   if (kevin) { p.hp = std::max(1.f, p.hp - dmg); }
   else {
-    if (p.hp - dmg <= 0 && p.items[IT_ZAWARUDO] > 0) { p.items[IT_ZAWARUDO]--; p.hp = 1; p.zaT = 3.f; p.iframes = 3.f; banner("ZA WARUDO!", tr("Time has stopped"), Col(255, 215, 60), 2); dmg = 0; statsDirty = true; }
+    if (p.hp - dmg <= 0 && p.items[IT_ZAWARUDO] > 0) { p.items[IT_ZAWARUDO]--; p.hp = 1; p.zaT = 3.f; p.iframes = 3.f; alert("ZA WARUDO!", tr("Time has stopped"), Col(255, 215, 60)); dmg = 0; statsDirty = true; }
     p.hp -= dmg;
   }
   p.lastHitT = stageTime;
@@ -210,7 +210,7 @@ void Game::damagePlayer(float dmg, Enemy* src, bool canDodge, bool kevin) {
     hitEnemy(*src, th, SRC_ITEM + IT_COUNT - 1, 0, 0, p.pos, 0.5f, false);
     if (p.items[IT_QUINSMASK] && rng.chance(0.5f)) { Area& a = addArea(); a.kind = AK_EXPLOSION; a.pos = src->pos + v3(0, 0.8f, 0); a.radius = 2.5f; a.life = a.maxLife = 0.3f; a.color = 0xff4040; areaDamage(src->pos, 2.5f, th * p.items[IT_QUINSMASK], SRC_ITEM + IT_QUINSMASK, 0, 1, -1, false); }
   }
-  if (p.items[IT_SPEEDBOI] && p.hp < p.st[S_MAXHP] * 0.5f && p.speedBoiCd <= 0) { p.speedBoiCd = 15.f; p.speedBoiT = 3.f; banner("SPEED BOI", "", Col(0, 176, 255), 1.2f); }
+  if (p.items[IT_SPEEDBOI] && p.hp < p.st[S_MAXHP] * 0.5f && p.speedBoiCd <= 0) { p.speedBoiCd = 15.f; p.speedBoiT = 3.f; alert("SPEED BOI", "", Col(0, 176, 255), 1.2f); }
   if (p.hp <= 0) { p.hp = 0; }
 }
 
@@ -801,9 +801,9 @@ void Game::bossAI(Enemy& e, float dt) {
     if ((int)e.phase < phase) {
       e.phase = (float)phase; e.invuln = true; int c = 0;
       for (auto& it : inters) if (it.type == I_ALTAR && it.used && c < 2) { it.used = false; it.progress = 0; c++; }
-      banner(tr("THE BOSS IS IMMUNE"), tr("Capture 2 altars to break the shield"), Col(255, 120, 120), 3);
+      alert(tr("THE BOSS IS IMMUNE"), tr("Capture 2 altars to break the shield"), Col(255, 120, 120), 2.6f);
     }
-    if (e.invuln) { int open = 0; for (auto& it : inters) if (it.type == I_ALTAR && !it.used) open++; if (open == 0) { e.invuln = false; banner(tr("SHIELD BROKEN!"), "", Col(120, 255, 140), 2); } }
+    if (e.invuln) { int open = 0; for (auto& it : inters) if (it.type == I_ALTAR && !it.used) open++; if (open == 0) { e.invuln = false; alert(tr("SHIELD BROKEN!"), "", Col(120, 255, 140)); } }
     mv = dir * e.speed * (dist > 8 ? 1.f : -0.3f);
     if (e.aiT <= 0) { e.aiT = 3.0f - phase * 0.6f; ring(14 + phase * 6, 7 + phase, 0.6f); e.clip = CL_ATTACK; e.clipT = 0; }
     if (e.aiT2 <= 0) { e.aiT2 = 6.f; for (int k = 0; k < 3 + phase; k++) tele(P.pos + rng.inDisk(4.f), 3.f, 1.2f, 1.2f, 0xc060ff); summon(E_SWARMGHOST, 3 + phase * 2); }

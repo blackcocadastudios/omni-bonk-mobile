@@ -8,6 +8,7 @@
 #include <jni.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <atomic>
 #include "platform.h"
 #include "audio.h"
@@ -238,6 +239,10 @@ void android_main(android_app* app) {
   PlatformInfo pi;
   pi.android = true;
   pi.dataDir = app->activity->internalDataPath ? app->activity->internalDataPath : ".";
+  if (app->activity->externalDataPath) {   // Android/data/<package>/files/music: reachable over USB/adb, never part of the APK
+    std::string ext = app->activity->externalDataPath;
+    mkdir(ext.c_str(), 0770); pi.musicDir = ext + "/music"; mkdir(pi.musicDir.c_str(), 0770);
+  }
   int dpi = AConfiguration_getDensity(app->config);
   pi.density = (dpi > 0 && dpi < 2000) ? dpi / 160.f : 2.f;
   pi.width = 1280; pi.height = 720;

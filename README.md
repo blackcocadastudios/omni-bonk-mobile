@@ -18,7 +18,7 @@ A 3D survival roguelite for Android and Linux handhelds (R36S / PortMaster), mad
 |---|---|
 | Maps | Forest, Desert and Graveyard, each in 3 tiers with its own palette (Green/Deep/Cursed Forest, Crusty/Twilight/Blood Desert, Graveyard/Haunted/Cursed Graveyard) |
 | Enemies | 43 in total, with elites, 6 minibosses, 8 bosses (including the Ghost King of the Tier 3 final arena) and the final swarm |
-| Characters | Fox (Firestaff), Ninja (Katana), Calcium (Bone), Monke (Bananarang), Ogre (Axe), each with a passive |
+| Characters | 10, each with a passive: Fox (Firestaff), Ninja (Katana), Calcium (Bone), Monke (Bananarang), Ogre (Axe), plus five original characters: Rocco the raccoon tinkerer (Mines), Bramble the walking stump (Poison Flask), Sizzle the gecko cook (Dragon's Breath), Digby the mole miner (Chunkers) and Hoot the owl scholar (Lightning Staff) |
 | Weapons / Tomes / Items | 30 weapons, 23 tomes, 86 items across Common, Rare, Epic and Legendary rarities |
 | Interactables | Chests (normal and free golden), Charge Shrines (upgrade towers), Greed, Cursed, Challenge, Moai, Shady Guy, Microwave, Shrine of Succ, pots, pumpkins, silver pots, tumbleweeds, crypt keys, portals |
 | Powerups | Shield, Clock, Gold x2, Rage, Magnet and Bomb |
@@ -33,7 +33,7 @@ A 3D survival roguelite for Android and Linux handhelds (R36S / PortMaster), mad
 
 ## Quality of life, inspired by community mods
 
-Adjustable stage time · DPS meter and damage table at the end of the run (StatHUD) · chest/shrine/Shady/Moai counters and next chest cost (SpawnTracker) · instant chest opening · auto-bhop · stepped animation at 6/8/12 fps or smooth · effects opacity · render scale · enemy cap · full map · FOV and camera distance · left-handed mode · UI scale · vibration · FPS cap · banish/reroll/skip upgrades · Auto quality mode (adapts render scale, particles, view distance and enemy cap to hold the target frame rate).
+Adjustable stage time · DPS meter and damage table at the end of the run (StatHUD) · one-row chest/shrine/Shady counters with the next chest cost (SpawnTracker) · compact interaction tags over chests and shrines (price shown as a coin, red when you cannot afford it) · slim top-of-screen alerts for swarms, minibosses and other combat events, keeping the centre of the screen clear (big banners only for stage, boss and final-swarm milestones) · instant chest opening · auto-bhop · stepped animation at 6/8/12 fps or smooth · effects opacity · render scale · enemy cap · full map · FOV and camera distance · left-handed mode · UI scale · vibration · FPS cap · banish/reroll/skip upgrades · Auto quality mode (adapts render scale, particles, view distance and enemy cap to hold the target frame rate).
 
 ## Controls (touch)
 
@@ -67,11 +67,40 @@ The UI adapts to the 640×480 4:3 screen and all navigation is focus-based. The 
 
 The binary only depends on `libSDL2-2.0.so.0` and glibc 2.27 or newer; the OpenGL ES functions are loaded at runtime through SDL. Tested in CI with the real aarch64 binary running under QEMU on Debian 13 (the base of dArkOS).
 
+## Optional music pack (local only, never distributed)
+
+The game ships with its procedural chiptune. If you own other music and want it on **your own device**, the game can stream
+OGG Vorbis files from a folder next to it instead; nothing of the kind is in this repository, in CI or in the releases,
+and `.gitignore` blocks audio files.
+
+| Slot | File | Plays on |
+|---|---|---|
+| 0 | `menu.ogg` | title, menus and the background demo |
+| 1 | `forest.ogg` | Forest |
+| 2 | `desert.ogg` | Desert |
+| 3 | `graveyard.ogg` | Graveyard |
+| 4 | `boss.ogg` | while a boss is alive |
+| 5 | `final.ogg` | Tier 3 final arena (falls back to `boss.ogg`) |
+
+Any missing file keeps the chiptune for that slot. Tracks loop and cross-fade like the chiptune; volume follows the Music setting.
+
+```bash
+python3 scripts/build_music_pack.py --out music --menu calm.flac --forest a.mp3 --desert b.ogg --graveyard c.ogg --boss d.ogg --final e.ogg
+```
+
+The script trims silence, normalizes loudness (EBU R128, -14 LUFS) so the music sits under the sound effects, and writes 48 kHz OGG
+(`--mono` halves the decoding work on the R36S). Copy the `music` folder to:
+
+- **R36S / PortMaster:** `ports/omnibonk/music/` (or start the binary with `--music DIR`);
+- **Android:** `Android/data/com.blackcocada.omnibonk/files/music/` (created on first launch; USB file transfer or `adb push`).
+
+The log (`omnibonk/log.txt` / logcat) lists the tracks found and counts decoder underruns.
+
 ## Technology
 
 - C++17 with a custom engine, OpenGL ES 3.0, `NativeActivity`, AAudio, no Gradle and no third-party engine.
 - Instanced rendering, baked flip-book animation at 12 fps, PS1-style vertex snapping, 64×64 textures with nearest filtering, exponential fog, terrain-following decals, render scale with nearest upscaling.
-- Procedural audio: synthesized effects and a chiptune soundtrack per map.
+- Procedural audio: synthesized effects and a chiptune soundtrack per map; an optional, local OGG music pack can replace it (see below), decoded with [stb_vorbis](https://github.com/nothings/stb) (public domain) on a worker thread.
 - `src/main_desktop.cpp`: headless harness (Mesa EGL surfaceless) that renders screenshots, art sheets and bot-driven balance simulations.
 
 | Folder | Contents |
@@ -84,6 +113,8 @@ The binary only depends on `libSDL2-2.0.so.0` and glibc 2.27 or newer; the OpenG
 | `scripts/build_apk.sh` | APK build: NDK/CMake → aapt2 → javac/d8 → zipalign → apksigner |
 | `scripts/emulator_smoke.sh` | CI emulator test (install, launch, screenshots and logcat) |
 | `scripts/check_lang.py` | sanity check of the translation tables |
+| `scripts/build_music_pack.py` | builds an optional local music pack from audio files you own (contains no tracks) |
+| `src/third_party/` | `stb_vorbis.c` v1.23 (public domain / MIT) |
 | `.github/workflows/android.yml` | CI: APK build, artifact, emulator test, release on `v*` tags |
 | `.github/workflows/r36s.yml` | CI: R36S package build, release and QEMU test |
 
@@ -107,6 +138,8 @@ cmake -S . -B build-desktop -G Ninja && ninja -C build-desktop
 ./build-desktop/omnibonk_desktop --scenario art  --out shots --size 2400x1080
 ./build-desktop/omnibonk_desktop --scenario game --out shots --size 2400x1080
 ./build-desktop/omnibonk_desktop --scenario balance --map 0 --char 1 --minutes 15
+./build-desktop/omnibonk_desktop --scenario qol --out shots --size 640x480 --handheld   # labels, counters, alerts, overlays
+./build-desktop/omnibonk_desktop --scenario audio --out shots --music music              # offline mix of every music slot
 ```
 
 Device requirements: Android 8.0 (API 26) or newer, with OpenGL ES 3.0.

@@ -9,6 +9,7 @@ struct PlatformInfo {
   int width = 1280, height = 720;
   float density = 2.f;       // px per dp
   std::string dataDir = "."; // writable dir for saves
+  std::string musicDir;      // optional OGG music pack folder (src/music.h); empty or missing files = chiptune
   bool android = false;
   float safeLeft = 0, safeRight = 0, safeTop = 0, safeBottom = 0; // cutout insets (px)
   std::string args;          // launch arguments (Android intent extra "args"), e.g. "demo=1,0"

@@ -75,33 +75,35 @@ void App::drawTitle() {
 void App::drawChars() {
   UI& u = ui;
   bgDim(0.35f);
+  bool nar = narrow();
   float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
-  u.text(u.W * 0.5f, 8, tr("CHOOSE YOUR CHARACTER"), 2, WHITE, AL_CENTER);
-  int n = C_COUNT;
-  float cw = std::min(92.f, (Wd - (n - 1) * 5) / n), ch = 86;
-  float x0 = u.W * 0.5f - (n * cw + (n - 1) * 5) * 0.5f, y0 = 34;
+  u.text(u.W * 0.5f, nar ? 5 : 8, tr("CHOOSE YOUR CHARACTER"), nar ? 1.5f : 2, WHITE, AL_CENTER);
+  // grid of compact cards (icon, name, weapon badge); the D-pad moves across rows and columns
+  const int cols = 5, n = C_COUNT, rows = (n + cols - 1) / cols;
+  float gap = 4, cw = std::min(92.f, (Wd - (cols - 1) * gap) / cols), ch = nar ? 40 : 46, is = nar ? 22 : 26;
+  float x0 = u.W * 0.5f - (cols * cw + (cols - 1) * gap) * 0.5f, y0 = nar ? 23 : 30;
   for (int i = 0; i < n; i++) {
     const CharDef& c = gChars[i];
-    float x = x0 + i * (cw + 5);
+    float x = x0 + (i % cols) * (cw + gap), y = y0 + (i / cols) * (ch + gap);
     bool sel = i == selChar;
-    u.panel(x, y0, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(255, 255, 255, 60));
-    u.icon(ICON_UI0 + UI_CHAR0 + i, x + cw * 0.5f - 16, y0 + 6, 32);
-    u.text(x + cw * 0.5f, y0 + 42, c.name, 1, sel ? GOLD : WHITE, AL_CENTER);
-    u.icon(ICON_WEAPON0 + c.weapon, x + cw * 0.5f - 9, y0 + 56, 18);
-    u.text(x + cw * 0.5f, y0 + 75, gWeapons[c.weapon].name, 1, GREY, AL_CENTER);
+    u.panel(x, y, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(255, 255, 255, 60));
+    u.icon(ICON_UI0 + UI_CHAR0 + i, x + cw * 0.5f - is * 0.5f, y + 3, is);
+    u.icon(ICON_WEAPON0 + c.weapon, x + cw - 13, y + 2, 11);
+    u.textRaw(x + cw * 0.5f, y + ch - 12, u.fit(c.name, cw - 4), 1, sel ? GOLD : WHITE, AL_CENTER);
     if (sel) u.nextFlags = FOCUS_DEFAULT;
-    bool ck = u.clicked(x, y0, cw, ch);
-    if (u.isFocus(x, y0, cw, ch)) selChar = i;                       // gamepad: moving the focus selects
+    bool ck = u.clicked(x, y, cw, ch);
+    if (u.isFocus(x, y, cw, ch)) selChar = i;                       // gamepad: moving the focus selects
     if (ck) { selChar = i; audioPlay(SFX_CLICK); if (u.padMode) scr = SCR_MAP; }
   }
-  // details
+  // details: passive, starting weapon, blurb | base stats
   const CharDef& c = gChars[selChar];
-  float dy = y0 + ch + 6, dh = u.H - dy - 34;
+  float dy = y0 + rows * (ch + gap) + 1, dh = u.H - dy - 32, lw = Wd * 0.58f;
   u.panel(L, dy, Wd, dh);
-  u.text(L + 8, dy + 6, std::string(tr("Passive: ")) + c.passive, 1, GOLD);
-  float yy = dy + 18 + u.textBox(L + 8, dy + 18, Wd * 0.55f, c.passiveDesc, 1, WHITE, AL_LEFT, 11);
-  { std::vector<std::string> bl; int n = u.wrap(c.blurb, Wd * 0.55f, 1, bl); if (yy + 3 + n * 11 <= dy + dh - 3) u.textBox(L + 8, yy + 3, Wd * 0.55f, c.blurb, 1, GREY, AL_LEFT, 11); }
-  float sx = L + Wd * 0.6f, sy = dy + 6;
+  u.text(L + 8, dy + 5, std::string(tr("Passive: ")) + c.passive, 1, GOLD);
+  float yy = dy + 17 + u.textBox(L + 8, dy + 17, lw, c.passiveDesc, 1, WHITE, AL_LEFT, 11);
+  u.icon(ICON_WEAPON0 + c.weapon, L + 8, yy, 11); u.text(L + 22, yy + 1, gWeapons[c.weapon].name, 1, Col(255, 230, 160)); yy += 13;
+  { std::vector<std::string> bl; int nl = u.wrap(c.blurb, lw, 1, bl); if (yy + 2 + nl * 11 <= dy + dh - 3) u.textBox(L + 8, yy + 2, lw, c.blurb, 1, GREY, AL_LEFT, 11); }
+  float sx = L + Wd * 0.62f, sy = dy + 5;
   u.text(sx, sy, tr("Stats"), 1, CYAN); sy += 12;
   for (auto& m : c.stats) { u.text(sx, sy, u.fit(statValueStr(m.stat, m.v) + " " + tr(kStats[m.stat].name), R - sx - 4), 1, m.v >= 0 ? GREEN : RED); sy += 11; if (sy > dy + dh - 8) break; }
   if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
@@ -584,13 +586,24 @@ void App::drawWorldUI() {
     u.icon(ICON_UI0 + UI_CROWN, x - 5, y - 14, 10, e.challenge ? Col(210, 140, 255) : Col(255, 255, 255));
     if (e.rank == RK_MINIBOSS || e.hp < e.maxHp) bar(u, x - 14, y - 2, 28, 4, e.hp / e.maxHp, Col(255, 70, 70));
   }
-  // interaction prompt label near player
+  // interaction prompt: compact tag above the object, kept clear of the HUD column and the minimap
   int ni = g.nearestInter(2.8f);
   if (ni >= 0) {
-    v2 sp; if (gR.worldToScreen(g.inters[ni].pos + v3(0, 2.6f, 0), sp)) {
-      std::string lb = (u.padMode ? std::string("X: ") : std::string()) + g.interLabel(ni); float w = u.textW(lb) + 10;
-      float x = clampf(sp.x / u.s - w / 2, 2, std::max(2.f, u.W - w - 2)), y = sp.y / u.s - 10;
-      u.panel(x, y, w, 14, Col(16, 12, 24, 220), GOLD); u.text(x + 5, y + 2, lb, 1, WHITE);
+    v2 sp; if (gR.worldToScreen(g.inters[ni].pos + v3(0, 2.4f, 0), sp)) {
+      std::string lb = g.interLabel(ni), cs; int cost = g.interCost(ni);
+      if (cost >= 0) cs = fmt("%d", cost);
+      float kw = u.padMode ? 11 : 0, tw = u.textWRaw(lb, 1), cw = cost >= 0 ? 12 + u.textWRaw(cs, 1) : 0;
+      float w = kw + tw + cw + 8, h = 12;
+      float x = clampf(sp.x / u.s - w / 2, 2, std::max(2.f, u.W - w - 2)), y = std::max(24.f, sp.y / u.s - 8);
+      auto hits = [&](float rx, float ry, float rw, float rh) { return x < rx + rw && x + w > rx && y < ry + rh && y + h > ry; };
+      if (hits(0, 0, hudR, hudB)) x = hudR + 3;
+      if (hits(hudTR, 0, u.W - hudTR, hudTRB)) x = hudTR - w - 3;
+      if (x < 2 || hits(0, 0, hudR, hudB)) { x = clampf(x, 2, std::max(2.f, u.W - w - 2)); y = std::max(hudB, hudTRB) + 2; }
+      u.panel(x, y, w, h, Col(16, 12, 24, 205), Col(255, 214, 80, 170));
+      float tx = x + 4;
+      if (u.padMode) { u.rect(tx - 1, y + 1, 9, 10, Col(200, 150, 40)); u.textRaw(tx + 1, y + 2, "X", 1, WHITE, AL_LEFT); tx += kw; }
+      tx += u.textRaw(tx, y + 2, lb, 1, WHITE, AL_LEFT);
+      if (cost >= 0) { u.icon(ICON_UI0 + UI_GOLD, tx + 3, y + 2, 8); u.textRaw(tx + 12, y + 2, cs, 1, g.P.gold >= cost ? GOLD : Col(255, 110, 90), AL_LEFT); }
     }
   }
   // charge shrine progress text
@@ -681,12 +694,18 @@ void App::drawHUD() {
   u.panel(L, qy, qw, 14, Col(0, 0, 0, 200), Col(255, 255, 255, 40));
   u.frame(L + 4, qy + 3, 8, 8, WHITE); if (done) u.rect(L + 6, qy + 5, 4, 4, GREEN);
   u.text(L + 16, qy + 2, quest, 1, WHITE);
-  float cy = qy + 17;
+  float cy = qy + 17, colR = std::max(L + 82, L + qw);
   if (set.counters) {
+    // one row of icons: chests left (+ next chest price), charge shrines left/total, shady guys
     int chests = 0, shrines = 0, shrTot = 0, shady = 0;
     for (auto& it : g.inters) { if (it.type == I_CHEST && !it.used) chests++; if (it.type == I_CHARGE_SHRINE) { shrTot++; if (!it.used) shrines++; } if (it.type == I_SHADY) shady++; }
-    u.text(L, cy, nar ? fmt(tr("Chests %d  •  Shrines %d/%d"), chests, shrines, shrTot) : fmt(tr("Chests %d  •  Shrines %d/%d  •  Shady %d"), chests, shrines, shrTot, shady), 1, GREY); cy += 11;
-    u.text(L, cy, fmt(tr("Next chest: %d gold"), g.chestCost()), 1, GOLD); cy += 11;
+    float x = L;
+    auto cnt = [&](int icon, const std::string& v, Col c) { u.icon(icon, x, cy - 1, 10); x += 11; x += u.textRaw(x, cy, v, 1, c, AL_LEFT) + 5; };
+    cnt(ICON_INTER0 + I_CHEST, fmt("%d", chests), WHITE);
+    cnt(ICON_UI0 + UI_GOLD, fmt("%d", g.chestCost()), GOLD);
+    cnt(ICON_INTER0 + I_CHARGE_SHRINE, fmt("%d/%d", shrines, shrTot), WHITE);
+    if (!nar) cnt(ICON_INTER0 + I_SHADY, fmt("%d", shady), WHITE);
+    colR = std::max(colR, x); cy += 12;
   }
   if (set.dpsMeter && g.runTime > 1) {
     struct E { int src; double d; }; std::vector<E> v;
@@ -698,9 +717,10 @@ void App::drawHUD() {
       else if (s >= SRC_ITEM && s < SRC_ITEM + IT_COUNT) { nm = gItems[s - SRC_ITEM].name; ic = ICON_ITEM0 + s - SRC_ITEM; }
       else nm = tr("Others");
       if (ic >= 0) u.icon(ic, L, cy, 9);
-      u.text(L + 12, cy, fmt("%s %s/s", nm.c_str(), fmtShort(v[k].d / std::max(1.f, g.runTime)).c_str()), 1, Col(255, 230, 160)); cy += 10;
+      colR = std::max(colR, L + 12 + u.text(L + 12, cy, fmt("%s %s/s", nm.c_str(), fmtShort(v[k].d / std::max(1.f, g.runTime)).c_str()), 1, Col(255, 230, 160))); cy += 10;
     }
   }
+  hudR = colR + 2; hudB = cy; hudTR = (pm ? mmx - mmR : mmx - mmR - 26) - 2; hudTRB = mmy + mmR + 12;
   // active powerups under the timer
   float px = u.W * 0.5f - (nar ? 22 : 30), puy = nar ? 30 : 26; int npu = 0;
   auto pu = [&](int icon, float t) { if (t <= 0) return; u.icon(icon, px + npu * 22, puy, 12); u.text(px + npu * 22 + 6, puy + 14, fmt("%d", (int)ceilf(t)), 1, WHITE, AL_CENTER); npu++; };
@@ -712,9 +732,28 @@ void App::drawHUD() {
     bar(u, bx, by + 11, bw, 7, e.hp / e.maxHp, e.invuln ? Col(150, 130, 255) : Col(220, 30, 50));
     break;
   }
-  // banners
+  // compact alerts (swarm, miniboss, challenge...): a slim translucent strip under the timer / boss bar, never over the centre
+  float ay = npu ? puy + 25 : (nar ? 31 : 29);
+  for (auto& e : g.enemies) if (e.alive && e.rank == RK_BOSS) { ay = std::max(ay, (npu ? 56.f : (nar ? 32.f : 30.f)) + 21); break; }
+  for (auto& b : g.banners) {
+    if (!b.compact) continue;
+    float a = sat(std::min(b.t / 0.15f, (b.life - b.t) / 0.4f)), slide = (1 - sat(b.t / 0.15f)) * 6;
+    Col c = b.c; c.a = (u8)(255 * a);
+    float ts = 1.5f, maxW = std::min(u.W - 16, nar ? 200.f : 260.f);
+    while (ts > 1 && u.textW(b.text, ts) > maxW) ts -= 0.5f;
+    std::vector<std::string> lines; if (!b.sub.empty()) u.wrap(b.sub, maxW, 1, lines);
+    if (lines.size() > 2) lines.resize(2);
+    float tw = u.textW(b.text, ts); for (auto& l : lines) tw = std::max(tw, u.textWRaw(l, 1));
+    float h = 11 * ts + 2 + lines.size() * 10, w = tw + 12, x = u.W * 0.5f - w * 0.5f, y = ay - slide;
+    u.rect(x, y, w, h, Col(8, 4, 16, (u8)(150 * a))); u.rect(x, y + h - 1, w, 1, Col(c.r, c.g, c.b, (u8)(170 * a)));
+    u.text(u.W * 0.5f, y + 2, b.text, ts, c, AL_CENTER);
+    for (size_t k = 0; k < lines.size(); k++) u.textRaw(u.W * 0.5f, y + 11 * ts + k * 10, lines[k], 1, Col(255, 255, 255, (u8)(215 * a)), AL_CENTER);
+    ay += h + 3;
+  }
+  // big banners: rare milestones only (stage start, boss, final swarm)
   float byy = u.H * 0.28f;
   for (auto& b : g.banners) {
+    if (b.compact) continue;
     float a = sat(std::min(b.t / 0.25f, (b.life - b.t) / 0.5f));
     Col c = b.c; c.a = (u8)(255 * a);
     float bs = 3; while (bs > 1 && u.textW(b.text, bs) > u.W - 12) bs -= 0.5f;

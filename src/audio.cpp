@@ -1,5 +1,6 @@
 #include "audio.h"
 #include "base.h"
+#include "music.h"
 #include <atomic>
 
 static int gRate = 48000;
@@ -90,6 +91,7 @@ void audioPlay(int sfx, float vol, float pitch) {
 void audioAttract(bool on) { gAttract = on; }
 void audioFlush() { gFlush.store(true, std::memory_order_release); }
 void audioMusic(int track) { gTrack.store(track); }
+int audioMusicPack(const std::string& dir) { return musicPackInit(dir, gRate); }
 void audioSetVolume(float music, float sfx) { gMusicVol.store(music); gSfxVol.store(sfx); }
 void audioSetIntensity(float x) { gIntensity.store(clampf(x, 0, 1)); }
 
@@ -103,15 +105,26 @@ static const Song kSongs[5] = {
   {156, 45, {0, 1, 3, 5, 7, 8, 10}, {0, 1, 5, 6}, 2, 0},   // boss
 };
 static float midiHz(float n) { return 440.f * powf(2.f, (n - 69) / 12.f); }
-struct MusicState { double t = 0; int track = -1; float phB = 0, phA = 0, phL = 0, kickPh = 0; float nz = 0; float fade = 0; };
+struct MusicState { double t = 0; int track = -1; bool pack = false; float phB = 0, phA = 0, phL = 0, kickPh = 0; float nz = 0; float fade = 0; };
 static MusicState gM;
+static constexpr float kPackGain = 0.9f;    // pack files are normalized by scripts/build_music_pack.py (-14 LUFS); this matches them to the chiptune level
 
-static float musicSample() {
-  int tr = gTrack.load();
-  if (tr != gM.track) { gM.fade -= 1.f / (gRate * 0.4f); if (gM.fade <= 0) { gM.track = tr; gM.t = 0; gM.fade = 0; } }
-  else if (gM.fade < 1) gM.fade = std::min(1.f, gM.fade + 1.f / (gRate * 0.6f));
+// the final arena falls back to the boss track; a slot without a pack file plays the chiptune
+static int packSlot(int track) { if (track == 5 && !musicPackHas(5)) track = 4; return musicPackHas(track) ? track : -1; }
+
+// per frame: fade out (0.4 s), switch source, fade in (0.6 s)
+static float musicStep() {
+  int tr = gTrack.load(std::memory_order_relaxed);
+  if (tr != gM.track) {
+    gM.fade -= 1.f / (gRate * 0.4f);
+    if (gM.fade <= 0) { gM.track = tr; gM.t = 0; gM.fade = 0; int s = packSlot(tr); gM.pack = s >= 0; if (gM.pack) musicPackStart(s); }
+  } else if (gM.fade < 1) gM.fade = std::min(1.f, gM.fade + 1.f / (gRate * 0.6f));
+  return gM.fade;
+}
+
+static float chiptuneSample() {
   if (gM.track < 0) return 0;
-  const Song& s = kSongs[gM.track];
+  const Song& s = kSongs[std::min(gM.track, 4)];
   float beat = (float)(gM.t * s.bpm / 60.0);
   float bar = beat / 4.f; int barI = (int)bar; int chordDeg = s.prog[barI % 4];
   float inten = gIntensity.load();
@@ -150,7 +163,7 @@ static float musicSample() {
     float ht = e8 - floorf(e8); hat = noise() * expf(-ht * 40) * 0.06f * (0.5f + inten);
   }
   gM.t += 1.0 / gRate;
-  return (bass + arp + lead + kick + snare + hat) * gM.fade;
+  return bass + arp + lead + kick + snare + hat;
 }
 
 void audioRender(float* out, int frames) {
@@ -174,18 +187,29 @@ void audioRender(float* out, int frames) {
   }
   gQTail.store(t, std::memory_order_release);
   float mv = gMusicVol.load(), sv = gSfxVol.load();
-  for (int i = 0; i < frames; i++) {
-    float s = 0;
-    for (auto& v : gV) {
-      if (v.sfx < 0) continue;
-      const std::vector<float>& b = gSfx[v.sfx];
-      int ip = (int)v.pos; if (ip >= (int)b.size()) { v.sfx = -1; continue; }
-      s += b[ip] * v.vol; v.pos += v.pitch;
+  static float pk[512 * 2];
+  for (int c0 = 0; c0 < frames; c0 += 512) {
+    int cn = std::min(512, frames - c0);
+    bool packOk = gM.pack && gM.track >= 0;
+    if (packOk) musicPackRead(pk, cn);
+    for (int j = 0; j < cn; j++) {
+      int i = c0 + j;
+      float s = 0;
+      for (auto& v : gV) {
+        if (v.sfx < 0) continue;
+        const std::vector<float>& b = gSfx[v.sfx];
+        int ip = (int)v.pos; if (ip >= (int)b.size()) { v.sfx = -1; continue; }
+        s += b[ip] * v.vol; v.pos += v.pitch;
+      }
+      int before = gM.track;
+      float f = musicStep();
+      if (gM.track != before) packOk = false;   // switched mid-chunk: the rest of the buffer belongs to the old stream
+      float ml, mr;
+      if (gM.pack) { ml = packOk ? pk[j * 2] * kPackGain : 0; mr = packOk ? pk[j * 2 + 1] * kPackGain : 0; }
+      else ml = mr = chiptuneSample();
+      float ol = s * sv + ml * f * mv, orr = s * sv + mr * f * mv;
+      out[i * 2] = ol / (1 + fabsf(ol) * 0.6f); out[i * 2 + 1] = orr / (1 + fabsf(orr) * 0.6f); // soft clip
     }
-    float m = musicSample() * mv;
-    float o = s * sv + m;
-    o = o / (1 + fabsf(o) * 0.6f); // soft clip
-    out[i * 2] = o; out[i * 2 + 1] = o;
   }
   gClock += frames / (double)gRate;
 }

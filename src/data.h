@@ -99,7 +99,7 @@ extern int gMinibosses[MAP_COUNT][2];
 extern int gBosses[MAP_COUNT][3];
 
 // ---------------- characters ----------------
-enum CharId { C_FOX, C_NINJA, C_CALCIUM, C_MONKE, C_OGRE, C_COUNT };
+enum CharId { C_FOX, C_NINJA, C_CALCIUM, C_MONKE, C_OGRE, C_ROCCO, C_BRAMBLE, C_SIZZLE, C_DIGBY, C_HOOT, C_COUNT };
 struct CharDef { const char* name; int weapon; const char* passive; const char* passiveDesc; std::vector<StatMod> stats; int model; IconRecipe icon; const char* blurb; };
 extern std::vector<CharDef> gChars;
 
@@ -117,7 +117,7 @@ enum { ICON_WEAPON0 = 0, ICON_TOME0 = 32, ICON_ITEM0 = 64, ICON_PU0 = 160, ICON_
 enum UIIcon {
   UI_CLOCK, UI_SILVER, UI_GOLD, UI_SKULL, UI_HEART, UI_SHIELD, UI_STAR, UI_PAUSE, UI_MAP, UI_JUMP, UI_SLIDE, UI_INTERACT,
   UI_GEAR, UI_CROWN, UI_REROLL, UI_SKIP, UI_BANISH, UI_TROPHY, UI_LOCK, UI_XP, UI_HOURGLASS, UI_PORTAL, UI_SWORD, UI_ARROWUP,
-  UI_CHAR0, UI_COUNT = UI_CHAR0 + 5
+  UI_CHAR0, UI_COUNT = UI_CHAR0 + C_COUNT
 };
 std::vector<IconRecipe> buildIconList();
 void dataInit();
