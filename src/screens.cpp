@@ -43,7 +43,7 @@ void App::drawTitle() {
   u.text(cx, ty + 12 * sc + 2, (hh ? (plat.deviceName.empty() ? std::string("HANDHELD") : plat.deviceName) : std::string("MOBILE")) + "  •  survivors 3D low-poly", 1, Col(220, 200, 255), AL_CENTER);
   float bw = hh ? 170 : 150, bh = 22, by = ty + 12 * sc + 18;
   Col cb(70, 70, 120, 235);
-  if (u.button(cx - bw / 2, by, bw, bh, tr("PLAY"), Col(60, 150, 70, 240), 1.5f, on) || (on && padStart)) scr = SCR_CHARS;
+  if (u.button(cx - bw / 2, by, bw, bh, tr("PLAY"), Col(60, 150, 70, 240), 1.5f, on) || (on && padStart)) scr = SCR_MODES;
   by += bh + 5;
   if (u.button(cx - bw / 2, by, bw, bh, tr("CATALOG"), cb, 1, on)) { scr = SCR_CATALOG; scrollY[1] = 0; }
   by += bh + 5;
@@ -93,7 +93,7 @@ void App::drawChars() {
     if (sel) u.nextFlags = FOCUS_DEFAULT;
     bool ck = u.clicked(x, y, cw, ch);
     if (u.isFocus(x, y, cw, ch)) selChar = i;                       // gamepad: moving the focus selects
-    if (ck) { selChar = i; audioPlay(SFX_CLICK); if (u.padMode) scr = SCR_MAP; }
+    if (ck) { selChar = i; audioPlay(SFX_CLICK); if (u.padMode) charsNext(); }
   }
   // details: passive, starting weapon, blurb | base stats
   const CharDef& c = gChars[selChar];
@@ -106,8 +106,115 @@ void App::drawChars() {
   float sx = L + Wd * 0.62f, sy = dy + 5;
   u.text(sx, sy, tr("Stats"), 1, CYAN); sy += 12;
   for (auto& m : c.stats) { u.text(sx, sy, u.fit(statValueStr(m.stat, m.v) + " " + tr(kStats[m.stat].name), R - sx - 4), 1, m.v >= 0 ? GREEN : RED); sy += 11; if (sy > dy + dh - 8) break; }
-  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_TITLE;
-  if (u.button(R - 120, u.H - 28, 120, 22, tr("NEXT"), Col(60, 150, 70, 240)) || padStart) scr = SCR_MAP;
+  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_MODES;
+  if (u.button(R - 120, u.H - 28, 120, 22, selMode == MODE_BOSSRUSH ? tr("START!") : tr("NEXT"), Col(60, 150, 70, 240)) || padStart) charsNext();
+}
+
+void App::charsNext() {
+  if (selMode == MODE_BOSSRUSH) { save(); startRun(); } else scr = SCR_MAP;
+}
+void App::modeNext() {
+  meta.lastMode = selMode;
+  if (selMode == MODE_DAILY) { save(); startRun(); }
+  else scr = selMode == MODE_GAUNTLET ? SCR_MAP : SCR_CHARS;
+}
+
+// ================================================================== MODE SELECT
+void App::drawModes() {
+  UI& u = ui;
+  bgDim(0.4f);
+  bool nar = narrow();
+  float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
+  u.text(u.W * 0.5f, nar ? 5 : 8, tr("GAME MODE"), nar ? 1.5f : 2, WHITE, AL_CENTER);
+  const int cols = nar ? 2 : 3, rows = (MODE_COUNT + cols - 1) / cols;
+  float gap = 4, cw = (Wd - (cols - 1) * gap) / cols, ch = nar ? 30 : 34, y0 = nar ? 23 : 30;
+  for (int i = 0; i < MODE_COUNT; i++) {
+    const ModeDef& m = kModes[i];
+    float x = L + (i % cols) * (cw + gap), y = y0 + (i / cols) * (ch + gap);
+    bool sel = i == selMode;
+    Col mc = hexc(m.color);
+    u.panel(x, y, cw, ch, sel ? Col(70, 50, 110, 240) : Col(20, 14, 30, 220), sel ? GOLD : Col(mc.r, mc.g, mc.b, 110));
+    u.icon(m.icon, x + 4, y + (ch - 20) * 0.5f, 20, sel ? WHITE : Col(230, 230, 230));
+    u.text(x + 28, y + 4, m.name, 1, sel ? GOLD : WHITE);
+    u.textRaw(x + 28, y + 16, u.fit(tr(m.tagline), cw - 32), 1, sel ? Col(230, 220, 255) : GREY, AL_LEFT);
+    if (sel) u.nextFlags = FOCUS_DEFAULT;
+    bool ck = u.clicked(x, y, cw, ch);
+    if (u.isFocus(x, y, cw, ch)) selMode = i;
+    if (ck) { selMode = i; audioPlay(SFX_CLICK); if (u.padMode) { modeNext(); return; } }
+  }
+  // details
+  const ModeDef& m = kModes[selMode];
+  float dy = y0 + rows * (ch + gap) + 1, dh = u.H - dy - 32;
+  u.panel(L, dy, Wd, dh);
+  float yy = dy + 5 + u.textBox(L + 8, dy + 5, Wd - 16, m.desc, 1, WHITE, AL_LEFT, 11) + 3;
+  auto info = [&](const std::string& s, Col c) { if (yy + 10 <= dy + dh - 2) { u.textRaw(L + 8, yy, u.fit(s, Wd - 16), 1, c, AL_LEFT); yy += 11; } };
+  u32 mask = selMode == MODE_DAILY ? 0u : (u32)meta.mutators;
+  if (selMode == MODE_DAILY) {
+    DailySetup d = dailySetup(dailyKeyToday()); mask = d.mutators;
+    info(fmt(tr("Today: %s on %s"), gChars[d.character].name, gMaps[d.map].name), GOLD);
+    if (meta.dailyKey == d.key && meta.dailyBest > 0) info(fmt(tr("Best score today: %d"), meta.dailyBest), CYAN);
+  } else if (selMode == MODE_ENDLESS) {
+    info(fmt(tr("Best: Forest %s  Desert %s  Graveyard %s"), fmtTime(meta.endlessBest[0]).c_str(), fmtTime(meta.endlessBest[1]).c_str(), fmtTime(meta.endlessBest[2]).c_str()), CYAN);
+  } else if (selMode == MODE_BOSSRUSH) {
+    if (meta.bossRushBest > 0) info(fmt(tr("Best: %d/%d bosses"), meta.bossRushBest, BOSSRUSH_ROUNDS + 1), CYAN);
+  }
+  if (mask) {
+    std::string names; for (int i = 0; i < MU_COUNT; i++) if (mask & (1u << i)) names += (names.empty() ? "" : ", ") + std::string(tr(kMutators[i].name));
+    info(std::string(tr("Mutators: ")) + names, Col(255, 200, 120));
+  }
+  if (u.button(L, u.H - 28, 80, 22, tr("BACK"), Col(70, 70, 120, 235))) { scr = SCR_TITLE; save(); }
+  bool canMut = selMode != MODE_DAILY;
+  float mw = nar ? 118 : 150;
+  std::string ml = meta.mutators && canMut ? fmt(tr("MUTATORS (%d)"), mutatorCount((u32)meta.mutators)) : std::string(tr("MUTATORS"));
+  if (u.button(u.W * 0.5f - mw * 0.5f, u.H - 28, mw, 22, ml, Col(110, 70, 30, 235), 1, canMut)) { scr = SCR_MUTATORS; mutPage = 0; }
+  if (u.button(R - 100, u.H - 28, 100, 22, selMode == MODE_DAILY ? tr("START!") : tr("NEXT"), Col(60, 150, 70, 240)) || padStart) modeNext();
+}
+
+// ================================================================== MUTATORS
+void App::drawMutators() {
+  UI& u = ui;
+  bgDim(0.5f);
+  bool nar = narrow();
+  float L = 8 + u.safeL, R = u.W - 8 - u.safeR, Wd = R - L;
+  u.text(u.W * 0.5f, nar ? 5 : 8, tr("MUTATORS"), nar ? 1.5f : 2, WHITE, AL_CENTER);
+  const int cols = nar ? 2 : 3, rowsPer = 4, per = cols * rowsPer, pages = (MU_COUNT + per - 1) / per;
+  if (padTab) { mutPage = (mutPage + padTab + pages) % pages; audioPlay(SFX_CLICK); ui.resetFocus(); }
+  mutPage = clampi(mutPage, 0, pages - 1);
+  float gap = 3, cw = (Wd - (cols - 1) * gap) / cols, ch = nar ? 25 : 30, y0 = nar ? 23 : 30;
+  u32& mask = *(u32*)&meta.mutators;
+  for (int k = 0; k < per; k++) {
+    int i = mutPage * per + k; if (i >= MU_COUNT) break;
+    const MutatorDef& m = kMutators[i];
+    float x = L + (k % cols) * (cw + gap), y = y0 + (k / cols) * (ch + gap);
+    bool on = mask & (1u << i);
+    u.panel(x, y, cw, ch, on ? Col(40, 90, 50, 240) : Col(20, 14, 30, 220), on ? GREEN : Col(255, 255, 255, 50));
+    float is = ch - 8;
+    u.icon(m.icon, x + 4, y + 4, is, on ? WHITE : Col(170, 170, 180));
+    std::string tag = m.silverPct ? fmt("+%d%%", m.silverPct) : std::string();
+    float tw = tag.empty() ? 0 : u.textWRaw(tag, 1) + 14;
+    u.textRaw(x + is + 8, y + (ch - 9) * 0.5f, u.fit(tr(m.name), cw - is - 12 - tw), 1, on ? Col(200, 255, 200) : WHITE, AL_LEFT);
+    if (!tag.empty()) { u.icon(ICON_UI0 + UI_SILVER, x + cw - tw, y + (ch - 9) * 0.5f, 9); u.textRaw(x + cw - 3, y + (ch - 9) * 0.5f, tag, 1, SILV, AL_RIGHT); }
+    if (k == 0) u.nextFlags = FOCUS_DEFAULT;
+    bool ck = u.clicked(x, y, cw, ch);
+    if (u.isFocus(x, y, cw, ch)) mutFocus = i;
+    if (ck) { mask ^= 1u << i; mutFocus = i; audioPlay(on ? SFX_DENY : SFX_POWERUP); }
+  }
+  // description of the focused / last toggled mutator
+  float dy = y0 + rowsPer * (ch + gap) + 1, dh = u.H - dy - 32;
+  u.panel(L, dy, Wd, dh);
+  const MutatorDef& f = kMutators[clampi(mutFocus, 0, MU_COUNT - 1)];
+  u.text(L + 8, dy + 5, f.name, 1, GOLD);
+  u.textBox(L + 8, dy + 17, Wd - 16, f.desc, 1, WHITE, AL_LEFT, 11);
+  int sp = mutatorSilverPct(mask);
+  u.textRaw(R - 6, dy + 5, fmt(tr("%d active  •  silver +%d%%"), mutatorCount(mask), sp), 1, SILV, AL_RIGHT);
+  // footer: back, page switcher, clear
+  if (u.button(L, u.H - 28, 72, 22, tr("BACK"), Col(70, 70, 120, 235))) { scr = SCR_MODES; save(); }
+  float pw = nar ? 30 : 36, px = u.W * 0.5f - pw - 26;
+  if (u.button(px, u.H - 28, pw, 22, "<", Col(50, 44, 70, 235))) { mutPage = (mutPage + pages - 1) % pages; }
+  u.textRaw(u.W * 0.5f, u.H - 22, fmt("%d/%d", mutPage + 1, pages), 1, WHITE, AL_CENTER);
+  if (u.button(u.W * 0.5f + 26, u.H - 28, pw, 22, ">", Col(50, 44, 70, 235))) { mutPage = (mutPage + 1) % pages; }
+  if (u.button(R - 72, u.H - 28, 72, 22, tr("CLEAR"), Col(120, 50, 60, 235), 1, mask != 0)) mask = 0;
+  if (padStart) { scr = SCR_MODES; save(); }
 }
 
 // ================================================================== MAP SELECT
@@ -141,6 +248,14 @@ void App::drawMap() {
     u.text(x + tw * 0.5f, y + 23, tierInfo[t], 1, t == selTier ? GOLD : DIM, AL_CENTER);
   }
   y += 38;
+  if (selMode == MODE_ENDLESS || selMode == MODE_SHRINEHUNT) {   // fixed timing in these modes
+    u.panel(L, y, Wd, 30);
+    u.text(L + 8, y + 5, kModes[selMode].name, 1, CYAN);
+    u.textRaw(L + 8, y + 17, u.fit(selMode == MODE_ENDLESS ? tr("No timer: a boss every 5 minutes, no exit") : tr("6 minutes per stage, packed with chests and shrines"), Wd - 16), 1, GREY, AL_LEFT);
+    if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_CHARS;
+    if (u.button(R - 130, u.H - 28, 130, 22, tr("START!"), Col(60, 150, 70, 240), 1.5f) || padStart) { save(); startRun(); }
+    return;
+  }
   // stage timer (main request: adjustable, default 15 min)
   u.panel(L, y, Wd, nar ? 60 : 44);
   u.text(L + 8, y + 6, tr("TIME PER STAGE"), 1, CYAN);
@@ -154,7 +269,7 @@ void App::drawMap() {
   float tgw = nar ? (Wd - 12) / 2 : 96, tx0 = nar ? L + 4 : R - 100, tx1 = nar ? L + 8 + tgw : R - 100, ty0 = nar ? y + 40 : y + 3, ty1 = nar ? y + 40 : y + 23;
   if (u.button(tx0, ty0, tgw, 16, set.swarmMode == 0 ? tr("Swarm: at the end") : tr("Swarm: after boss"), Col(50, 44, 70, 235))) set.swarmMode ^= 1;
   if (u.button(tx1, ty1, tgw, 16, set.scaleStages ? tr("Scale: YES") : tr("Scale: NO"), Col(50, 44, 70, 235))) set.scaleStages = !set.scaleStages;
-  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = SCR_CHARS;
+  if (u.button(L, u.H - 28, 90, 22, tr("BACK"), Col(70, 70, 120, 235))) scr = selMode == MODE_GAUNTLET ? SCR_MODES : SCR_CHARS;
   if (u.button(R - 130, u.H - 28, 130, 22, tr("START!"), Col(60, 150, 70, 240), 1.5f) || padStart) { save(); startRun(); }
 }
 
@@ -687,6 +802,8 @@ void App::drawHUD() {
   std::string quest; bool done = false;
   if (g.finalArena) quest = tr("Defeat the Ghost King");
   else if (g.cfg.map == MAP_GRAVEYARD && g.cryptKeys < 4) quest = fmt(tr("Crypt Keys %d/4"), g.cryptKeys);
+  else if (g.cfg.mode == MODE_ENDLESS) quest = meta.endlessBest[g.cfg.map] > 0 ? fmt(tr("Survive!  Best %s"), fmtTime(meta.endlessBest[g.cfg.map]).c_str()) : std::string(tr("Survive!"));
+  else if (g.cfg.mode == MODE_BOSSRUSH && !g.bossDefeated) quest = fmt(tr("Boss %d/%d"), g.stage + 1, g.numStages + 1);
   else if (!g.bossSummoned) quest = tr("Find the Boss");
   else if (!g.bossDefeated) quest = fmt(tr("Defeat the boss (%d)"), g.bossesAlive);
   else { quest = tr("Enter the portal"); done = false; }
@@ -1006,7 +1123,14 @@ void App::drawEnd() {
   if (!recorded || who != &g) {
     recorded = true; who = &g;
     meta.silver += P.silver; meta.totalKills += P.kills; meta.bestKills = std::max(meta.bestKills, P.kills);
-    if (g.state == GS_VICTORY) { meta.wins++; float& bt = meta.bestTime[g.cfg.map][g.cfg.tier]; if (bt <= 0 || g.runTime < bt) bt = g.runTime; }
+    if (g.state == GS_VICTORY) { meta.wins++; if (g.cfg.mode == MODE_NORMAL) { float& bt = meta.bestTime[g.cfg.map][g.cfg.tier]; if (bt <= 0 || g.runTime < bt) bt = g.runTime; } }
+    if (g.cfg.mode == MODE_DAILY) {
+      lastDailyScore = dailyScore(P.kills, P.level, g.state == GS_VICTORY, g.runTime);
+      if (meta.dailyKey != runDailyKey) { meta.dailyKey = runDailyKey; meta.dailyBest = 0; }
+      meta.dailyBest = std::max(meta.dailyBest, lastDailyScore);
+    }
+    if (g.cfg.mode == MODE_ENDLESS) { float& eb = meta.endlessBest[clampi(g.cfg.map, 0, 2)]; eb = std::max(eb, g.runTime); }
+    if (g.cfg.mode == MODE_BOSSRUSH) meta.bossRushBest = std::max(meta.bossRushBest, g.bossesBeaten);
     save();
   }
   bgDim(sat(g.deathT * 1.5f) * 0.75f);
@@ -1018,7 +1142,12 @@ void App::drawEnd() {
   auto line = [&](const std::string& a, const std::string& b, Col c = WHITE) { u.text(L + 6, y, a, 1, GREY); u.text(L + Wd * 0.45f - 6, y, b, 1, c, AL_RIGHT); y += 12; };
   line(tr("Character"), gChars[P.ch].name, GOLD);
   line(tr("Map"), fmt(narrow() ? "%s T%d" : tr("%s (Tier %d)"), gMaps[g.cfg.map].name, g.cfg.tier + 1));
-  line(tr("Stage"), fmt("%d/%d", g.stage + 1, g.numStages));
+  if (g.cfg.mode != MODE_NORMAL) line(tr("Mode"), tr(kModes[g.cfg.mode].name), Col(255, 200, 120));
+  if (g.cfg.mode == MODE_DAILY) line(tr("Score"), fmt("%d (%s %d)", lastDailyScore, tr("best"), meta.dailyBest), CYAN);
+  else if (g.cfg.mode == MODE_BOSSRUSH) line(tr("Bosses"), fmt("%d/%d", g.bossesBeaten, BOSSRUSH_ROUNDS + 1), CYAN);
+  else if (g.cfg.mode == MODE_ENDLESS) line(tr("Best"), fmtTime(meta.endlessBest[clampi(g.cfg.map, 0, 2)]), CYAN);
+  else line(tr("Stage"), fmt("%d/%d", g.stage + 1, g.numStages));
+  if (g.cfg.mutators) line(tr("Mutators"), fmt("%d (+%d%%)", mutatorCount(g.cfg.mutators), mutatorSilverPct(g.cfg.mutators)), Col(255, 200, 120));
   line(tr("Time"), fmtTime(g.runTime));
   line(tr("Level"), fmt("%d", P.level));
   line(tr("Kills"), fmtNum(P.kills));

@@ -22,6 +22,8 @@ void App::save() {
   fprintf(f, "silver=%d\nruns=%d\nwins=%d\ntotalKills=%d\nbestKills=%d\nupReroll=%d\nupSkip=%d\nupBanish=%d\nupHp=%d\nupLuck=%d\nlastChar=%d\nlastMap=%d\nlastTier=%d\n",
           m.silver, m.runs, m.wins, m.totalKills, m.bestKills, m.upReroll, m.upSkip, m.upBanish, m.upHp, m.upLuck, m.lastChar, m.lastMap, m.lastTier);
   for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) fprintf(f, "best_%d_%d=%.0f\n", a, b, m.bestTime[a][b]);
+  fprintf(f, "lastMode=%d\nmutators=%d\ndailyKey=%d\ndailyBest=%d\nbossRushBest=%d\n", m.lastMode, m.mutators, m.dailyKey, m.dailyBest, m.bossRushBest);
+  for (int a = 0; a < 3; a++) fprintf(f, "endless_%d=%.0f\n", a, m.endlessBest[a]);
   fclose(f);
 }
 
@@ -42,10 +44,15 @@ bool App::load() {
     F_(camSens) F_(joySize) F_(uiScale) F_(ctrlAlpha) B_(leftHanded) B_(vibration) B_(invertY) F_(music) F_(sfx) B_(showFps)
     M_(silver) M_(runs) M_(wins) M_(totalKills) M_(bestKills) M_(upReroll) M_(upSkip) M_(upBanish) M_(upHp) M_(upLuck) M_(lastChar) M_(lastMap) M_(lastTier)
     for (int a = 0; a < 3; a++) for (int b = 0; b < 3; b++) if (k == fmt("best_%d_%d", a, b)) m.bestTime[a][b] = v;
+    M_(lastMode) M_(dailyBest) M_(bossRushBest)
+    if (k == "mutators") m.mutators = (int)strtoul(eq + 1, nullptr, 10);
+    if (k == "dailyKey") m.dailyKey = atoi(eq + 1);
+    for (int a = 0; a < 3; a++) if (k == fmt("endless_%d", a)) m.endlessBest[a] = v;
   }
   fclose(f);
   set.lang = clampi(set.lang, 0, LANG_COUNT - 1); i18nSet(set.lang);
   selChar = clampi(meta.lastChar, 0, C_COUNT - 1); selMap = clampi(meta.lastMap, 0, MAP_COUNT - 1); selTier = clampi(meta.lastTier, 0, 2);
+  selMode = clampi(meta.lastMode, 0, MODE_COUNT - 1); meta.mutators &= (int)((1u << MU_COUNT) - 1);
   return true;
 }
 
@@ -61,14 +68,27 @@ void App::startRun() {
   c.seed = (u32)time(nullptr) ^ (u32)(fpsFrames * 2654435761u);
   c.rerolls = 2 + meta.upReroll; c.skips = 2 + meta.upSkip; c.banishes = 2 + meta.upBanish;
   c.maxEnemies = set.maxEnemies; c.autoBhop = set.autoBhop; c.instantChests = set.instantChests;
+  c.mode = selMode; c.mutators = (u32)meta.mutators;
+  switch (selMode) {
+    case MODE_DAILY: {
+      DailySetup d = dailySetup(dailyKeyToday()); runDailyKey = d.key;
+      c.map = d.map; c.tier = 0; c.character = d.character; c.seed = d.seed; c.mutators = d.mutators;
+      c.stageMinutes = 10; c.scaleStages = true; c.swarmMode = 0;
+    } break;
+    case MODE_BOSSRUSH: c.map = MAP_FOREST; c.tier = 0; c.stageMinutes = 0; c.scaleStages = false; c.swarmMode = 0; break;
+    case MODE_ENDLESS: c.stageMinutes = 0; break;
+    case MODE_GAUNTLET: c.character = (int)(hash32(c.seed) % C_COUNT); break;
+    case MODE_SHRINEHUNT: c.stageMinutes = 6; c.scaleStages = false; break;
+    default: break;
+  }
   game.start(c);
   game.P.shrineBonus[S_MAXHP] += 10.f * meta.upHp; game.P.shrineBonus[S_LUCK] += 3.f * meta.upLuck;
   game.recomputeStats(); game.P.hp = game.P.st[S_MAXHP];
   applySettingsToGame(game);
   game.autoPilot = false;
   scr = SCR_GAME; inRun = true; paused = false; aqWarm = aqAcc = 0; aqFrames = 0;
-  meta.runs++; meta.lastChar = selChar; meta.lastMap = selMap; meta.lastTier = selTier; save();
-  audioMusic(1 + selMap);
+  meta.runs++; meta.lastChar = selChar; meta.lastMap = selMap; meta.lastTier = selTier; meta.lastMode = selMode; save();
+  audioMusic(1 + game.cfg.map);
 }
 
 void App::updateMenuGame(float dt) {
@@ -107,7 +127,8 @@ void App::back() {
   }
   if (scr == SCR_SETTINGS) { scr = settingsBack; save(); return; }
   if (scr == SCR_TITLE) { confirmQuit = !confirmQuit; return; }
-  if (scr == SCR_MAP) { scr = SCR_CHARS; return; }
+  if (scr == SCR_MAP) { scr = selMode == MODE_GAUNTLET ? SCR_MODES : SCR_CHARS; return; }
+  if (scr == SCR_CHARS || scr == SCR_MUTATORS) { scr = SCR_MODES; save(); return; }
   if (scr == SCR_CREDITS) { scr = SCR_ABOUT; return; }
   scr = SCR_TITLE;
 }
@@ -198,7 +219,7 @@ void App::frame(float dt) {
 #ifdef __ANDROID__
   static int lastScr = -1;
   if ((int)scr != lastScr) {
-    static const char* kScrNames[] = {"TITLE", "CHARS", "MAP", "SETTINGS", "SHOP", "ABOUT", "CATALOG", "GAME"};
+    static const char* kScrNames[] = {"TITLE", "CHARS", "MAP", "SETTINGS", "SHOP", "ABOUT", "CATALOG", "GAME", "CREDITS", "MODES", "MUTATORS"};
     LOGI("screen %s -> %s", lastScr < 0 ? "-" : kScrNames[lastScr], kScrNames[(int)scr]);
     lastScr = (int)scr;
   }
@@ -225,6 +246,8 @@ void App::frame(float dt) {
     audioMusic(0);
     switch (scr) {
       case SCR_TITLE: drawTitle(); break;
+      case SCR_MODES: drawModes(); break;
+      case SCR_MUTATORS: drawMutators(); break;
       case SCR_CHARS: drawChars(); break;
       case SCR_MAP: drawMap(); break;
       case SCR_SETTINGS: drawSettings(); break;
