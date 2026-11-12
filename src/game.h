@@ -3,6 +3,7 @@
 #include "base.h"
 #include "data.h"
 #include "world.h"
+#include "modes.h"
 #include "models.h"
 
 struct Renderer;
@@ -25,6 +26,7 @@ struct Enemy {
   int type = 0, id = 0; u8 rank = 0; bool elite = false, challenge = false, alive = true, flying = false, invuln = false;
   float animT = 0, animPhase = 0, clipT = 0; u8 clip = CL_MOVE;
   float atkCd = 0, hitFlash = 0, spawnT = 0, deathT = 0;
+  bool split = false; float blinkCd = 0;   // Cell Division / Blink Foes mutators
   float freezeT = 0, slowT = 0, stunT = 0, poisonDps = 0, poisonT = 0, burnDps = 0, burnT = 0, curseDps = 0, curseT = 0, airT = 0; int bleed = 0; float bleedT = 0;
   float hitCd[8] = {0};
   float aiT = 0, aiT2 = 0; int aiState = 0; v3 aiVec; float hover = 1.4f;
@@ -62,6 +64,7 @@ struct RunConfig {
   float stageMinutes = 15; bool scaleStages = true; int swarmMode = 0; // 0 auto when timer ends, 1 only after the boss is defeated
   u32 seed = 1; int rerolls = 2, skips = 2, banishes = 2; int maxEnemies = 300; bool autoBhop = false; bool instantChests = false;
   bool godMode = false;
+  int mode = MODE_NORMAL; u32 mutators = 0; int baseMap = MAP_FOREST, baseTier = 0;   // map/tier above follow the current stage in rotating modes
 };
 
 struct Input { v2 move; bool jump = false, jumpHeld = false, slide = false, interact = false; float camDX = 0, camDY = 0; bool camManual = false; };
@@ -75,6 +78,8 @@ struct Player {
   int chestsOpened = 0; float demonicBlood = 0; int demonicKills = 0, joesExec = 0; float rageT = 0, shieldT = 0, goldT = 0, phantomT = 0, cowardT = 0, zaT = 0; bool nextDouble = false, nextCrit = false;
   float diceCrit = 0, bloodMagicHp = 0, greedDiff = 0; int rerolls = 2, skips = 2, banishes = 2; std::vector<int> banishedW, banishedT;
   float regenAcc = 0, sneakAcc = 0;
+  float roulette[S_COUNT] = {0}; float rouletteT = 0;   // Stat Roulette mutator
+  int streak = 0, streakTier = 0; float streakT = 0;     // Kill Streak mutator
 };
 
 struct Game {
@@ -92,6 +97,7 @@ struct Game {
   std::vector<int> egHead, egNext; float egCell = 2.5f; int egN = 0; float egOrigin = 0;
   float statsDirtyT = 0; bool statsDirty = true; int animFps = 12; float shakeSetting = 1; bool dmgNumbers = true; int totalSilverEarned = 0;
   float swarmWarnT = 0; int lastKillMilestone = 0; float announceT = 0; float eliteT = 0; std::string lastHitBy; float lastHitDmg = 0;
+  float endlessBossT = 0; int bossesBeaten = 0, endlessCycle = 0, monoType = -1; std::vector<int> gauntletSeen;
   float fovDeg = 62; bool shadowsOn = true; int worldGen = 0; float playerAnimT = 0, lastRenderT = 0; float stormK = 0; int particleLevel = 2;
 
   void start(const RunConfig& c);
@@ -161,6 +167,17 @@ struct Game {
   std::string interLabel(int idx) const;
   int interCost(int idx) const;
   float stageDuration(int s) const;
+  bool mut(int m) const { return (cfg.mutators >> m) & 1u; }
+  bool rotating() const { return cfg.mode == MODE_BOSSRUSH || cfg.mode == MODE_GAUNTLET; }
+  void setupStageFor(int s);      // map/tier of stage s in rotating modes
+  void gauntletSwap();            // Hero Gauntlet: new random hero at the start of each stage after the first
+  void updateModes(float dt);     // Endless bosses, Stat Roulette, Kill Streak
+  void shuffleWeapons();          // Weapon Shuffle mutator
+  void surprisePot(v3 at);        // Surprise Pots mutator
+  bool weaponAllowed(int w) const;
+  int maxWeapons() const { return mut(MU_SPECIALIST) ? 1 : MAX_WEAPONS; }
+  // difficulty clock: Endless keeps climbing, Boss Rush uses a fixed level per round (its rounds have no timer)
+  float uCap(float c) const { return cfg.mode == MODE_ENDLESS ? std::min(u(), 4.f) : cfg.mode == MODE_BOSSRUSH ? 0.15f + 0.09f * stage : std::min(u(), c); }
 };
 
 template <class F> void Game::forEnemiesNear(v3 p, float r, F f) {

@@ -39,7 +39,8 @@ void Game::render(Renderer& R) {
     Col ta(255, 255, 255, 0);
     if (P.shieldT > 0) ta = Col(120, 220, 255, 120);
     if (P.rageT > 0) ta = Col(255, 90, 90, 110);
-    R.model(pm, frame, P.pos, q4::yaw(P.yaw), v3(1, 1, 1), flash, ta);
+    float ps = mut(MU_GIANT) ? 1.35f : mut(MU_POCKET) ? 0.62f : 1.f;
+    R.model(pm, frame, P.pos, q4::yaw(P.yaw), v3(ps, ps, ps), flash, ta);
     if (shadowsOn) R.decal(v3(P.pos.x, 0, P.pos.z), 0.65f, SP_SHADOW, Col(0, 0, 0, 120), 0, std::max(0.f, P.pos.y - world.T.height(P.pos.x, P.pos.z)) * 0);
     if (P.shieldT > 0) R.model(M_FX_SPHERE, 0, P.pos + v3(0, 1, 0), q4(), v3(1.3f, 1.3f, 1.3f), 0, Col(120, 220, 255, 70));
   }

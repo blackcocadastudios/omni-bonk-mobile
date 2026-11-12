@@ -49,8 +49,27 @@ void Game::lightning(v3 at, float dmg, int src, float r, float stun) {
   audioPlay(SFX_ZAP);
 }
 
+static void mutatorOnHit(Game& g, Enemy& e) {
+  if (!e.alive || e.rank != RK_NORMAL) return;
+  if (g.mut(MU_SPLIT) && !e.split && e.hp < e.maxHp * 0.5f && e.hp > 0 && (int)g.enemies.size() < g.cfg.maxEnemies + 40) {
+    e.split = true; e.maxHp *= 0.5f; e.hp = std::min(e.hp, e.maxHp); e.scale *= 0.8f; e.radius *= 0.8f;
+    Enemy copy = e; copy.id = g.nextId++; copy.pos = e.pos + v3(g.rng.range(-1.f, 1.f), 0, g.rng.range(-1.f, 1.f)); copy.hp = e.maxHp; copy.spawnT = 0.06f;
+    if (g.enemies.size() < g.enemies.capacity()) g.enemies.push_back(copy);   // capacity is reserved: e stays valid
+  }
+  if (g.mut(MU_BLINK) && e.blinkCd <= 0 && e.hp > 0 && g.rng.chance(0.2f)) {
+    e.blinkCd = 2.5f;
+    g.particles(e.pos + v3(0, 1, 0), 8, Col(190, 120, 255), 4, 0.25f, 0.4f);
+    float a = g.rng.f() * TAU, r = g.rng.range(5, 10);
+    v3 p = g.P.pos + v3(cosf(a) * r, 0, sinf(a) * r); float H = g.world.playableHalf();
+    p.x = clampf(p.x, -H, H); p.z = clampf(p.z, -H, H); p.y = g.world.T.height(p.x, p.z) + (e.flying ? e.hover : 0);
+    e.pos = p; e.vel = v3(); e.knock = v3();
+    g.particles(e.pos + v3(0, 1, 0), 8, Col(190, 120, 255), 4, 0.25f, 0.4f);
+  }
+}
+
 void Game::hitEnemy(Enemy& e, float dmg, int src, float procCoef, float critAdd, v3 from, float knock, bool canCrit, bool noProc) {
   if (!e.alive || e.spawnT < 0.05f) return;
+  struct AfterHit { Game& g; Enemy& e; ~AfterHit() { if (g.cfg.mutators & ((1u << MU_SPLIT) | (1u << MU_BLINK))) mutatorOnHit(g, e); } } afterHit{*this, e};
   if (e.invuln) { if (rng.chance(0.1f)) floatText(e.pos + v3(0, e.scale * 2.5f, 0), tr("IMMUNE"), Col(200, 200, 255), 0.8f); return; }
   Player& p = P;
   float m = p.st[S_DAMAGE];
@@ -129,6 +148,11 @@ void Game::killEnemy(Enemy& e, int src) {
   const EnemyDef& d = gEnemies[e.type];
   P.kills++;
   if (src >= 0 && src < (int)P.weapons.size()) P.weapons[src].kills++;
+  if (mut(MU_STREAK)) { P.streak++; P.streakT = 2.f; }
+  if (mut(MU_VOLATILE) && e.rank == RK_NORMAL && !finalSwarm && projs.size() < 700 && rng.chance(0.35f)) {
+    float a0 = rng.f() * TAU;
+    for (int k = 0; k < 4; k++) { float a = a0 + k * TAU / 4; Projectile& pr = addProj(); pr.enemy = true; pr.kind = PK_ENEMY; pr.model = M_P_ENEMYBALL; pr.pos = e.pos + v3(0, 0.8f, 0); pr.vel = v3(sinf(a), 0, cosf(a)) * 5.f; pr.life = pr.maxLife = 2.2f; pr.dmg = e.dmg * 0.5f; pr.radius = 0.4f; }
+  }
   float xpScale = (1 + 0.6f * stage + 0.4f * cfg.tier) * (1 + 0.25f * P.st[S_DIFFICULTY] / 100.f);
   float xp = d.xp * xpScale * (e.elite ? 6.f : 1.f);
   if (e.type == E_SWARMGHOST || e.type == E_GHOST_RED) xp *= finalSwarm ? 0.5f : 1.f;
@@ -184,6 +208,7 @@ void Game::damagePlayer(float dmg, Enemy* src, bool canDodge, bool kevin) {
     }
   }
   if (!kevin) dmg *= 100.f / (100.f + std::max(0.f, p.st[S_ARMOR]));
+  if (mut(MU_SHELL) && dmg > 0) dmg = 5.f;
   lastHitBy = kevin ? "Kevin" : src ? gEnemies[src->type].name : tr("projectile/area"); lastHitDmg = dmg;
   if (p.shield > 0) { float a = std::min(p.shield, dmg); p.shield -= a; dmg -= a; }
   if (kevin) { p.hp = std::max(1.f, p.hp - dmg); }
@@ -654,7 +679,7 @@ void Game::updateEnemies(float dt) {
     Enemy& e = enemies[ei];
     if (!e.alive) { e.deathT += dt; continue; }
     const EnemyDef& d = gEnemies[e.type];
-    e.spawnT += dt;
+    e.spawnT += dt; if (e.blinkCd > 0) e.blinkCd -= dt;
     if (e.hitFlash > 0) e.hitFlash -= dt;
     for (int k = 0; k < 8; k++) if (e.hitCd[k] > 0) e.hitCd[k] -= dt;
     if (e.atkCd > 0) e.atkCd -= dt;
