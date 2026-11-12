@@ -13,7 +13,7 @@ A 3D low-poly roguelite survivor. You are dropped into a map, your attacks fire 
 while you run, jump and slide. Level up, pick weapons, tomes and items, open chests, fight bosses and escape through the portal
 before the Final Swarm gets you.
 
-- 5 characters, 3 maps (Forest, Desert, Graveyard) with 3 tiers each
+- 10 characters, 3 maps (Forest, Desert, Graveyard) with 3 tiers each
 - 43 enemies and bosses, 30 weapons, 23 tomes, 86 items, shrines, shops and upgrade towers
 - Adjustable time per stage (default **15 minutes**; the original uses 10), optional Final Swarm, DPS meter, chest counter, auto bunny hop
 - 6 languages: English (default), Portuguese (BR), Spanish, French, Russian, German (Settings > Game > Language)
@@ -84,6 +84,12 @@ by itself, so you never have to dig through the menus:
 
 To go back to the full-quality settings, turn Auto quality off and set the values you want in Settings > Graphics (or delete
 `omnibonk/conf/omnibonk_save.txt`). You can also show the FPS counter there, or cap the frame rate at 30 for steadier pacing.
+
+## Optional music folder
+
+The package only contains the procedural chiptune. If you put your own OGG Vorbis files in `omnibonk/music/`
+(`menu.ogg`, `forest.ogg`, `desert.ogg`, `graveyard.ogg`, `boss.ogg`, `final.ogg`), the game streams them instead; any missing
+file keeps the chiptune. `scripts/build_music_pack.py` in the source repository prepares them (48 kHz, normalized loudness).
 
 ## Troubleshooting
 
